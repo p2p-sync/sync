@@ -1,5 +1,7 @@
 package org.rmatil.sync.core.listener;
 
+import org.rmatil.sync.commons.hashing.Hash;
+import org.rmatil.sync.commons.hashing.HashingAlgorithm;
 import org.rmatil.sync.event.aggregator.api.IEventListener;
 import org.rmatil.sync.event.aggregator.core.events.*;
 import org.rmatil.sync.persistence.exceptions.InputOutputException;
@@ -106,10 +108,17 @@ public class SyncFolderChangeListener implements IEventListener {
 
         try {
             logger.trace("Moving object for file (old: " + moveEvent.getPath().toString() + ", new: " + moveEvent.getNewPath().toString() + ")");
-            PathObject oldObject = this.versionManager.getObjectManager().getObject(event.getPath().toString());
-            PathObject newObject = new PathObject(oldObject.getName(), ((MoveEvent) event).getNewPath().toString(), oldObject.getPathType(), oldObject.isShared(), oldObject.getSharers(), oldObject.getVersions());
+            PathObject oldObject = this.versionManager.getObjectManager().getObject(Hash.hash(HashingAlgorithm.SHA_256, event.getPath().toString()));
+            PathObject newObject = new PathObject(
+                    oldObject.getName(),
+                    ((MoveEvent) event).getNewPath().toString(),
+                    oldObject.getPathType(),
+                    oldObject.isShared(),
+                    oldObject.getSharers(),
+                    oldObject.getVersions()
+            );
             this.versionManager.getObjectManager().writeObject(newObject);
-            this.versionManager.getObjectManager().removeObject(event.getPath().toString());
+            this.versionManager.getObjectManager().removeObject(Hash.hash(HashingAlgorithm.SHA_256, event.getPath().toString()));
         } catch (InputOutputException e) {
             logger.error("Could not move object for file " + event.getPath() + " in object store: " + e.getMessage());
         }

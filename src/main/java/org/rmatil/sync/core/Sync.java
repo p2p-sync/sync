@@ -1,5 +1,6 @@
 package org.rmatil.sync.core;
 
+import org.rmatil.sync.core.aggregator.HistoryMoveAggregator;
 import org.rmatil.sync.core.listener.SyncFolderChangeListener;
 import org.rmatil.sync.event.aggregator.api.IEventAggregator;
 import org.rmatil.sync.event.aggregator.core.EventAggregator;
@@ -51,6 +52,10 @@ public class Sync {
 
         this.eventAggregator.addModifier(ignorePathsModifier);
         this.eventAggregator.addModifier(relativePathModifier);
+
+        // add custom event aggregator which considers history
+        HistoryMoveAggregator aggr = new HistoryMoveAggregator(this.objectManager);
+        this.eventAggregator.addAggregator(aggr);
 
         this.eventAggregator.start();
     }
