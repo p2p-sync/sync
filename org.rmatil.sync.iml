@@ -20,12 +20,11 @@
     <orderEntry type="library" name="Maven: org.slf4j:slf4j-api:1.7.5" level="project" />
     <orderEntry type="library" name="Maven: log4j:log4j:1.2.17" level="project" />
     <orderEntry type="library" name="Maven: org.rmatil.sync.event.aggregator:sync-event-aggregator:0.1-SNAPSHOT" level="project" />
-    <orderEntry type="library" name="Maven: name.mitterdorfer.perlock:perlock-core:0.3.0" level="project" />
     <orderEntry type="library" name="Maven: org.rmatil.sync.version:sync-version:0.1-SNAPSHOT" level="project" />
     <orderEntry type="library" name="Maven: com.google.code.gson:gson:2.5" level="project" />
     <orderEntry type="library" name="Maven: org.apache.commons:commons-lang3:3.1" level="project" />
+    <orderEntry type="library" name="Maven: name.mitterdorfer.perlock:perlock-core:0.3.0" level="project" />
     <orderEntry type="library" name="Maven: org.rmatil.sync.locations:sync-locations:0.1-SNAPSHOT" level="project" />
-    <orderEntry type="library" name="Maven: org.rmatil.sync.encryption:sync-encryption:0.1-SNAPSHOT" level="project" />
     <orderEntry type="library" name="Maven: org.rmatil.sync.persistence:sync-persistence:0.1-SNAPSHOT" level="project" />
     <orderEntry type="library" name="Maven: net.tomp2p:tomp2p-dht:5.0-Beta6" level="project" />
     <orderEntry type="library" name="Maven: io.netty:netty-transport:4.0.25.Final" level="project" />
