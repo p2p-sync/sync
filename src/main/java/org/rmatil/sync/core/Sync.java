@@ -1,9 +1,9 @@
 package org.rmatil.sync.core;
 
-import org.rmatil.sync.core.aggregator.HistoryMoveAggregator;
 import org.rmatil.sync.core.listener.SyncFolderChangeListener;
 import org.rmatil.sync.event.aggregator.api.IEventAggregator;
 import org.rmatil.sync.event.aggregator.core.EventAggregator;
+import org.rmatil.sync.event.aggregator.core.aggregator.HistoryMoveAggregator;
 import org.rmatil.sync.event.aggregator.core.modifier.IgnorePathsModifier;
 import org.rmatil.sync.event.aggregator.core.modifier.RelativePathModifier;
 import org.rmatil.sync.event.aggregator.core.pathwatcher.PerlockPathWatcherFactory;
@@ -64,18 +64,22 @@ public class Sync {
         Path path = Paths.get("/tmp/sync-dir");
         Path syncDir = Paths.get("/tmp/sync-dir/.sync");
 
+
+
         try {
-            Files.createDirectory(path);
-            Files.createDirectory(syncDir);
+            if (! path.toFile().exists()) {
+                Files.createDirectory(path);
+            }
+            if (! syncDir.toFile().exists()) {
+                Files.createDirectory(syncDir);
+            }
         } catch (IOException e) {
             e.printStackTrace();
         }
 
         try {
             Sync sync = new Sync(path);
-        } catch (InputOutputException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
+        } catch (IOException | InputOutputException e) {
             e.printStackTrace();
         }
     }
