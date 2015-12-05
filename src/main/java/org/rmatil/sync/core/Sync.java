@@ -2,18 +2,16 @@ package org.rmatil.sync.core;
 
 import org.rmatil.sync.core.listener.SyncFolderChangeListener;
 import org.rmatil.sync.event.aggregator.api.IEventAggregator;
+import org.rmatil.sync.event.aggregator.api.IEventListener;
 import org.rmatil.sync.event.aggregator.core.EventAggregator;
 import org.rmatil.sync.event.aggregator.core.aggregator.HistoryMoveAggregator;
-import org.rmatil.sync.event.aggregator.core.modifier.IgnorePathsModifier;
-import org.rmatil.sync.event.aggregator.core.modifier.RelativePathModifier;
+import org.rmatil.sync.event.aggregator.core.aggregator.IAggregator;
+import org.rmatil.sync.event.aggregator.core.modifier.*;
 import org.rmatil.sync.event.aggregator.core.pathwatcher.PerlockPathWatcherFactory;
 import org.rmatil.sync.persistence.api.IStorageAdapter;
 import org.rmatil.sync.persistence.core.local.LocalStorageAdapter;
 import org.rmatil.sync.persistence.exceptions.InputOutputException;
-import org.rmatil.sync.version.api.IObjectManager;
-import org.rmatil.sync.version.api.IVersionManager;
-import org.rmatil.sync.version.core.ObjectManager;
-import org.rmatil.sync.version.core.VersionManager;
+import org.rmatil.sync.version.core.ObjectStore;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -24,47 +22,56 @@ import java.util.List;
 
 public class Sync {
 
-    protected IStorageAdapter objectStorageManager;
+    protected Path rootPath;
 
-    protected IObjectManager objectManager;
-
-    protected IVersionManager versionManager;
+    protected IStorageAdapter storageAdapter;
 
     protected IEventAggregator eventAggregator;
 
-    protected SyncFolderChangeListener syncFolderChangeListener;
-
     public Sync(Path rootPath)
             throws InputOutputException, IOException {
-        this.objectStorageManager = new LocalStorageAdapter(rootPath.resolve(".sync"));
-        this.objectManager = new ObjectManager("index.json", "object", this.objectStorageManager);
-        this.versionManager = new VersionManager(this.objectManager);
-        this.syncFolderChangeListener = new SyncFolderChangeListener(rootPath, this.versionManager);
-        this.eventAggregator = new EventAggregator(rootPath, new PerlockPathWatcherFactory());
-        this.eventAggregator.setAggregationInterval(5000L);
-        this.eventAggregator.addListener(this.syncFolderChangeListener);
+        this.rootPath = rootPath;
 
-        List<Path> ignoredPaths = new ArrayList<>();
-        ignoredPaths.add(rootPath.resolve(".sync"));
-        IgnorePathsModifier ignorePathsModifier = new IgnorePathsModifier(ignoredPaths);
-
-        RelativePathModifier relativePathModifier = new RelativePathModifier(rootPath);
-
-        this.eventAggregator.addModifier(ignorePathsModifier);
-        this.eventAggregator.addModifier(relativePathModifier);
-
-        // add custom event aggregator which considers history
-        HistoryMoveAggregator aggr = new HistoryMoveAggregator(this.objectManager);
-        this.eventAggregator.addAggregator(aggr);
+        this.initStorageAdapter();
+        this.initEventAggregator();
 
         this.eventAggregator.start();
+    }
+
+    protected void initStorageAdapter() {
+        this.storageAdapter = new LocalStorageAdapter(this.rootPath.resolve(".sync"));
+    }
+
+    protected void initEventAggregator()
+            throws InputOutputException {
+        ObjectStore objectStore = new ObjectStore(this.rootPath, "index.json", "object", this.storageAdapter);
+        List<Path> ignoredPaths = new ArrayList<>();
+        ignoredPaths.add(this.rootPath.relativize(rootPath.resolve(Paths.get(".sync"))));
+
+        IEventListener eventListener = new SyncFolderChangeListener(objectStore);
+
+        IModifier relativePathModifier = new RelativePathModifier(rootPath);
+        IModifier addDirectoryContentModifier = new AddDirectoryContentModifier(this.rootPath, objectStore);
+        IModifier ignorePathsModifier = new IgnorePathsModifier(ignoredPaths);
+        IModifier ignoreDirectoryModifier = new IgnoreDirectoryModifier();
+
+        IAggregator historyMoveAggregator = new HistoryMoveAggregator(objectStore.getObjectManager());
+
+        this.eventAggregator = new EventAggregator(this.rootPath, new PerlockPathWatcherFactory());
+        this.eventAggregator.setAggregationInterval(5000L);
+        this.eventAggregator.addListener(eventListener);
+        this.eventAggregator.addModifier(relativePathModifier);
+        this.eventAggregator.addModifier(addDirectoryContentModifier);
+        // TODO: check if ignoreDirectoryModifier can be used
+        // TODO: Do we really want no modification of the path object of a directory?
+//        this.eventAggregator.addModifier(ignoreDirectoryModifier);
+        this.eventAggregator.addModifier(ignorePathsModifier);
+        this.eventAggregator.addAggregator(historyMoveAggregator);
     }
 
     public static void main(String[] args) {
         Path path = Paths.get("/tmp/sync-dir");
         Path syncDir = Paths.get("/tmp/sync-dir/.sync");
-
-
 
         try {
             if (! path.toFile().exists()) {
