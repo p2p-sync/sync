@@ -3,6 +3,7 @@ package org.rmatil.sync.core.listener;
 import org.rmatil.sync.event.aggregator.api.IEventListener;
 import org.rmatil.sync.event.aggregator.core.events.*;
 import org.rmatil.sync.persistence.exceptions.InputOutputException;
+import org.rmatil.sync.version.api.IObjectStore;
 import org.rmatil.sync.version.core.ObjectStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -13,9 +14,9 @@ public class SyncFolderChangeListener implements IEventListener {
 
     final static Logger logger = LoggerFactory.getLogger(SyncFolderChangeListener.class);
 
-    protected ObjectStore objectStore;
+    protected IObjectStore objectStore;
 
-    public SyncFolderChangeListener(ObjectStore objectStore) {
+    public SyncFolderChangeListener(IObjectStore objectStore) {
         this.objectStore = objectStore;
 
     }

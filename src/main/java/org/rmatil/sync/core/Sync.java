@@ -11,6 +11,7 @@ import org.rmatil.sync.event.aggregator.core.pathwatcher.PerlockPathWatcherFacto
 import org.rmatil.sync.persistence.api.IStorageAdapter;
 import org.rmatil.sync.persistence.core.local.LocalStorageAdapter;
 import org.rmatil.sync.persistence.exceptions.InputOutputException;
+import org.rmatil.sync.version.api.IObjectStore;
 import org.rmatil.sync.version.core.ObjectStore;
 
 import java.io.IOException;
@@ -44,7 +45,7 @@ public class Sync {
 
     protected void initEventAggregator()
             throws InputOutputException {
-        ObjectStore objectStore = new ObjectStore(this.rootPath, "index.json", "object", this.storageAdapter);
+        IObjectStore objectStore = new ObjectStore(this.rootPath, "index.json", "object", this.storageAdapter);
         List<Path> ignoredPaths = new ArrayList<>();
         ignoredPaths.add(this.rootPath.relativize(rootPath.resolve(Paths.get(".sync"))));
 
