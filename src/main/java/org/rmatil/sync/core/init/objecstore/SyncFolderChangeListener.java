@@ -1,10 +1,9 @@
-package org.rmatil.sync.core.listener;
+package org.rmatil.sync.core.init.objecstore;
 
 import org.rmatil.sync.event.aggregator.api.IEventListener;
 import org.rmatil.sync.event.aggregator.core.events.*;
 import org.rmatil.sync.persistence.exceptions.InputOutputException;
 import org.rmatil.sync.version.api.IObjectStore;
-import org.rmatil.sync.version.core.ObjectStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
