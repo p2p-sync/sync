@@ -9,13 +9,13 @@ import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
-public class SyncFolderChangeListener implements IEventListener {
+public class ObjectStoreFileChangeListener implements IEventListener {
 
-    final static Logger logger = LoggerFactory.getLogger(SyncFolderChangeListener.class);
+    final static Logger logger = LoggerFactory.getLogger(ObjectStoreFileChangeListener.class);
 
     protected IObjectStore objectStore;
 
-    public SyncFolderChangeListener(IObjectStore objectStore) {
+    public ObjectStoreFileChangeListener(IObjectStore objectStore) {
         this.objectStore = objectStore;
 
     }
