@@ -3,7 +3,7 @@ package org.rmatil.sync.core.init.eventaggregator;
 import org.rmatil.sync.core.exception.InitializationStartException;
 import org.rmatil.sync.core.exception.InitializationStopException;
 import org.rmatil.sync.core.init.IInitializer;
-import org.rmatil.sync.core.init.objecstore.SyncFolderChangeListener;
+import org.rmatil.sync.core.init.objecstore.ObjectStoreFileChangeListener;
 import org.rmatil.sync.event.aggregator.api.IEventAggregator;
 import org.rmatil.sync.event.aggregator.api.IEventListener;
 import org.rmatil.sync.event.aggregator.core.EventAggregator;
@@ -34,7 +34,7 @@ public class EventAggregatorInitializer implements IInitializer<IEventAggregator
 
     @Override
     public IEventAggregator init() {
-        IEventListener eventListener = new SyncFolderChangeListener(objectStore);
+        IEventListener eventListener = new ObjectStoreFileChangeListener(objectStore);
 
         IModifier relativePathModifier = new RelativePathModifier(this.rootPath);
         IModifier addDirectoryContentModifier = new AddDirectoryContentModifier(this.rootPath, this.objectStore);

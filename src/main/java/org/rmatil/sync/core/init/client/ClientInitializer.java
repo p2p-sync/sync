@@ -1,5 +1,6 @@
 package org.rmatil.sync.core.init.client;
 
+import net.tomp2p.rpc.ObjectDataReply;
 import org.rmatil.sync.core.exception.InitializationException;
 import org.rmatil.sync.core.exception.InitializationStartException;
 import org.rmatil.sync.core.exception.InitializationStopException;
@@ -9,6 +10,7 @@ import org.rmatil.sync.network.api.IUser;
 import org.rmatil.sync.network.config.Config;
 import org.rmatil.sync.network.core.Client;
 import org.rmatil.sync.network.core.ClientManager;
+import org.rmatil.sync.network.core.messaging.ObjectDataReplyHandler;
 import org.rmatil.sync.network.core.model.ClientLocation;
 import org.rmatil.sync.network.core.model.User;
 import org.rmatil.sync.persistence.core.dht.DhtStorageAdapter;
@@ -19,6 +21,8 @@ import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
 public class ClientInitializer implements IInitializer<IClient> {
 
@@ -35,7 +39,10 @@ public class ClientInitializer implements IInitializer<IClient> {
     protected ClientManager     clientManager;
     protected Config            networkConfig;
 
-    public ClientInitializer(String username, String password, String salt, int port) {
+    protected Map<Class, ObjectDataReply> objectDataReplyHandler;
+
+    public ClientInitializer(Map<Class, ObjectDataReply> objectDataReplyHandler, String username, String password, String salt, int port) {
+        this.objectDataReplyHandler = objectDataReplyHandler;
         this.username = username;
         this.password = password;
         this.salt = salt;
@@ -45,6 +52,9 @@ public class ClientInitializer implements IInitializer<IClient> {
     @Override
     public IClient init()
             throws InitializationException {
+        // TODO: generate KeyPair globally in Sync and inject it from there
+        // TODO: generate keyPair only, if none exists yet in the DHT. Use the existing one if possible
+        // TODO: save KeyPair to local sync folder to regenerate user profile if all clients were offline
         try {
             this.keyPairGenerator = KeyPairGenerator.getInstance("DSA");
         } catch (NoSuchAlgorithmException e) {
@@ -65,7 +75,12 @@ public class ClientInitializer implements IInitializer<IClient> {
         networkConfig = Config.IPv4;
         networkConfig.setPort(this.port);
 
-        this.client = new Client(networkConfig, this.user);
+        this.client = new Client(networkConfig, this.user, UUID.randomUUID());
+
+        // Set object reply handlers which handle direct requests to the peer, i.e. the client
+        this.client.setObjectDataReplyHandler(
+                new ObjectDataReplyHandler(this.objectDataReplyHandler)
+        );
 
         return this.client;
     }
@@ -92,7 +107,7 @@ public class ClientInitializer implements IInitializer<IClient> {
                 networkConfig.getDomainKey()
         );
 
-        ClientLocation clientLocation = new ClientLocation(this.client.getPeerAddress());
+        ClientLocation clientLocation = new ClientLocation(this.client.getClientDeviceId(), this.client.getPeerAddress());
 
         try {
             this.clientManager.addPrivateKey(this.user);
@@ -108,7 +123,7 @@ public class ClientInitializer implements IInitializer<IClient> {
             throws InitializationStopException {
 
         try {
-            this.clientManager.removeClientLocation(this.user, new ClientLocation(this.client.getPeerAddress()));
+            this.clientManager.removeClientLocation(this.user, new ClientLocation(this.client.getClientDeviceId(), this.client.getPeerAddress()));
             // TODO: remove client public and private key
         } catch (InputOutputException e) {
             throw new InitializationStopException(e);
