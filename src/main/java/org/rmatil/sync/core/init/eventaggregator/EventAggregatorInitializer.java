@@ -53,7 +53,10 @@ public class EventAggregatorInitializer implements IInitializer<IEventAggregator
         this.eventAggregator.addModifier(addDirectoryContentModifier);
         // TODO: check if ignoreDirectoryModifier can be used
         // TODO: Do we really want no modification of the path object of a directory?
-//        this.eventAggregator.addModifier(ignoreDirectoryModifier);
+        // TODO: i think yes -> at least in the propagation of file offers (only need to forward concrete file changes)
+        // TODO: in the object store nothing changes since the version for a dir is null
+        // must be after addDirectoryContentModifier so that events for dir contents are generated
+        this.eventAggregator.addModifier(ignoreDirectoryModifier);
         this.eventAggregator.addModifier(ignorePathsModifier);
 
         this.eventAggregator.addAggregator(historyMoveAggregator);

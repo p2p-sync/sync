@@ -12,6 +12,7 @@ import org.rmatil.sync.event.aggregator.core.events.*;
 import org.rmatil.sync.network.api.IClient;
 import org.rmatil.sync.network.api.IUser;
 import org.rmatil.sync.network.core.ClientManager;
+import org.rmatil.sync.persistence.api.IStorageAdapter;
 import org.rmatil.sync.persistence.exceptions.InputOutputException;
 import org.rmatil.sync.version.api.IObjectStore;
 import org.rmatil.sync.version.core.model.PathObject;
@@ -36,16 +37,18 @@ public class FileSyncer implements ISyncer {
     protected IUser                    user;
     protected IClient                  client;
     protected ClientManager            clientManager;
+    protected IStorageAdapter          storageAdapter;
     protected IObjectStore             objectStore;
     protected FileOfferResponseHandler fileOfferResponseHandler;
 
     protected CompletionService<FileExchangeHandlerResult> completionService;
     protected List<IEvent>                                 eventsToIgnore;
 
-    public FileSyncer(IUser user, IClient client, ClientManager clientManager, IObjectStore objectStore, FileOfferResponseHandler fileOfferResponseHandler) {
+    public FileSyncer(IUser user, IClient client, ClientManager clientManager, IStorageAdapter storageAdapter, IObjectStore objectStore, FileOfferResponseHandler fileOfferResponseHandler) {
         this.user = user;
         this.client = client;
         this.clientManager = clientManager;
+        this.storageAdapter = storageAdapter;
         this.objectStore = objectStore;
         this.fileOfferResponseHandler = fileOfferResponseHandler;
 
@@ -136,6 +139,8 @@ public class FileSyncer implements ISyncer {
 
         FileExchangeHandler fileExchangeHandler = new FileExchangeHandler(
                 fileExchangeId,
+                clientDevice,
+                this.storageAdapter,
                 this.user,
                 this.clientManager,
                 this.client,
