@@ -19,16 +19,18 @@ import java.util.List;
 
 public class EventAggregatorInitializer implements IInitializer<IEventAggregator> {
 
-    Path             rootPath;
-    IObjectStore     objectStore;
-    List<Path>       ignoredPaths;
-    long             aggregationInterval;
-    IEventAggregator eventAggregator;
+    Path                 rootPath;
+    IObjectStore         objectStore;
+    List<Path>           ignoredPaths;
+    long                 aggregationInterval;
+    IEventAggregator     eventAggregator;
+    List<IEventListener> eventListeners;
 
-    public EventAggregatorInitializer(Path rootPath, IObjectStore objectStore, List<Path> ignoredRelativePaths, long aggregationInterval) {
+    public EventAggregatorInitializer(Path rootPath, IObjectStore objectStore, List<IEventListener> eventListeners,List<Path> ignoredRelativePaths, long aggregationInterval) {
         this.rootPath = rootPath;
         this.objectStore = objectStore;
         this.ignoredPaths = ignoredRelativePaths;
+        this.eventListeners = eventListeners;
         this.aggregationInterval = aggregationInterval;
     }
 
@@ -48,6 +50,9 @@ public class EventAggregatorInitializer implements IInitializer<IEventAggregator
         this.eventAggregator.setAggregationInterval(this.aggregationInterval);
 
         this.eventAggregator.addListener(eventListener);
+        for (IEventListener listener : this.eventListeners) {
+            this.eventAggregator.addListener(listener);
+        }
 
         this.eventAggregator.addModifier(relativePathModifier);
         this.eventAggregator.addModifier(addDirectoryContentModifier);

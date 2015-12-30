@@ -5,6 +5,7 @@ import org.rmatil.sync.core.exception.InitializationException;
 import org.rmatil.sync.core.exception.InitializationStartException;
 import org.rmatil.sync.core.exception.InitializationStopException;
 import org.rmatil.sync.core.init.IInitializer;
+import org.rmatil.sync.core.model.RemoteClientLocation;
 import org.rmatil.sync.network.api.IClient;
 import org.rmatil.sync.network.api.IUser;
 import org.rmatil.sync.network.config.Config;
@@ -12,25 +13,16 @@ import org.rmatil.sync.network.core.Client;
 import org.rmatil.sync.network.core.ClientManager;
 import org.rmatil.sync.network.core.messaging.ObjectDataReplyHandler;
 import org.rmatil.sync.network.core.model.ClientLocation;
-import org.rmatil.sync.network.core.model.User;
 import org.rmatil.sync.persistence.core.dht.DhtStorageAdapter;
 import org.rmatil.sync.persistence.exceptions.InputOutputException;
 
-import java.security.KeyPair;
 import java.security.KeyPairGenerator;
-import java.security.NoSuchAlgorithmException;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
 public class ClientInitializer implements IInitializer<IClient> {
 
-    protected KeyPairGenerator keyPairGenerator;
-    protected String           username;
-    protected String           password;
-    protected String           salt;
-    protected int              port;
+    protected int port;
 
     protected IUser   user;
     protected IClient client;
@@ -39,14 +31,15 @@ public class ClientInitializer implements IInitializer<IClient> {
     protected ClientManager     clientManager;
     protected Config            networkConfig;
 
+    protected RemoteClientLocation bootstrapLocation;
+
     protected Map<Class, ObjectDataReply> objectDataReplyHandler;
 
-    public ClientInitializer(Map<Class, ObjectDataReply> objectDataReplyHandler, String username, String password, String salt, int port) {
+    public ClientInitializer(Map<Class, ObjectDataReply> objectDataReplyHandler, IUser user, int port, RemoteClientLocation bootstrapLocation) {
         this.objectDataReplyHandler = objectDataReplyHandler;
-        this.username = username;
-        this.password = password;
-        this.salt = salt;
+        this.user = user;
         this.port = port;
+        this.bootstrapLocation = bootstrapLocation;
     }
 
     @Override
@@ -54,23 +47,7 @@ public class ClientInitializer implements IInitializer<IClient> {
             throws InitializationException {
         // TODO: generate KeyPair globally in Sync and inject it from there
         // TODO: generate keyPair only, if none exists yet in the DHT. Use the existing one if possible
-        // TODO: save KeyPair to local sync folder to regenerate user profile if all clients were offline
-        try {
-            this.keyPairGenerator = KeyPairGenerator.getInstance("DSA");
-        } catch (NoSuchAlgorithmException e) {
-            throw new InitializationException(e);
-        }
-
-        KeyPair keyPair = this.keyPairGenerator.generateKeyPair();
-        List<ClientLocation> clientLocations = new ArrayList<>();
-        this.user = new User(
-                this.username,
-                this.password,
-                this.salt,
-                keyPair.getPublic(),
-                keyPair.getPrivate(),
-                clientLocations
-        );
+        // TODO: save KeyPair to local sync folder to regenerate user profile if all clients were offline or regenerate a new one
 
         networkConfig = Config.IPv4;
         networkConfig.setPort(this.port);
@@ -89,7 +66,13 @@ public class ClientInitializer implements IInitializer<IClient> {
     public void start()
             throws InitializationStartException {
 
-        boolean isSuccess = this.client.start();
+        // start a peer
+        boolean isSuccess;
+        if (null == this.bootstrapLocation) {
+            isSuccess = this.client.start();
+        } else {
+            isSuccess = this.client.start(this.bootstrapLocation.getIpAddress(), this.bootstrapLocation.getPort());
+        }
 
         if (! isSuccess) {
             throw new InitializationStartException("Could not start client");
@@ -107,12 +90,9 @@ public class ClientInitializer implements IInitializer<IClient> {
                 networkConfig.getDomainKey()
         );
 
-        ClientLocation clientLocation = new ClientLocation(this.client.getClientDeviceId(), this.client.getPeerAddress());
-
         try {
             this.clientManager.addPrivateKey(this.user);
             this.clientManager.addPublicKey(this.user);
-            this.clientManager.addClientLocation(this.user, clientLocation);
         } catch (InputOutputException e) {
             throw new InitializationStartException(e);
         }
@@ -123,8 +103,10 @@ public class ClientInitializer implements IInitializer<IClient> {
             throws InitializationStopException {
 
         try {
-            this.clientManager.removeClientLocation(this.user, new ClientLocation(this.client.getClientDeviceId(), this.client.getPeerAddress()));
-            // TODO: remove client public and private key
+            this.clientManager.removeClientLocation(this.user, new ClientLocation(
+                    this.client.getClientDeviceId(),
+                    this.client.getPeerAddress()
+            ));
         } catch (InputOutputException e) {
             throw new InitializationStopException(e);
         }
