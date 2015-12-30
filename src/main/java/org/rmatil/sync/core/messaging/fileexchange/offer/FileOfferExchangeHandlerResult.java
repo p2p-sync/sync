@@ -1,4 +1,4 @@
-package org.rmatil.sync.core.messaging.fileexchange;
+package org.rmatil.sync.core.messaging.fileexchange.offer;
 
 import org.rmatil.sync.event.aggregator.core.events.IEvent;
 
@@ -7,9 +7,9 @@ import java.util.UUID;
 /**
  * A wrapper for file exchange results
  *
- * @see FileExchangeHandler#handleResult()
+ * @see FileOfferExchangeHandler#handleResult()
  */
-public class FileExchangeHandlerResult {
+public class FileOfferExchangeHandlerResult {
 
     /**
      * The id of the file exchange
@@ -26,7 +26,7 @@ public class FileExchangeHandlerResult {
      * @param fileExchangeId The id of the file exchange
      * @param resultEvent    The event resulting of the file exchange handling
      */
-    public FileExchangeHandlerResult(UUID fileExchangeId, IEvent resultEvent) {
+    public FileOfferExchangeHandlerResult(UUID fileExchangeId, IEvent resultEvent) {
         this.fileExchangeId = fileExchangeId;
         this.resultEvent = resultEvent;
     }
@@ -45,7 +45,7 @@ public class FileExchangeHandlerResult {
      *
      * @return The event or null
      *
-     * @see FileExchangeHandler#handleResult()
+     * @see FileOfferExchangeHandler#handleResult()
      */
     public IEvent getResultEvent() {
         return resultEvent;

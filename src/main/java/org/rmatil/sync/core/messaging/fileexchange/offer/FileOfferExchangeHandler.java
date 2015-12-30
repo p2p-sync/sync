@@ -1,11 +1,8 @@
-package org.rmatil.sync.core.messaging.fileexchange;
+package org.rmatil.sync.core.messaging.fileexchange.offer;
 
 import net.tomp2p.peers.PeerAddress;
 import org.rmatil.sync.commons.path.Naming;
 import org.rmatil.sync.core.exception.SyncFailedException;
-import org.rmatil.sync.core.messaging.fileexchange.offer.FileOfferRequest;
-import org.rmatil.sync.core.messaging.fileexchange.offer.FileOfferResponse;
-import org.rmatil.sync.core.messaging.fileexchange.offer.FileOfferResultRequest;
 import org.rmatil.sync.event.aggregator.core.events.IEvent;
 import org.rmatil.sync.event.aggregator.core.events.MoveEvent;
 import org.rmatil.sync.network.api.IClient;
@@ -36,9 +33,9 @@ import java.util.UUID;
  * <p>
  * All clients will then be informed of the result.
  */
-public class FileExchangeHandler extends ANetworkHandler<FileExchangeHandlerResult> {
+public class FileOfferExchangeHandler extends ANetworkHandler<FileExchangeHandlerResult> {
 
-    private static final Logger logger = LoggerFactory.getLogger(FileExchangeHandler.class);
+    private static final Logger logger = LoggerFactory.getLogger(FileOfferExchangeHandler.class);
 
     /**
      * The id of the file exchange
@@ -55,7 +52,7 @@ public class FileExchangeHandler extends ANetworkHandler<FileExchangeHandlerResu
      */
     protected ClientDevice clientDevice;
 
-    public FileExchangeHandler(UUID fileExchangeId, ClientDevice clientDevice, IStorageAdapter storageAdapter, IUser user, ClientManager clientManager, IClient client, FileOfferRequest fileOfferRequest) {
+    public FileOfferExchangeHandler(UUID fileExchangeId, ClientDevice clientDevice, IStorageAdapter storageAdapter, IUser user, ClientManager clientManager, IClient client, FileOfferRequest fileOfferRequest) {
         super(user, clientManager, client, fileOfferRequest);
         this.clientDevice = clientDevice;
         this.fileExchangeId = fileExchangeId;
@@ -146,12 +143,16 @@ public class FileExchangeHandler extends ANetworkHandler<FileExchangeHandlerResu
                 // TODO: improve this
                 logger.error("Could not create conflict file. Sending no conflict files for all clients. Will result in data loss. Message: " + e.getMessage(), e);
             }
+        } else {
+            // if not in conflict, we will send just the location of the offered file as result
+            conflictFiles.put(((FileOfferRequest) super.request).getRelativeFilePath(), this.client.getPeerAddress());
         }
 
         FileOfferResultRequest fileOfferResultRequest = new FileOfferResultRequest(
                 this.fileExchangeId,
                 this.clientDevice,
-                conflictFiles
+                conflictFiles,
+                ! inConsent
         );
 
         // Notify all clients about the result
