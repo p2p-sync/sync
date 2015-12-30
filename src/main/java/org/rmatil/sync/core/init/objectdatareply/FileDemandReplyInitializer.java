@@ -5,7 +5,7 @@ import org.rmatil.sync.core.exception.InitializationStartException;
 import org.rmatil.sync.core.exception.InitializationStopException;
 import org.rmatil.sync.core.init.IInitializer;
 import org.rmatil.sync.core.messaging.fileexchange.demand.FileDemandRequestHandler;
-import org.rmatil.sync.core.model.ClientDevice;
+import org.rmatil.sync.network.core.model.ClientDevice;
 import org.rmatil.sync.persistence.api.IStorageAdapter;
 import org.rmatil.sync.persistence.core.local.LocalStorageAdapter;
 import org.rmatil.sync.version.api.IObjectStore;
@@ -19,10 +19,10 @@ import java.nio.file.Path;
  */
 public class FileDemandReplyInitializer implements IInitializer<FileDemandRequestHandler> {
 
-    protected ClientDevice clientDevice;
-    protected IObjectStore objectStore;
+    protected ClientDevice    clientDevice;
+    protected IObjectStore    objectStore;
     protected IStorageAdapter storageAdapter;
-    protected int chunkSize;
+    protected int             chunkSize;
 
     protected FileDemandRequestHandler fileDemandRequestHandler;
 

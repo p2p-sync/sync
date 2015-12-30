@@ -4,14 +4,13 @@ import org.rmatil.sync.core.exception.SyncFailedException;
 import org.rmatil.sync.core.messaging.fileexchange.FileExchangeHandler;
 import org.rmatil.sync.core.messaging.fileexchange.FileExchangeHandlerResult;
 import org.rmatil.sync.core.messaging.fileexchange.offer.FileOfferRequest;
-import org.rmatil.sync.core.messaging.fileexchange.offer.FileOfferResponseHandler;
 import org.rmatil.sync.core.messaging.fileexchange.offer.FileOfferType;
-import org.rmatil.sync.core.model.ClientDevice;
 import org.rmatil.sync.core.syncer.ISyncer;
 import org.rmatil.sync.event.aggregator.core.events.*;
 import org.rmatil.sync.network.api.IClient;
 import org.rmatil.sync.network.api.IUser;
 import org.rmatil.sync.network.core.ClientManager;
+import org.rmatil.sync.network.core.model.ClientDevice;
 import org.rmatil.sync.persistence.api.IStorageAdapter;
 import org.rmatil.sync.persistence.exceptions.InputOutputException;
 import org.rmatil.sync.version.api.IObjectStore;
@@ -23,6 +22,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.*;
 
@@ -39,18 +39,16 @@ public class FileSyncer implements ISyncer {
     protected ClientManager            clientManager;
     protected IStorageAdapter          storageAdapter;
     protected IObjectStore             objectStore;
-    protected FileOfferResponseHandler fileOfferResponseHandler;
 
     protected CompletionService<FileExchangeHandlerResult> completionService;
     protected List<IEvent>                                 eventsToIgnore;
 
-    public FileSyncer(IUser user, IClient client, ClientManager clientManager, IStorageAdapter storageAdapter, IObjectStore objectStore, FileOfferResponseHandler fileOfferResponseHandler) {
+    public FileSyncer(IUser user, IClient client, ClientManager clientManager, IStorageAdapter storageAdapter, IObjectStore objectStore) {
         this.user = user;
         this.client = client;
         this.clientManager = clientManager;
         this.storageAdapter = storageAdapter;
         this.objectStore = objectStore;
-        this.fileOfferResponseHandler = fileOfferResponseHandler;
 
         ExecutorService executorService = Executors.newSingleThreadExecutor();
         this.completionService = new ExecutorCompletionService<>(executorService);
@@ -68,9 +66,6 @@ public class FileSyncer implements ISyncer {
             try {
                 FileExchangeHandlerResult result = futureResult.get();
                 this.eventsToIgnore.add(result.getResultEvent());
-
-                // finally unregister the exchange handler after task has been completed
-                this.fileOfferResponseHandler.unregisterFileExchangeHandler(result.getFileExchangeId());
             } catch (InterruptedException | ExecutionException e) {
                 logger.error("Failed to add future ignored task. Message: " + e.getMessage(), e);
             }
@@ -78,15 +73,20 @@ public class FileSyncer implements ISyncer {
             futureResult = this.completionService.poll();
         }
 
+        // TODO: a list should be returned too (create & delete event), because sometimes the event aggregation is wrong
+        // remove the event of moving the conflict file if it exists
         if (this.eventsToIgnore.contains(event)) {
             this.eventsToIgnore.remove(event);
-
+            logger.info("Ignoring event " + event.getEventName() + " for conflict file " + event.getPath().toString());
             return;
         }
 
         PathObject pathObject;
         try {
-            pathObject = this.objectStore.getObjectManager().getObject(event.getPath().toString());
+            Map<String, String> indexPaths = this.objectStore.getObjectManager().getIndex().getPaths();
+            String hash = indexPaths.get(event.getPath().toString());
+
+            pathObject = this.objectStore.getObjectManager().getObject(hash);
         } catch (InputOutputException e) {
             throw new SyncFailedException("Failed to read path object from object store. Message: " + e.getMessage(), e);
         }
@@ -146,10 +146,6 @@ public class FileSyncer implements ISyncer {
                 this.client,
                 fileOfferRequest
         );
-
-        // register file exchange handler for this file exchange to
-        // forward incoming responses correctly
-        this.fileOfferResponseHandler.registerFileExchangeHandler(fileExchangeId, fileExchangeHandler);
 
         this.completionService.submit(fileExchangeHandler);
     }

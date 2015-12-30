@@ -2,7 +2,7 @@ package org.rmatil.sync.core.messaging.fileexchange.demand;
 
 import net.tomp2p.peers.PeerAddress;
 import net.tomp2p.rpc.ObjectDataReply;
-import org.rmatil.sync.core.model.ClientDevice;
+import org.rmatil.sync.network.core.model.ClientDevice;
 import org.rmatil.sync.network.core.model.Data;
 import org.rmatil.sync.persistence.api.IFileMetaInfo;
 import org.rmatil.sync.persistence.api.IPathElement;

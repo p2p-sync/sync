@@ -1,10 +1,9 @@
 package org.rmatil.sync.core.messaging.fileexchange.demand;
 
-import org.rmatil.sync.core.messaging.IRequest;
-import org.rmatil.sync.core.model.ClientDevice;
+import org.rmatil.sync.network.api.IRequest;
 import org.rmatil.sync.network.api.IUser;
+import org.rmatil.sync.network.core.model.ClientDevice;
 
-import java.io.Serializable;
 import java.util.UUID;
 
 /**

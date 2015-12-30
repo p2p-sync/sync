@@ -1,15 +1,13 @@
 package org.rmatil.sync.core.messaging.fileexchange.offer;
 
-import org.rmatil.sync.core.messaging.IResponse;
-import org.rmatil.sync.core.model.ClientDevice;
+import org.rmatil.sync.network.api.IResponse;
+import org.rmatil.sync.network.core.model.ClientDevice;
 
 import java.util.UUID;
 
 /**
  * Send this response object to clients which have previous
  * send a file offer request.
- *
- * @see FileOfferResponseHandler
  */
 public class FileOfferResponse implements IResponse {
 

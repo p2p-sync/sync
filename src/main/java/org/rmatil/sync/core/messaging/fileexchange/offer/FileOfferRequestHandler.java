@@ -2,8 +2,9 @@ package org.rmatil.sync.core.messaging.fileexchange.offer;
 
 import net.tomp2p.peers.PeerAddress;
 import net.tomp2p.rpc.ObjectDataReply;
-import org.rmatil.sync.core.model.ClientDevice;
-import org.rmatil.sync.version.api.IObjectManager;
+import org.rmatil.sync.core.exception.SyncFailedException;
+import org.rmatil.sync.network.core.model.ClientDevice;
+import org.rmatil.sync.persistence.exceptions.InputOutputException;
 import org.rmatil.sync.version.api.IObjectStore;
 import org.rmatil.sync.version.core.model.PathObject;
 import org.rmatil.sync.version.core.model.Version;
@@ -11,6 +12,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * The request handler which decides how to
@@ -47,7 +49,15 @@ public class FileOfferRequestHandler implements ObjectDataReply {
             return null;
         }
 
-        PathObject pathObject = this.objectStore.getObjectManager().getObject(((FileOfferRequest) request).getRelativeFilePath());
+        PathObject pathObject;
+        try {
+            Map<String, String> indexPaths = this.objectStore.getObjectManager().getIndex().getPaths();
+            String hash = indexPaths.get(((FileOfferRequest) request).getRelativeFilePath());
+
+            pathObject = this.objectStore.getObjectManager().getObject(hash);
+        } catch (InputOutputException e) {
+            throw new SyncFailedException("Failed to read path object from object store. Message: " + e.getMessage(), e);
+        }
 
         // compare local and remote file versions
         List<Version> localFileVersions = pathObject.getVersions();
@@ -64,7 +74,7 @@ public class FileOfferRequestHandler implements ObjectDataReply {
         boolean hasConflict = false;
 
         // check whether a different version exists locally
-        if ((null == lastLocalFileVersionHash || null == lastRemoteFileVersionHash) || (lastLocalFileVersionHash.equals(lastRemoteFileVersionHash))) {
+        if ((null == lastLocalFileVersionHash || null == lastRemoteFileVersionHash) || (! lastLocalFileVersionHash.equals(lastRemoteFileVersionHash))) {
             logger.info("Detected conflict for fileExchange "
                     + ((FileOfferRequest) request).getExchangeId()
                     + ": Remote version from client "
@@ -77,6 +87,14 @@ public class FileOfferRequestHandler implements ObjectDataReply {
 
             hasConflict = true;
         }
+
+        logger.info("Sending back a FileOfferResponse. ExchangeId: "
+                + ((FileOfferRequest) request).getExchangeId()
+                + ", AcceptedOffer: "
+                + acceptedOffer
+                + ", HasConflict: "
+                + hasConflict
+        );
 
         return new FileOfferResponse(
                 ((FileOfferRequest) request).getExchangeId(),

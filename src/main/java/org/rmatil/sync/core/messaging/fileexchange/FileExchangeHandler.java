@@ -1,19 +1,19 @@
 package org.rmatil.sync.core.messaging.fileexchange;
 
-import net.tomp2p.p2p.Peer;
 import net.tomp2p.peers.PeerAddress;
 import org.rmatil.sync.commons.path.Naming;
 import org.rmatil.sync.core.exception.SyncFailedException;
-import org.rmatil.sync.core.messaging.ANetworkHandler;
 import org.rmatil.sync.core.messaging.fileexchange.offer.FileOfferRequest;
 import org.rmatil.sync.core.messaging.fileexchange.offer.FileOfferResponse;
 import org.rmatil.sync.core.messaging.fileexchange.offer.FileOfferResultRequest;
-import org.rmatil.sync.core.model.ClientDevice;
 import org.rmatil.sync.event.aggregator.core.events.IEvent;
 import org.rmatil.sync.event.aggregator.core.events.MoveEvent;
 import org.rmatil.sync.network.api.IClient;
+import org.rmatil.sync.network.api.IResponse;
 import org.rmatil.sync.network.api.IUser;
+import org.rmatil.sync.network.core.ANetworkHandler;
 import org.rmatil.sync.network.core.ClientManager;
+import org.rmatil.sync.network.core.model.ClientDevice;
 import org.rmatil.sync.persistence.api.IFileMetaInfo;
 import org.rmatil.sync.persistence.api.IPathElement;
 import org.rmatil.sync.persistence.api.IStorageAdapter;
@@ -24,7 +24,6 @@ import org.rmatil.sync.version.core.model.Version;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.List;
@@ -67,11 +66,20 @@ public class FileExchangeHandler extends ANetworkHandler<FileExchangeHandlerResu
     public FileExchangeHandlerResult handleResult()
             throws SyncFailedException {
 
+        logger.info("Starting to evaluate the other clients results");
+
         // we create a conflict file for our client if at least one client has another version
         boolean inConsent = true;
-        for (Map.Entry<ClientDevice, FileOfferResponse> responseEntry : this.respondedClients.entrySet()) {
-            if (responseEntry.getValue().hasConflict()) {
-                logger.info("Client " + responseEntry.getValue().getClientDevice().getClientDeviceId() + " (Address: " + responseEntry.getValue().getClientDevice().getPeerAddress().inetAddress().getHostAddress() + " had detected a conflict.");
+        for (Map.Entry<ClientDevice, IResponse> responseEntry : this.respondedClients.entrySet()) {
+            if (! (responseEntry.getValue() instanceof FileOfferResponse)) {
+                logger.warn("Client " + responseEntry.getKey().getClientDeviceId() + "(" + responseEntry.getKey().getPeerAddress().inetAddress().getHostAddress() + ":" + responseEntry.getKey().getPeerAddress().tcpPort() + ") did not return a FileOfferResponse but " + responseEntry.getValue().getClass().getName() + ". Therefore his result is ignored.");
+                continue;
+            }
+
+            FileOfferResponse fileOfferResponse = (FileOfferResponse) responseEntry.getValue();
+
+            if (fileOfferResponse.hasConflict()) {
+                logger.info("Client " + responseEntry.getValue().getClientDevice().getClientDeviceId() + " (" + responseEntry.getValue().getClientDevice().getPeerAddress().inetAddress().getHostAddress() + ":" + responseEntry.getKey().getPeerAddress().tcpPort() + ") had detected a conflict.");
                 inConsent = false;
 
                 // actually, we could break here but then we would lost the log entry
@@ -112,8 +120,15 @@ public class FileExchangeHandler extends ANetworkHandler<FileExchangeHandlerResu
                 );
 
                 // create expected conflict file names for each client which has a conflict
-                for (Map.Entry<ClientDevice, FileOfferResponse> entry : this.respondedClients.entrySet()) {
-                    if (entry.getValue().hasConflict() && entry.getValue().hasAcceptedOffer()) {
+                for (Map.Entry<ClientDevice, IResponse> entry : this.respondedClients.entrySet()) {
+                    if (! (entry.getValue() instanceof FileOfferResponse)) {
+                        logger.warn("Client " + entry.getKey().getClientDeviceId() + "(" + entry.getKey().getPeerAddress().inetAddress().getHostAddress() + ":" + entry.getKey().getPeerAddress().tcpPort() + ") did not return a FileOfferResponse but " + entry.getValue().getClass().getName() + ". Therefore his result is ignored and no conflict file is generated for him.");
+                        continue;
+                    }
+
+                    FileOfferResponse fileOfferResponse = (FileOfferResponse) entry.getValue();
+
+                    if (fileOfferResponse.hasConflict() && fileOfferResponse.hasAcceptedOffer()) {
                         // assemble conflict file name for the other peers
                         String otherClientConflictFileName = Naming.getConflictFileName(
                                 ((FileOfferRequest) super.request).getRelativeFilePath(),
@@ -128,6 +143,7 @@ public class FileExchangeHandler extends ANetworkHandler<FileExchangeHandlerResu
                 }
 
             } catch (InputOutputException e) {
+                // TODO: improve this
                 logger.error("Could not create conflict file. Sending no conflict files for all clients. Will result in data loss. Message: " + e.getMessage(), e);
             }
         }
@@ -139,7 +155,8 @@ public class FileExchangeHandler extends ANetworkHandler<FileExchangeHandlerResu
         );
 
         // Notify all clients about the result
-        for (Map.Entry<ClientDevice, FileOfferResponse> responseEntry : this.respondedClients.entrySet()) {
+        for (Map.Entry<ClientDevice, IResponse> responseEntry : this.respondedClients.entrySet()) {
+            logger.info("Sending the negotiated result to client " + responseEntry.getKey().getPeerAddress().inetAddress().getHostAddress() + ":" + responseEntry.getKey().getPeerAddress().tcpPort());
             this.client.sendDirect(responseEntry.getKey().getPeerAddress(), fileOfferResultRequest);
         }
 

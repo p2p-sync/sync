@@ -5,14 +5,13 @@ import org.rmatil.sync.core.exception.InitializationStartException;
 import org.rmatil.sync.core.exception.InitializationStopException;
 import org.rmatil.sync.core.init.IInitializer;
 import org.rmatil.sync.core.messaging.fileexchange.offer.FileOfferRequestHandler;
-import org.rmatil.sync.core.messaging.fileexchange.offer.FileOfferResponseHandler;
-import org.rmatil.sync.core.model.ClientDevice;
+import org.rmatil.sync.network.core.model.ClientDevice;
 import org.rmatil.sync.version.api.IObjectStore;
 
 /**
- * The initializer for FileOfferResponseHandlers
+ * The initializer for FileOfferRequestHandler
  *
- * @see FileOfferResponseHandler
+ * @see FileOfferRequestHandler
  */
 public class FileOfferRequestReplyInitializer implements IInitializer<FileOfferRequestHandler> {
 

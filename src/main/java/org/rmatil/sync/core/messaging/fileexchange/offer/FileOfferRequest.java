@@ -1,7 +1,7 @@
 package org.rmatil.sync.core.messaging.fileexchange.offer;
 
-import org.rmatil.sync.core.messaging.IRequest;
-import org.rmatil.sync.core.model.ClientDevice;
+import org.rmatil.sync.network.api.IRequest;
+import org.rmatil.sync.network.core.model.ClientDevice;
 import org.rmatil.sync.version.core.model.Sharer;
 import org.rmatil.sync.version.core.model.Version;
 
@@ -105,6 +105,6 @@ public class FileOfferRequest implements IRequest {
 
     @Override
     public ClientDevice getClientDevice() {
-        return null;
+        return this.clientDevice;
     }
 }
