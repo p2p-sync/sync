@@ -6,6 +6,7 @@ import org.rmatil.sync.core.exception.InitializationStopException;
 import org.rmatil.sync.core.init.IInitializer;
 import org.rmatil.sync.core.messaging.fileexchange.offer.FileOfferRequestHandler;
 import org.rmatil.sync.network.core.model.ClientDevice;
+import org.rmatil.sync.persistence.api.IStorageAdapter;
 import org.rmatil.sync.version.api.IObjectStore;
 
 /**
@@ -20,20 +21,22 @@ public class FileOfferRequestReplyInitializer implements IInitializer<FileOfferR
      */
     protected ClientDevice            clientDevice;
     protected IObjectStore            objectStore;
+    protected IStorageAdapter         storageAdapter;
     protected FileOfferRequestHandler fileOfferRequestHandler;
 
     /**
      * @param clientDevice The client device
      */
-    public FileOfferRequestReplyInitializer(ClientDevice clientDevice, IObjectStore objectStore) {
+    public FileOfferRequestReplyInitializer(ClientDevice clientDevice, IObjectStore objectStore, IStorageAdapter storageAdapter) {
         this.clientDevice = clientDevice;
         this.objectStore = objectStore;
+        this.storageAdapter = storageAdapter;
     }
 
     @Override
     public FileOfferRequestHandler init()
             throws InitializationException {
-        this.fileOfferRequestHandler = new FileOfferRequestHandler(this.clientDevice, this.objectStore);
+        this.fileOfferRequestHandler = new FileOfferRequestHandler(this.clientDevice, this.objectStore, this.storageAdapter);
 
         return this.fileOfferRequestHandler;
     }

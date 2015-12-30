@@ -60,6 +60,8 @@ public class FileSyncer implements ISyncer {
     public void sync(IEvent event)
             throws SyncFailedException {
 
+        logger.debug("Syncing event " + event.getEventName() + " for path " + event.getPath().toString());
+
         // fetch all results until none is available anymore
         Future<FileExchangeHandlerResult> futureResult = this.completionService.poll();
         while (null != futureResult) {
@@ -146,6 +148,8 @@ public class FileSyncer implements ISyncer {
                 this.client,
                 fileOfferRequest
         );
+
+        logger.debug("Starting fileExchange handler for fileExchangeId " + fileExchangeId);
 
         this.completionService.submit(fileExchangeHandler);
     }

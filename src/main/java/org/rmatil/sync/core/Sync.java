@@ -68,7 +68,11 @@ public class Sync {
         FileDemandReplyInitializer fileDemandReplyInitializer = new FileDemandReplyInitializer(clientDevice, objectStore, this.rootPath, 1024);
         FileDemandRequestHandler fileDemandRequestHandler = fileDemandReplyInitializer.init();
 
-        FileOfferRequestReplyInitializer fileOfferRequestReplyInitializer = new FileOfferRequestReplyInitializer(clientDevice, objectStore);
+        // TODO: use one storage adapter for the synchronized folder -> for the whole project
+        // TODO: use one storage adapter for the object store -> for the whole project
+        LocalStorageAdapter localStorageAdapter = new LocalStorageAdapter(rootPath);
+
+        FileOfferRequestReplyInitializer fileOfferRequestReplyInitializer = new FileOfferRequestReplyInitializer(clientDevice, objectStore, localStorageAdapter);
         FileOfferRequestHandler fileOfferRequestHandler = fileOfferRequestReplyInitializer.init();
 
         Map<Class, ObjectDataReply> replyHandlers = new HashMap<>();
