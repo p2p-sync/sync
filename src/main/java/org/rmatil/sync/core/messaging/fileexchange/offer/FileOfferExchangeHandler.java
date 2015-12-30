@@ -33,7 +33,7 @@ import java.util.UUID;
  * <p>
  * All clients will then be informed of the result.
  */
-public class FileOfferExchangeHandler extends ANetworkHandler<FileExchangeHandlerResult> {
+public class FileOfferExchangeHandler extends ANetworkHandler<FileOfferExchangeHandlerResult> {
 
     private static final Logger logger = LoggerFactory.getLogger(FileOfferExchangeHandler.class);
 
@@ -60,7 +60,7 @@ public class FileOfferExchangeHandler extends ANetworkHandler<FileExchangeHandle
     }
 
     @Override
-    public FileExchangeHandlerResult handleResult()
+    public FileOfferExchangeHandlerResult handleResult()
             throws SyncFailedException {
 
         logger.info("Starting to evaluate the other clients results");
@@ -162,7 +162,7 @@ public class FileOfferExchangeHandler extends ANetworkHandler<FileExchangeHandle
         }
 
         // return the conflict file event
-        return new FileExchangeHandlerResult(this.fileExchangeId, conflictFileEvent);
+        return new FileOfferExchangeHandlerResult(this.fileExchangeId, conflictFileEvent);
     }
 
 }

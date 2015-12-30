@@ -1,8 +1,8 @@
 package org.rmatil.sync.core.syncer.file;
 
 import org.rmatil.sync.core.exception.SyncFailedException;
-import org.rmatil.sync.core.messaging.fileexchange.FileExchangeHandler;
-import org.rmatil.sync.core.messaging.fileexchange.FileExchangeHandlerResult;
+import org.rmatil.sync.core.messaging.fileexchange.offer.FileOfferExchangeHandler;
+import org.rmatil.sync.core.messaging.fileexchange.offer.FileOfferExchangeHandlerResult;
 import org.rmatil.sync.core.messaging.fileexchange.offer.FileOfferRequest;
 import org.rmatil.sync.core.messaging.fileexchange.offer.FileOfferType;
 import org.rmatil.sync.core.syncer.ISyncer;
@@ -40,8 +40,8 @@ public class FileSyncer implements ISyncer {
     protected IStorageAdapter          storageAdapter;
     protected IObjectStore             objectStore;
 
-    protected CompletionService<FileExchangeHandlerResult> completionService;
-    protected List<IEvent>                                 eventsToIgnore;
+    protected CompletionService<FileOfferExchangeHandlerResult> completionService;
+    protected List<IEvent>                                      eventsToIgnore;
 
     public FileSyncer(IUser user, IClient client, ClientManager clientManager, IStorageAdapter storageAdapter, IObjectStore objectStore) {
         this.user = user;
@@ -63,10 +63,10 @@ public class FileSyncer implements ISyncer {
         logger.debug("Syncing event " + event.getEventName() + " for path " + event.getPath().toString());
 
         // fetch all results until none is available anymore
-        Future<FileExchangeHandlerResult> futureResult = this.completionService.poll();
+        Future<FileOfferExchangeHandlerResult> futureResult = this.completionService.poll();
         while (null != futureResult) {
             try {
-                FileExchangeHandlerResult result = futureResult.get();
+                FileOfferExchangeHandlerResult result = futureResult.get();
                 this.eventsToIgnore.add(result.getResultEvent());
             } catch (InterruptedException | ExecutionException e) {
                 logger.error("Failed to add future ignored task. Message: " + e.getMessage(), e);
@@ -139,7 +139,7 @@ public class FileSyncer implements ISyncer {
                 fileOfferType
         );
 
-        FileExchangeHandler fileExchangeHandler = new FileExchangeHandler(
+        FileOfferExchangeHandler fileOfferExchangeHandler = new FileOfferExchangeHandler(
                 fileExchangeId,
                 clientDevice,
                 this.storageAdapter,
@@ -151,6 +151,6 @@ public class FileSyncer implements ISyncer {
 
         logger.debug("Starting fileExchange handler for fileExchangeId " + fileExchangeId);
 
-        this.completionService.submit(fileExchangeHandler);
+        this.completionService.submit(fileOfferExchangeHandler);
     }
 }

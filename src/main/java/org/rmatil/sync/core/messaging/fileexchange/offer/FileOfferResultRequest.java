@@ -11,7 +11,7 @@ import java.util.UUID;
  * Send this offer result request to all clients of a file Exchange to notify them
  * about the result of the previous executed conflict negotiation.
  *
- * @see org.rmatil.sync.core.messaging.fileexchange.FileExchangeHandler
+ * @see FileOfferExchangeHandler
  */
 public class FileOfferResultRequest implements IRequest {
 
@@ -32,14 +32,21 @@ public class FileOfferResultRequest implements IRequest {
     protected Map<String, PeerAddress> conflictFiles;
 
     /**
-     * @param fileExchangeId The file exchange id
-     * @param clientDevice The client device which is sending this request
-     * @param conflictFiles A map having as key the conflict file path and as corresponding value the peer address where to fetch that file
+     * Whether the result is representing a conflict or not
      */
-    public FileOfferResultRequest(UUID fileExchangeId, ClientDevice clientDevice, Map<String, PeerAddress> conflictFiles) {
+    protected boolean hasConflict;
+
+    /**
+     * @param fileExchangeId The file exchange id
+     * @param clientDevice   The client device which is sending this request
+     * @param conflictFiles  A map having as key the conflict file path and as corresponding value the peer address where to fetch that file
+     * @param hasConflict    If the result is representing a conflict or not
+     */
+    public FileOfferResultRequest(UUID fileExchangeId, ClientDevice clientDevice, Map<String, PeerAddress> conflictFiles, boolean hasConflict) {
         this.fileExchangeId = fileExchangeId;
         this.clientDevice = clientDevice;
         this.conflictFiles = conflictFiles;
+        this.hasConflict = hasConflict;
     }
 
     /**
@@ -51,6 +58,15 @@ public class FileOfferResultRequest implements IRequest {
      */
     public Map<String, PeerAddress> getConflictFiles() {
         return conflictFiles;
+    }
+
+    /**
+     * Returns true if the result is representing a conflict.
+     *
+     * @return True if the result is a conflict or not
+     */
+    public boolean hasConflict() {
+        return hasConflict;
     }
 
     @Override

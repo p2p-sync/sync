@@ -52,7 +52,6 @@ public class FileOfferRequestHandler implements ObjectDataReply {
     public Object reply(PeerAddress sender, Object request)
             throws Exception {
 
-
         if (! (request instanceof FileOfferRequest)) {
             logger.error("Received an unknown file request. Aborting...");
             return null;

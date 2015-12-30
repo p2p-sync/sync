@@ -56,35 +56,20 @@ public class Sync {
                 new ArrayList<>()
         );
 
-        // Init reply handlers
         UUID clientId = UUID.randomUUID();
-        // TODO: fix init cycle!
-        ClientDevice clientDevice = new ClientDevice(userName, clientId, null);
 
         // Init object store
         ObjectStoreInitializer objectStoreInitializer = new ObjectStoreInitializer(this.rootPath, ".sync", "index.json", "object");
         IObjectStore objectStore = objectStoreInitializer.init();
+        objectStoreInitializer.start();
 
-        FileDemandReplyInitializer fileDemandReplyInitializer = new FileDemandReplyInitializer(clientDevice, objectStore, this.rootPath, 1024);
-        FileDemandRequestHandler fileDemandRequestHandler = fileDemandReplyInitializer.init();
-
-        // TODO: use one storage adapter for the synchronized folder -> for the whole project
-        // TODO: use one storage adapter for the object store -> for the whole project
-        LocalStorageAdapter localStorageAdapter = new LocalStorageAdapter(rootPath);
-
-        FileOfferRequestReplyInitializer fileOfferRequestReplyInitializer = new FileOfferRequestReplyInitializer(clientDevice, objectStore, localStorageAdapter);
-        FileOfferRequestHandler fileOfferRequestHandler = fileOfferRequestReplyInitializer.init();
-
+        // Init client
         Map<Class, ObjectDataReply> replyHandlers = new HashMap<>();
-        replyHandlers.put(FileDemandRequest.class, fileDemandRequestHandler);
-        replyHandlers.put(FileOfferRequest.class, fileOfferRequestHandler);
-
         ClientInitializer clientInitializer = new ClientInitializer(replyHandlers, user, port, bootstrapLocation);
         IClient client = clientInitializer.init();
-
-        // start client
         clientInitializer.start();
 
+        LocalStorageAdapter localStorageAdapter = new LocalStorageAdapter(rootPath);
         DhtStorageAdapter dhtStorageAdapter = new DhtStorageAdapter(client.getPeerDht());
 
         FileSyncer fileSyncer = new FileSyncer(
@@ -101,7 +86,10 @@ public class Sync {
                 objectStore
         );
 
+        // Add sync file change listener to event aggregator
         SyncFileChangeListener syncFileChangeListener = new SyncFileChangeListener(fileSyncer);
+        ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor();
+        executorService.scheduleAtFixedRate(syncFileChangeListener, 0, 10, TimeUnit.SECONDS);
 
         List<IEventListener> eventListeners = new ArrayList<>();
         eventListeners.add(syncFileChangeListener);
@@ -110,17 +98,24 @@ public class Sync {
         List<Path> ignoredPaths = new ArrayList<>();
         ignoredPaths.add(this.rootPath.relativize(rootPath.resolve(Paths.get(".sync"))));
         EventAggregatorInitializer eventAggregatorInitializer = new EventAggregatorInitializer(this.rootPath, objectStore, eventListeners, ignoredPaths, 5000L);
-        IEventAggregator eventAggregator = eventAggregatorInitializer.init();
+        eventAggregatorInitializer.init();
+        eventAggregatorInitializer.start();
 
         // now set the peer address once we know it
-        clientDevice.setPeerAddress(client.getPeerAddress());
+        ClientDevice clientDevice = new ClientDevice(userName, clientId, client.getPeerAddress());
 
-        ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor();
-        executorService.scheduleAtFixedRate(syncFileChangeListener, 0, 10, TimeUnit.SECONDS);
 
-        objectStoreInitializer.start();
-        eventAggregatorInitializer.start();
+        // Add reply handlers
+        // As of here, we can also use the client
+        FileDemandReplyInitializer fileDemandReplyInitializer = new FileDemandReplyInitializer(clientDevice, objectStore, this.rootPath, 1024);
+        FileDemandRequestHandler fileDemandRequestHandler = fileDemandReplyInitializer.init();
         fileDemandReplyInitializer.start();
+
+        FileOfferRequestReplyInitializer fileOfferRequestReplyInitializer = new FileOfferRequestReplyInitializer(clientDevice, objectStore, localStorageAdapter);
+        FileOfferRequestHandler fileOfferRequestHandler = fileOfferRequestReplyInitializer.init();
+
+        replyHandlers.put(FileDemandRequest.class, fileDemandRequestHandler);
+        replyHandlers.put(FileOfferRequest.class, fileOfferRequestHandler);
     }
 
     public static void main(String[] args) {
