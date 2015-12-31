@@ -29,7 +29,7 @@ public class FileOfferResultRequest implements IRequest {
      * A map having as key the conflict file path and as corresponding value
      * the peer address where to fetch that file
      */
-    protected Map<String, PeerAddress> conflictFiles;
+    protected Map<String, ClientDevice> conflictFiles;
 
     /**
      * Whether the result is representing a conflict or not
@@ -42,7 +42,7 @@ public class FileOfferResultRequest implements IRequest {
      * @param conflictFiles  A map having as key the conflict file path and as corresponding value the peer address where to fetch that file
      * @param hasConflict    If the result is representing a conflict or not
      */
-    public FileOfferResultRequest(UUID fileExchangeId, ClientDevice clientDevice, Map<String, PeerAddress> conflictFiles, boolean hasConflict) {
+    public FileOfferResultRequest(UUID fileExchangeId, ClientDevice clientDevice, Map<String, ClientDevice> conflictFiles, boolean hasConflict) {
         this.fileExchangeId = fileExchangeId;
         this.clientDevice = clientDevice;
         this.conflictFiles = conflictFiles;
@@ -56,7 +56,7 @@ public class FileOfferResultRequest implements IRequest {
      *
      * @return The conflict files
      */
-    public Map<String, PeerAddress> getConflictFiles() {
+    public Map<String, ClientDevice> getConflictFiles() {
         return conflictFiles;
     }
 

@@ -11,15 +11,15 @@ import org.rmatil.sync.core.messaging.fileexchange.demand.FileDemandRequest;
 import org.rmatil.sync.core.messaging.fileexchange.demand.FileDemandRequestHandler;
 import org.rmatil.sync.core.messaging.fileexchange.offer.FileOfferRequest;
 import org.rmatil.sync.core.messaging.fileexchange.offer.FileOfferRequestHandler;
+import org.rmatil.sync.core.messaging.fileexchange.offer.FileOfferResultRequest;
+import org.rmatil.sync.core.messaging.fileexchange.offer.FileOfferResultRequestHandler;
 import org.rmatil.sync.core.model.RemoteClientLocation;
 import org.rmatil.sync.core.syncer.file.FileSyncer;
 import org.rmatil.sync.core.syncer.file.SyncFileChangeListener;
-import org.rmatil.sync.event.aggregator.api.IEventAggregator;
 import org.rmatil.sync.event.aggregator.api.IEventListener;
+import org.rmatil.sync.event.aggregator.core.events.IEvent;
 import org.rmatil.sync.network.api.IClient;
 import org.rmatil.sync.network.api.IUser;
-import org.rmatil.sync.network.config.Config;
-import org.rmatil.sync.network.core.ClientManager;
 import org.rmatil.sync.network.core.model.ClientDevice;
 import org.rmatil.sync.network.core.model.User;
 import org.rmatil.sync.persistence.core.dht.DhtStorageAdapter;
@@ -72,22 +72,22 @@ public class Sync {
         LocalStorageAdapter localStorageAdapter = new LocalStorageAdapter(rootPath);
         DhtStorageAdapter dhtStorageAdapter = new DhtStorageAdapter(client.getPeerDht());
 
+        // global lists to either ignore particular events or add some to the file synchronization
+        List<IEvent> eventsToAdd = Collections.synchronizedList(new ArrayList<>());
+        List<IEvent> eventsToIgnore = Collections.synchronizedList(new ArrayList<>());
+
         FileSyncer fileSyncer = new FileSyncer(
                 client.getUser(),
                 client,
-                new ClientManager(
-                        dhtStorageAdapter,
-                        Config.IPv4.getLocationsContentKey(),
-                        Config.IPv4.getPrivateKeyContentKey(),
-                        Config.IPv4.getPublicKeyContentKey(),
-                        Config.IPv4.getDomainKey()
-                ),
+                clientInitializer.getClientManager(),
                 new LocalStorageAdapter(rootPath),
-                objectStore
+                objectStore,
+                eventsToIgnore,
+                eventsToAdd
         );
 
         // Add sync file change listener to event aggregator
-        SyncFileChangeListener syncFileChangeListener = new SyncFileChangeListener(fileSyncer);
+        SyncFileChangeListener syncFileChangeListener = new SyncFileChangeListener(fileSyncer, eventsToIgnore, eventsToAdd);
         ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor();
         executorService.scheduleAtFixedRate(syncFileChangeListener, 0, 10, TimeUnit.SECONDS);
 
@@ -111,11 +111,22 @@ public class Sync {
         FileDemandRequestHandler fileDemandRequestHandler = fileDemandReplyInitializer.init();
         fileDemandReplyInitializer.start();
 
-        FileOfferRequestReplyInitializer fileOfferRequestReplyInitializer = new FileOfferRequestReplyInitializer(clientDevice, objectStore, localStorageAdapter);
+        FileOfferRequestReplyInitializer fileOfferRequestReplyInitializer = new FileOfferRequestReplyInitializer(clientDevice, objectStore, localStorageAdapter, eventsToIgnore, eventsToAdd);
         FileOfferRequestHandler fileOfferRequestHandler = fileOfferRequestReplyInitializer.init();
+
+        FileOfferResultRequestHandler fileOfferResultRequestHandler = new FileOfferResultRequestHandler(
+                localStorageAdapter,
+                user,
+                client,
+                clientInitializer.getClientManager(),
+                clientDevice,
+                eventsToIgnore,
+                eventsToAdd
+        );
 
         replyHandlers.put(FileDemandRequest.class, fileDemandRequestHandler);
         replyHandlers.put(FileOfferRequest.class, fileOfferRequestHandler);
+        replyHandlers.put(FileOfferResultRequest.class, fileOfferResultRequestHandler);
     }
 
     public static void main(String[] args) {

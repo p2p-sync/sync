@@ -16,7 +16,6 @@ import org.rmatil.sync.network.core.model.ClientLocation;
 import org.rmatil.sync.persistence.core.dht.DhtStorageAdapter;
 import org.rmatil.sync.persistence.exceptions.InputOutputException;
 
-import java.security.KeyPairGenerator;
 import java.util.Map;
 import java.util.UUID;
 
@@ -112,5 +111,9 @@ public class ClientInitializer implements IInitializer<IClient> {
         }
 
         this.client.shutdown();
+    }
+
+    public ClientManager getClientManager() {
+        return this.clientManager;
     }
 }

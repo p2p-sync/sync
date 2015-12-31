@@ -5,9 +5,12 @@ import org.rmatil.sync.core.exception.InitializationStartException;
 import org.rmatil.sync.core.exception.InitializationStopException;
 import org.rmatil.sync.core.init.IInitializer;
 import org.rmatil.sync.core.messaging.fileexchange.offer.FileOfferRequestHandler;
+import org.rmatil.sync.event.aggregator.core.events.IEvent;
 import org.rmatil.sync.network.core.model.ClientDevice;
 import org.rmatil.sync.persistence.api.IStorageAdapter;
 import org.rmatil.sync.version.api.IObjectStore;
+
+import java.util.List;
 
 /**
  * The initializer for FileOfferRequestHandler
@@ -24,19 +27,25 @@ public class FileOfferRequestReplyInitializer implements IInitializer<FileOfferR
     protected IStorageAdapter         storageAdapter;
     protected FileOfferRequestHandler fileOfferRequestHandler;
 
+    protected final List<IEvent> ignoredEvents;
+    protected final List<IEvent> additionalEvents;
+
     /**
      * @param clientDevice The client device
      */
-    public FileOfferRequestReplyInitializer(ClientDevice clientDevice, IObjectStore objectStore, IStorageAdapter storageAdapter) {
+    public FileOfferRequestReplyInitializer(ClientDevice clientDevice, IObjectStore objectStore, IStorageAdapter storageAdapter, List<IEvent> ignoredEvents, List<IEvent> additionalEvents) {
         this.clientDevice = clientDevice;
         this.objectStore = objectStore;
         this.storageAdapter = storageAdapter;
+
+        this.ignoredEvents = ignoredEvents;
+        this.additionalEvents = additionalEvents;
     }
 
     @Override
     public FileOfferRequestHandler init()
             throws InitializationException {
-        this.fileOfferRequestHandler = new FileOfferRequestHandler(this.clientDevice, this.objectStore, this.storageAdapter);
+        this.fileOfferRequestHandler = new FileOfferRequestHandler(this.clientDevice, this.objectStore, this.storageAdapter, this.ignoredEvents, this.additionalEvents);
 
         return this.fileOfferRequestHandler;
     }

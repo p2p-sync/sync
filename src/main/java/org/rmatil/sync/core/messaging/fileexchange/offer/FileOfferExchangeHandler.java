@@ -1,6 +1,5 @@
 package org.rmatil.sync.core.messaging.fileexchange.offer;
 
-import net.tomp2p.peers.PeerAddress;
 import org.rmatil.sync.commons.path.Naming;
 import org.rmatil.sync.core.exception.SyncFailedException;
 import org.rmatil.sync.event.aggregator.core.events.IEvent;
@@ -86,7 +85,7 @@ public class FileOfferExchangeHandler extends ANetworkHandler<FileOfferExchangeH
 
 
         IEvent conflictFileEvent = null;
-        Map<String, PeerAddress> conflictFiles = new HashMap<>();
+        Map<String, ClientDevice> conflictFiles = new HashMap<>();
 
         // create conflict file
         String relativeFilePath = ((FileOfferRequest) super.request).getRelativeFilePath();
@@ -135,7 +134,7 @@ public class FileOfferExchangeHandler extends ANetworkHandler<FileOfferExchangeH
                         );
 
                         // get conflict file from peer with the given address
-                        conflictFiles.put(otherClientConflictFileName, entry.getKey().getPeerAddress());
+                        conflictFiles.put(otherClientConflictFileName, entry.getKey());
                     }
                 }
 
@@ -145,7 +144,7 @@ public class FileOfferExchangeHandler extends ANetworkHandler<FileOfferExchangeH
             }
         } else {
             // if not in conflict, we will send just the location of the offered file as result
-            conflictFiles.put(((FileOfferRequest) super.request).getRelativeFilePath(), this.client.getPeerAddress());
+            conflictFiles.put(((FileOfferRequest) super.request).getRelativeFilePath(), this.clientDevice);
         }
 
         FileOfferResultRequest fileOfferResultRequest = new FileOfferResultRequest(

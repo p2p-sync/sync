@@ -28,12 +28,18 @@ public class SyncFileChangeListener implements IEventListener, Runnable {
     protected FileSyncer fileSyncer;
     protected Queue<IEvent> eventQueue;
 
+    protected final List<IEvent> eventsToIgnore;
+    protected final List<IEvent> eventsToAdditionallyAdd;
+
     /**
      * @param fileSyncer The file syncer propagate local file system events to other clients
      */
-    public SyncFileChangeListener(FileSyncer fileSyncer) {
+    public SyncFileChangeListener(FileSyncer fileSyncer, List<IEvent> ignoredEvents, List<IEvent> additionalEvents) {
         this.fileSyncer = fileSyncer;
         this.eventQueue = new ConcurrentLinkedQueue<>();
+
+        this.eventsToIgnore = ignoredEvents;
+        this.eventsToAdditionallyAdd = additionalEvents;
     }
 
     @Override
@@ -46,6 +52,24 @@ public class SyncFileChangeListener implements IEventListener, Runnable {
         try {
             while (! this.eventQueue.isEmpty()) {
                 IEvent headEvent = this.eventQueue.poll();
+
+                // add additional events
+                synchronized (this.eventsToAdditionallyAdd) {
+                    if (!this.eventsToAdditionallyAdd.isEmpty()) {
+                        List<IEvent> nextEvents = this.eventsToAdditionallyAdd.subList(0, this.eventsToAdditionallyAdd.size());
+                        this.eventsToAdditionallyAdd.removeAll(nextEvents);
+                        this.eventQueue.addAll(nextEvents);
+                    }
+                }
+
+                // remove the event of moving the conflict file if it exists
+                synchronized (this.eventsToIgnore) {
+                    if (this.eventsToIgnore.contains(headEvent)) {
+                        this.eventsToIgnore.remove(headEvent);
+                        logger.info("Ignoring event " + headEvent.getEventName() + " for conflict file " + headEvent.getPath().toString());
+                        continue;
+                    }
+                }
 
                 // an event which has been caused due to handling a conflict
                 this.fileSyncer.sync(headEvent);

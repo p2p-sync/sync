@@ -34,16 +34,17 @@ public class FileSyncer implements ISyncer {
 
     protected static final Logger logger = LoggerFactory.getLogger(FileSyncer.class);
 
-    protected IUser                    user;
-    protected IClient                  client;
-    protected ClientManager            clientManager;
-    protected IStorageAdapter          storageAdapter;
-    protected IObjectStore             objectStore;
+    protected IUser           user;
+    protected IClient         client;
+    protected ClientManager   clientManager;
+    protected IStorageAdapter storageAdapter;
+    protected IObjectStore    objectStore;
 
-    protected CompletionService<FileOfferExchangeHandlerResult> completionService;
-    protected List<IEvent>                                      eventsToIgnore;
+    protected       CompletionService<FileOfferExchangeHandlerResult> completionService;
+    protected final List<IEvent>                                      eventsToIgnore;
+    protected       List<IEvent>                                      eventsToAdditionallyAdd;
 
-    public FileSyncer(IUser user, IClient client, ClientManager clientManager, IStorageAdapter storageAdapter, IObjectStore objectStore) {
+    public FileSyncer(IUser user, IClient client, ClientManager clientManager, IStorageAdapter storageAdapter, IObjectStore objectStore, List<IEvent> ignoredEvents, List<IEvent> additionalEvents) {
         this.user = user;
         this.client = client;
         this.clientManager = clientManager;
@@ -53,7 +54,8 @@ public class FileSyncer implements ISyncer {
         ExecutorService executorService = Executors.newSingleThreadExecutor();
         this.completionService = new ExecutorCompletionService<>(executorService);
 
-        this.eventsToIgnore = new ArrayList<>();
+        this.eventsToIgnore = ignoredEvents;
+        this.eventsToAdditionallyAdd = additionalEvents;
     }
 
     @Override
@@ -67,20 +69,14 @@ public class FileSyncer implements ISyncer {
         while (null != futureResult) {
             try {
                 FileOfferExchangeHandlerResult result = futureResult.get();
-                this.eventsToIgnore.add(result.getResultEvent());
+                synchronized (this.eventsToIgnore) {
+                    this.eventsToIgnore.add(result.getResultEvent());
+                }
             } catch (InterruptedException | ExecutionException e) {
                 logger.error("Failed to add future ignored task. Message: " + e.getMessage(), e);
             }
 
             futureResult = this.completionService.poll();
-        }
-
-        // TODO: a list should be returned too (create & delete event), because sometimes the event aggregation is wrong
-        // remove the event of moving the conflict file if it exists
-        if (this.eventsToIgnore.contains(event)) {
-            this.eventsToIgnore.remove(event);
-            logger.info("Ignoring event " + event.getEventName() + " for conflict file " + event.getPath().toString());
-            return;
         }
 
         PathObject pathObject;
