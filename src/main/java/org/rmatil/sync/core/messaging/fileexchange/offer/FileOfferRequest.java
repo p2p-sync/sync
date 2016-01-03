@@ -23,7 +23,6 @@ import org.rmatil.sync.version.core.model.PathObject;
 import org.rmatil.sync.version.core.model.Version;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import sun.plugin.dom.exception.InvalidStateException;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -105,7 +104,7 @@ public class FileOfferRequest implements IRequest {
     @Override
     public void sendResponse(IResponse iResponse) {
         if (null == this.client) {
-            throw new InvalidStateException("A client instance is required to send a response back");
+            throw new IllegalStateException("A client instance is required to send a response back");
         }
 
         this.client.sendDirect(iResponse.getReceiverAddress().getPeerAddress(), iResponse);

@@ -1,7 +1,6 @@
 package org.rmatil.sync.core.messaging.fileexchange.push;
 
 import net.engio.mbassy.bus.MBassador;
-import org.rmatil.sync.core.eventbus.CreateBusEvent;
 import org.rmatil.sync.core.eventbus.IgnoreBusEvent;
 import org.rmatil.sync.event.aggregator.core.events.CreateEvent;
 import org.rmatil.sync.event.aggregator.core.events.ModifyEvent;
@@ -19,7 +18,6 @@ import org.rmatil.sync.persistence.exceptions.InputOutputException;
 import org.rmatil.sync.version.api.IObjectStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import sun.plugin.dom.exception.InvalidStateException;
 
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -119,7 +117,7 @@ public class FilePushRequest implements IRequest {
     @Override
     public void sendResponse(IResponse iResponse) {
         if (null == this.client) {
-            throw new InvalidStateException("A client instance is required to send a response back");
+            throw new IllegalStateException("A client instance is required to send a response back");
         }
 
         this.client.sendDirect(iResponse.getReceiverAddress().getPeerAddress(), iResponse);
