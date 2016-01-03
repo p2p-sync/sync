@@ -81,6 +81,7 @@ public class FileDemandRequestHandler implements ObjectDataReply {
                 ((FileDemandRequest) request).fileExchangeId,
                 this.clientDevice,
                 ((FileDemandRequest) request).getChunkCounter(),
+                this.chunkSize,
                 totalNrOfChunks,
                 fileMetaInfo.getTotalFileSize(),
                 data

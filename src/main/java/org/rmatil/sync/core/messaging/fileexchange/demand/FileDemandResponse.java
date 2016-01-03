@@ -3,6 +3,7 @@ package org.rmatil.sync.core.messaging.fileexchange.demand;
 
 import org.rmatil.sync.network.api.IResponse;
 import org.rmatil.sync.network.core.model.ClientDevice;
+import org.rmatil.sync.network.core.model.ClientLocation;
 import org.rmatil.sync.network.core.model.Data;
 
 import java.util.UUID;
@@ -44,17 +45,25 @@ public class FileDemandResponse implements IResponse {
     protected UUID fileExchangeId;
 
     /**
+    * The chunk size used for the whole transport of the file. In Bytes.
+    */
+    protected int chunkSize;
+
+
+    /**
      * @param fileExchangeId  The identifier of the file exchange
      * @param clientDevice    The client device which is requesting the file demand (i.e. this client)
      * @param chunkCounter    The chunk counter representing which chunk is sent by this response
+     * @param chunkSize       The chunk size for the whole transport of the file in bytes
      * @param totalNrOfChunks The total number of chunks of which the file consists
      * @param totalFileSize   The total size of the file in bytes
      * @param data            The actual chunk data
      */
-    public FileDemandResponse(UUID fileExchangeId, ClientDevice clientDevice, long chunkCounter, long totalNrOfChunks, long totalFileSize, Data data) {
+    public FileDemandResponse(UUID fileExchangeId, ClientDevice clientDevice, long chunkCounter, int chunkSize, long totalNrOfChunks, long totalFileSize, Data data) {
         this.fileExchangeId = fileExchangeId;
         this.clientDevice = clientDevice;
         this.chunkCounter = chunkCounter;
+        this.chunkSize = chunkSize;
         this.totalNrOfChunks = totalNrOfChunks;
         this.totalFileSize = totalFileSize;
         this.data = data;
@@ -67,6 +76,15 @@ public class FileDemandResponse implements IResponse {
      */
     public long getChunkCounter() {
         return chunkCounter;
+    }
+
+    /**
+     * Returns the chunk size for the whole file exchange process
+     *
+     * @return The chunk size in bytes
+     */
+    public int getChunkSize() {
+        return chunkSize;
     }
 
     /**
@@ -104,5 +122,10 @@ public class FileDemandResponse implements IResponse {
     @Override
     public ClientDevice getClientDevice() {
         return this.clientDevice;
+    }
+
+    @Override
+    public ClientLocation getReceiverAddress() {
+        return null;
     }
 }

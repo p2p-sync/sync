@@ -1,25 +1,21 @@
 package org.rmatil.sync.core;
 
-import net.tomp2p.rpc.ObjectDataReply;
 import org.rmatil.sync.core.exception.InitializationException;
 import org.rmatil.sync.core.init.client.ClientInitializer;
+import org.rmatil.sync.core.init.client.LocalStateObjectDataReplyHandler;
 import org.rmatil.sync.core.init.eventaggregator.EventAggregatorInitializer;
 import org.rmatil.sync.core.init.objecstore.ObjectStoreInitializer;
-import org.rmatil.sync.core.init.objectdatareply.FileDemandReplyInitializer;
-import org.rmatil.sync.core.init.objectdatareply.FileOfferRequestReplyInitializer;
-import org.rmatil.sync.core.messaging.fileexchange.demand.FileDemandRequest;
-import org.rmatil.sync.core.messaging.fileexchange.demand.FileDemandRequestHandler;
-import org.rmatil.sync.core.messaging.fileexchange.offer.FileOfferRequest;
-import org.rmatil.sync.core.messaging.fileexchange.offer.FileOfferRequestHandler;
 import org.rmatil.sync.core.model.RemoteClientLocation;
 import org.rmatil.sync.core.syncer.file.FileSyncer;
 import org.rmatil.sync.core.syncer.file.SyncFileChangeListener;
-import org.rmatil.sync.event.aggregator.api.IEventAggregator;
 import org.rmatil.sync.event.aggregator.api.IEventListener;
+import org.rmatil.sync.event.aggregator.core.events.IEvent;
 import org.rmatil.sync.network.api.IClient;
 import org.rmatil.sync.network.api.IUser;
 import org.rmatil.sync.network.config.Config;
+import org.rmatil.sync.network.core.Client;
 import org.rmatil.sync.network.core.ClientManager;
+import org.rmatil.sync.network.core.messaging.ObjectDataReplyHandler;
 import org.rmatil.sync.network.core.model.ClientDevice;
 import org.rmatil.sync.network.core.model.User;
 import org.rmatil.sync.persistence.core.dht.DhtStorageAdapter;
@@ -33,7 +29,10 @@ import java.nio.file.Paths;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -58,19 +57,27 @@ public class Sync {
 
         UUID clientId = UUID.randomUUID();
 
+        LocalStorageAdapter localStorageAdapter = new LocalStorageAdapter(rootPath);
+
         // Init object store
         ObjectStoreInitializer objectStoreInitializer = new ObjectStoreInitializer(this.rootPath, ".sync", "index.json", "object");
         IObjectStore objectStore = objectStoreInitializer.init();
         objectStoreInitializer.start();
 
         // Init client
-        Map<Class, ObjectDataReply> replyHandlers = new HashMap<>();
-        ClientInitializer clientInitializer = new ClientInitializer(replyHandlers, user, port, bootstrapLocation);
-        IClient client = clientInitializer.init();
+        IClient client = new Client(null, user, null);
+        LocalStateObjectDataReplyHandler objectDataReplyHandler = new LocalStateObjectDataReplyHandler(localStorageAdapter, objectStore, client);
+        ClientInitializer clientInitializer = new ClientInitializer(objectDataReplyHandler, user, port, bootstrapLocation);
+        client = clientInitializer.init();
         clientInitializer.start();
 
-        LocalStorageAdapter localStorageAdapter = new LocalStorageAdapter(rootPath);
+        // TODO: fix cycle with wrapper around client
+        objectDataReplyHandler.setClient(client);
+
+
         DhtStorageAdapter dhtStorageAdapter = new DhtStorageAdapter(client.getPeerDht());
+
+        List<IEvent> eventsToIgnore = Collections.synchronizedList(new ArrayList<>());
 
         FileSyncer fileSyncer = new FileSyncer(
                 client.getUser(),
@@ -83,7 +90,8 @@ public class Sync {
                         Config.IPv4.getDomainKey()
                 ),
                 new LocalStorageAdapter(rootPath),
-                objectStore
+                objectStore,
+                eventsToIgnore
         );
 
         // Add sync file change listener to event aggregator
@@ -105,17 +113,6 @@ public class Sync {
         ClientDevice clientDevice = new ClientDevice(userName, clientId, client.getPeerAddress());
 
 
-        // Add reply handlers
-        // As of here, we can also use the client
-        FileDemandReplyInitializer fileDemandReplyInitializer = new FileDemandReplyInitializer(clientDevice, objectStore, this.rootPath, 1024);
-        FileDemandRequestHandler fileDemandRequestHandler = fileDemandReplyInitializer.init();
-        fileDemandReplyInitializer.start();
-
-        FileOfferRequestReplyInitializer fileOfferRequestReplyInitializer = new FileOfferRequestReplyInitializer(clientDevice, objectStore, localStorageAdapter);
-        FileOfferRequestHandler fileOfferRequestHandler = fileOfferRequestReplyInitializer.init();
-
-        replyHandlers.put(FileDemandRequest.class, fileDemandRequestHandler);
-        replyHandlers.put(FileOfferRequest.class, fileOfferRequestHandler);
     }
 
     public static void main(String[] args) {
