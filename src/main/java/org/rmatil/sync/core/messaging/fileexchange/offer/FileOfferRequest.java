@@ -247,7 +247,7 @@ public class FileOfferRequest implements IRequest {
         Path conflictFilePath;
         try {
             IFileMetaInfo fileMetaInfo = this.storageAdapter.getMetaInformation(pathElement);
-            conflictFilePath = Paths.get(Naming.getConflictFileName(pathElement.getPath(), true, fileMetaInfo.getFileExtension(), this.clientDevice.getClientDeviceId().toString()));
+            conflictFilePath = Paths.get(Naming.getConflictFileName(pathElement.getPath(), true, fileMetaInfo.getFileExtension(), this.client.getClientDeviceId().toString()));
             this.globalEventBus.publish(new IgnoreBusEvent(
                     new MoveEvent(
                             Paths.get(pathElement.getPath()),
