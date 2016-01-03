@@ -11,11 +11,11 @@ public class FileOfferExchangeHandlerResult {
         this.hasConflictDetected = hasConflictDetected;
     }
 
-    public boolean isHasOfferAccepted() {
+    public boolean hasOfferAccepted() {
         return hasOfferAccepted;
     }
 
-    public boolean isHasConflictDetected() {
+    public boolean hasConflictDetected() {
         return hasConflictDetected;
     }
 

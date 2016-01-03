@@ -26,7 +26,7 @@ public class FileDemandExchangeHandler extends ANetworkHandler<FileDemandExchang
     protected IStorageAdapter storageAdapter;
 
 
-    public FileDemandExchangeHandler(IStorageAdapter storageAdapter, IUser user, IClientManager clientManager, IClient client, ClientDevice fetchAddress, FileDemandRequest fileDemandRequest) {
+    public FileDemandExchangeHandler(IStorageAdapter storageAdapter, IClient client, ClientDevice fetchAddress, String relativeFilePath) {
         super(client);
         this.fetchAddress = fetchAddress;
         this.storageAdapter = storageAdapter;

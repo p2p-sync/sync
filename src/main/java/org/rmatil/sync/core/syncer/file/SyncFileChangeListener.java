@@ -1,5 +1,7 @@
 package org.rmatil.sync.core.syncer.file;
 
+import net.engio.mbassy.listener.Handler;
+import org.rmatil.sync.core.eventbus.CreateBusEvent;
 import org.rmatil.sync.event.aggregator.api.IEventListener;
 import org.rmatil.sync.event.aggregator.core.events.IEvent;
 import org.slf4j.Logger;
@@ -34,6 +36,12 @@ public class SyncFileChangeListener implements IEventListener, Runnable {
     public SyncFileChangeListener(FileSyncer fileSyncer) {
         this.fileSyncer = fileSyncer;
         this.eventQueue = new ConcurrentLinkedQueue<>();
+    }
+
+    @Handler
+    public void handleBusEvent(CreateBusEvent createBusEvent) {
+        logger.debug("Got notified from event bus: " + createBusEvent.getEvent().getEventName() + " for file " + createBusEvent.getEvent().getPath().toString());
+        this.eventQueue.add(createBusEvent.getEvent());
     }
 
     @Override

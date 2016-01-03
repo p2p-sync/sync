@@ -34,5 +34,6 @@
     <orderEntry type="library" name="Maven: net.tomp2p:tomp2p-core:5.0-Beta6" level="project" />
     <orderEntry type="library" name="Maven: net.tomp2p:tomp2p-replication:5.0-Beta8" level="project" />
     <orderEntry type="library" name="Maven: org.apache.commons:commons-lang3:3.1" level="project" />
+    <orderEntry type="library" name="Maven: net.engio:mbassador:1.2.4" level="project" />
   </component>
 </module>

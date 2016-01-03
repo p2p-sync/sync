@@ -1,5 +1,9 @@
 package org.rmatil.sync.core.messaging.fileexchange.offer;
 
+import net.engio.mbassy.bus.MBassador;
+import org.rmatil.sync.commons.path.Naming;
+import org.rmatil.sync.core.eventbus.CreateBusEvent;
+import org.rmatil.sync.core.eventbus.IgnoreBusEvent;
 import org.rmatil.sync.event.aggregator.core.events.CreateEvent;
 import org.rmatil.sync.event.aggregator.core.events.DeleteEvent;
 import org.rmatil.sync.event.aggregator.core.events.ModifyEvent;
@@ -9,6 +13,7 @@ import org.rmatil.sync.network.api.IRequest;
 import org.rmatil.sync.network.api.IResponse;
 import org.rmatil.sync.network.core.model.ClientDevice;
 import org.rmatil.sync.network.core.model.ClientLocation;
+import org.rmatil.sync.persistence.api.IFileMetaInfo;
 import org.rmatil.sync.persistence.api.IStorageAdapter;
 import org.rmatil.sync.persistence.api.StorageType;
 import org.rmatil.sync.persistence.core.local.LocalPathElement;
@@ -20,6 +25,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import sun.plugin.dom.exception.InvalidStateException;
 
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -49,6 +56,7 @@ public class FileOfferRequest implements IRequest {
     protected IClient         client;
     protected IStorageAdapter storageAdapter;
     protected IObjectStore    objectStore;
+    protected MBassador       globalEventBus;
 
     /**
      * @param exchangeId   The id of the file exchange
@@ -80,6 +88,10 @@ public class FileOfferRequest implements IRequest {
         this.objectStore = objectStore;
     }
 
+    public void setGlobalEventBus(MBassador globalEventBus) {
+        this.globalEventBus = globalEventBus;
+    }
+
     @Override
     public UUID getExchangeId() {
         return exchangeId;
@@ -101,54 +113,60 @@ public class FileOfferRequest implements IRequest {
 
     @Override
     public void run() {
+        try {
+            LocalPathElement pathElement = new LocalPathElement(this.event.getPath());
+            LocalPathElement origPathElement = new LocalPathElement(this.event.getPath());
 
-        LocalPathElement pathElement = new LocalPathElement(this.event.getPath());
+            boolean hasAccepted = false;
+            boolean hasConflict = false;
 
-        boolean hasAccepted = false;
-        boolean hasConflict = false;
-
-        switch (this.event.getEventName()) {
-            case DeleteEvent.EVENT_NAME:
-                // create positive response if file exists
-                try {
-                    if (this.storageAdapter.exists(StorageType.FILE, pathElement)) {
-                        hasAccepted = true;
+            switch (this.event.getEventName()) {
+                case DeleteEvent.EVENT_NAME:
+                    // create positive response if file exists
+                    try {
+                        if (this.storageAdapter.exists(StorageType.FILE, pathElement)) {
+                            hasAccepted = true;
+                            hasConflict = false;
+                        }
+                    } catch (InputOutputException e) {
+                        logger.error("Could not check whether the file " + this.event.getPath() + " exists or not. Message: " + e.getMessage() + ". Sending back an unaccepted offer");
+                        hasAccepted = false;
                         hasConflict = false;
                     }
-                } catch (InputOutputException e) {
-                    logger.error("Could not check whether the file " + this.event.getPath() + " exists or not. Message: " + e.getMessage() + ". Sending back an unaccepted offer");
-                    hasAccepted = false;
-                    hasConflict = false;
-                }
-                break;
-            case MoveEvent.EVENT_NAME:
-                // overwrite path element to check with target
-                pathElement = new LocalPathElement(this.event.getNewPath());
-            case CreateEvent.EVENT_NAME:
-            case ModifyEvent.EVENT_NAME:
-                try {
-                    if (this.storageAdapter.exists(StorageType.FILE, pathElement)) {
-                        // compare versions
-                        if (this.hasVersionConflict(pathElement)) {
-                            hasAccepted = true;
-                            hasConflict = true;
+                    break;
+                case MoveEvent.EVENT_NAME:
+                    // overwrite path element to check with target
+                    pathElement = new LocalPathElement(this.event.getNewPath());
+                case CreateEvent.EVENT_NAME:
+                case ModifyEvent.EVENT_NAME:
+                    try {
+                        if (this.storageAdapter.exists(StorageType.FILE, pathElement)) {
+                            // compare versions
+                            if (this.hasVersionConflict(pathElement)) {
+                                hasAccepted = true;
+                                hasConflict = true;
+
+                                this.createConflictFile(new LocalPathElement(this.event.getPath()));
+                            } else {
+                                hasAccepted = false;
+                                hasConflict = false;
+                            }
                         } else {
                             hasAccepted = true;
                             hasConflict = false;
                         }
-                    } else {
-                        hasAccepted = true;
+                    } catch (InputOutputException e) {
+                        logger.error("Could not check whether the file " + this.event.getPath() + " exists or not. Message: " + e.getMessage() + ". Sending back a conflict file");
+                        hasAccepted = false;
                         hasConflict = false;
                     }
-                } catch (InputOutputException e) {
-                    logger.error("Could not check whether the file " + this.event.getPath() + " exists or not. Message: " + e.getMessage() + ". Sending back a conflict file");
-                    hasAccepted = false;
-                    hasConflict = false;
-                }
-                break;
-        }
+                    break;
+            }
 
-        this.sendResponse(this.createResponse(hasAccepted, hasConflict));
+            this.sendResponse(this.createResponse(hasAccepted, hasConflict));
+        } catch (Exception e) {
+            logger.error("Failed to execute file offer request " + this.exchangeId + ". Message: " + e.getMessage(), e);
+        }
     }
 
     protected FileOfferResponse createResponse(boolean hasAccepted, boolean hasConflict) {
@@ -207,5 +225,56 @@ public class FileOfferRequest implements IRequest {
 
         // no conflict happened
         return false;
+    }
+
+    protected void createConflictFile(LocalPathElement pathElement) {
+        PathObject pathObject;
+        try {
+            Map<String, String> indexPaths = this.objectStore.getObjectManager().getIndex().getPaths();
+            String hash = indexPaths.get(pathElement.getPath());
+
+            pathObject = this.objectStore.getObjectManager().getObject(hash);
+        } catch (InputOutputException e) {
+            logger.error("Failed to check file versions of file " + pathElement.getPath() + ". Message: " + e.getMessage() + ". Indicating that a conflict happened");
+            return;
+        }
+
+        // compare local and remote file versions
+        List<Version> localFileVersions = pathObject.getVersions();
+        Version lastLocalFileVersion = localFileVersions.size() > 0 ? localFileVersions.get(localFileVersions.size() - 1) : null;
+        String lastLocalFileVersionHash = (null != lastLocalFileVersion) ? lastLocalFileVersion.getHash() : null;
+
+        Path conflictFilePath;
+        try {
+            IFileMetaInfo fileMetaInfo = this.storageAdapter.getMetaInformation(pathElement);
+            conflictFilePath = Paths.get(Naming.getConflictFileName(pathElement.getPath(), true, fileMetaInfo.getFileExtension(), this.clientDevice.getClientDeviceId().toString()));
+            this.globalEventBus.publish(new IgnoreBusEvent(
+                    new MoveEvent(
+                            Paths.get(pathElement.getPath()),
+                            conflictFilePath,
+                            conflictFilePath.getFileName().toString(),
+                            lastLocalFileVersionHash,
+                            System.currentTimeMillis()
+                    )
+            ));
+            this.globalEventBus.publish(new CreateBusEvent(
+                    new CreateEvent(
+                            conflictFilePath,
+                            conflictFilePath.getFileName().toString(),
+                            lastLocalFileVersionHash,
+                            System.currentTimeMillis()
+                    )
+            ));
+
+        } catch (InputOutputException e) {
+            logger.error("Can not read meta information for file " + pathElement.getPath() + ". Moving the conflict file failed");
+            return;
+        }
+
+        try {
+            this.storageAdapter.move(StorageType.FILE, pathElement, new LocalPathElement(conflictFilePath.toString()));
+        } catch (InputOutputException e) {
+            logger.error("Can not move conflict file " + pathElement.getPath() + " to " + conflictFilePath.toString() + ". Message: " + e.getMessage());
+        }
     }
 }

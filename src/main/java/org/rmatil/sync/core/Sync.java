@@ -1,5 +1,10 @@
 package org.rmatil.sync.core;
 
+import net.engio.mbassy.bus.MBassador;
+import net.engio.mbassy.bus.config.BusConfiguration;
+import net.engio.mbassy.bus.config.Feature;
+import net.engio.mbassy.bus.config.IBusConfiguration;
+import net.engio.mbassy.bus.error.IPublicationErrorHandler;
 import org.rmatil.sync.core.exception.InitializationException;
 import org.rmatil.sync.core.init.client.ClientInitializer;
 import org.rmatil.sync.core.init.client.LocalStateObjectDataReplyHandler;
@@ -59,6 +64,15 @@ public class Sync {
 
         LocalStorageAdapter localStorageAdapter = new LocalStorageAdapter(rootPath);
 
+        // Use feature driven configuration to have more control over the configuration details
+        MBassador globalEventBus = new MBassador(new BusConfiguration()
+                .addFeature(Feature.SyncPubSub.Default())
+                .addFeature(Feature.AsynchronousHandlerInvocation.Default())
+                .addFeature(Feature.AsynchronousMessageDispatch.Default())
+                .addPublicationErrorHandler(new IPublicationErrorHandler.ConsoleLogger())
+                .setProperty(IBusConfiguration.Properties.BusId, "P2P-Sync-GlobalEventBus-" + UUID.randomUUID().toString())); // this is used for identification in #toString
+
+
         // Init object store
         ObjectStoreInitializer objectStoreInitializer = new ObjectStoreInitializer(this.rootPath, ".sync", "index.json", "object");
         IObjectStore objectStore = objectStoreInitializer.init();
@@ -66,7 +80,7 @@ public class Sync {
 
         // Init client
         IClient client = new Client(null, user, null);
-        LocalStateObjectDataReplyHandler objectDataReplyHandler = new LocalStateObjectDataReplyHandler(localStorageAdapter, objectStore, client);
+        LocalStateObjectDataReplyHandler objectDataReplyHandler = new LocalStateObjectDataReplyHandler(localStorageAdapter, objectStore, client, globalEventBus);
         ClientInitializer clientInitializer = new ClientInitializer(objectDataReplyHandler, user, port, bootstrapLocation);
         client = clientInitializer.init();
         clientInitializer.start();
@@ -74,10 +88,7 @@ public class Sync {
         // TODO: fix cycle with wrapper around client
         objectDataReplyHandler.setClient(client);
 
-
         DhtStorageAdapter dhtStorageAdapter = new DhtStorageAdapter(client.getPeerDht());
-
-        List<IEvent> eventsToIgnore = Collections.synchronizedList(new ArrayList<>());
 
         FileSyncer fileSyncer = new FileSyncer(
                 client.getUser(),
@@ -91,13 +102,17 @@ public class Sync {
                 ),
                 new LocalStorageAdapter(rootPath),
                 objectStore,
-                eventsToIgnore
+                globalEventBus
         );
+
+        globalEventBus.subscribe(fileSyncer);
 
         // Add sync file change listener to event aggregator
         SyncFileChangeListener syncFileChangeListener = new SyncFileChangeListener(fileSyncer);
         ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor();
         executorService.scheduleAtFixedRate(syncFileChangeListener, 0, 10, TimeUnit.SECONDS);
+
+        globalEventBus.subscribe(syncFileChangeListener);
 
         List<IEventListener> eventListeners = new ArrayList<>();
         eventListeners.add(syncFileChangeListener);
