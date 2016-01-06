@@ -67,7 +67,7 @@ public class FilePushExchangeHandler extends ANetworkHandler<FilePushExchangeHan
                 UUID uuid = UUID.randomUUID();
                 logger.info("Sending first chunk as subRequest of " + this.exchangeId + " with id " + uuid + " to client " + location.getPeerAddress().inetAddress().getHostName() + ":" + location.getPeerAddress().tcpPort());
                 // add callback handler for subrequest
-                super.client.getObjectDataReplyHandler().addCallbackHandler(uuid, this);
+                super.client.getObjectDataReplyHandler().addResponseCallbackHandler(uuid, this);
 
                 this.sendChunk(0, uuid, location);
             }
@@ -83,6 +83,7 @@ public class FilePushExchangeHandler extends ANetworkHandler<FilePushExchangeHan
                 this.sendChunk(((FilePushResponse) response).getChunkCounter(), response.getExchangeId(), new ClientLocation(response.getClientDevice().getClientDeviceId(), response.getClientDevice().getPeerAddress()));
             } else {
                 // exchange is finished
+                super.client.getObjectDataReplyHandler().removeResponseCallbackHandler(response.getExchangeId());
                 this.countDownLatch.countDown();
             }
         }

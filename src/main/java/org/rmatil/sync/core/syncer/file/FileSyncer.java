@@ -52,12 +52,12 @@ public class FileSyncer implements ISyncer {
     protected       IObjectStore    objectStore;
     protected final List<IEvent>    eventsToIgnore;
 
-    protected MBassador       globalEventBus;
-    protected ExecutorService syncExecutor;
+    protected MBassador<IBusEvent> globalEventBus;
+    protected ExecutorService      syncExecutor;
 
     protected ClientDevice clientDevice;
 
-    public FileSyncer(IUser user, IClient client, ClientManager clientManager, IStorageAdapter storageAdapter, IObjectStore objectStore, MBassador globalEventBus) {
+    public FileSyncer(IUser user, IClient client, ClientManager clientManager, IStorageAdapter storageAdapter, IObjectStore objectStore, MBassador<IBusEvent> globalEventBus) {
         this.user = user;
         this.client = client;
         this.clientManager = clientManager;
@@ -112,7 +112,7 @@ public class FileSyncer implements ISyncer {
 
         logger.debug("Starting fileExchange handler for exchangeId " + fileExchangeId);
 
-        this.client.getObjectDataReplyHandler().addCallbackHandler(fileExchangeId, fileOfferExchangeHandler);
+        this.client.getObjectDataReplyHandler().addResponseCallbackHandler(fileExchangeId, fileOfferExchangeHandler);
 
         new Thread(fileOfferExchangeHandler).start();
 
@@ -131,7 +131,7 @@ public class FileSyncer implements ISyncer {
         }
         logger.debug("Offer exchange " + fileExchangeId + " completed");
 
-        this.client.getObjectDataReplyHandler().removeCallbackHandler(fileExchangeId);
+        this.client.getObjectDataReplyHandler().removeResponseCallbackHandler(fileExchangeId);
 
         if (! fileOfferExchangeHandler.isCompleted()) {
             logger.error("No result received from clients for request " + fileExchangeId + ". Aborting file offering");
@@ -165,7 +165,7 @@ public class FileSyncer implements ISyncer {
 
         logger.debug("Starting filePush handler for exchangeId " + fileExchangeId);
 
-        this.client.getObjectDataReplyHandler().addCallbackHandler(fileExchangeId, filePushRequestHandler);
+        this.client.getObjectDataReplyHandler().addResponseCallbackHandler(fileExchangeId, filePushRequestHandler);
         new Thread(filePushRequestHandler).start();
 
         try {

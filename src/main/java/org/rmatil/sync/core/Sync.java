@@ -5,22 +5,25 @@ import net.engio.mbassy.bus.config.BusConfiguration;
 import net.engio.mbassy.bus.config.Feature;
 import net.engio.mbassy.bus.config.IBusConfiguration;
 import net.engio.mbassy.bus.error.IPublicationErrorHandler;
+import org.rmatil.sync.core.eventbus.IBusEvent;
 import org.rmatil.sync.core.exception.InitializationException;
 import org.rmatil.sync.core.init.client.ClientInitializer;
 import org.rmatil.sync.core.init.client.LocalStateObjectDataReplyHandler;
 import org.rmatil.sync.core.init.eventaggregator.EventAggregatorInitializer;
 import org.rmatil.sync.core.init.objecstore.ObjectStoreInitializer;
+import org.rmatil.sync.core.messaging.fileexchange.offer.FileOfferRequest;
+import org.rmatil.sync.core.messaging.fileexchange.offer.FileOfferRequestHandler;
+import org.rmatil.sync.core.messaging.fileexchange.push.FilePushRequest;
+import org.rmatil.sync.core.messaging.fileexchange.push.FilePushRequestHandler;
 import org.rmatil.sync.core.model.RemoteClientLocation;
 import org.rmatil.sync.core.syncer.file.FileSyncer;
 import org.rmatil.sync.core.syncer.file.SyncFileChangeListener;
 import org.rmatil.sync.event.aggregator.api.IEventListener;
-import org.rmatil.sync.event.aggregator.core.events.IEvent;
 import org.rmatil.sync.network.api.IClient;
 import org.rmatil.sync.network.api.IUser;
 import org.rmatil.sync.network.config.Config;
 import org.rmatil.sync.network.core.Client;
 import org.rmatil.sync.network.core.ClientManager;
-import org.rmatil.sync.network.core.messaging.ObjectDataReplyHandler;
 import org.rmatil.sync.network.core.model.ClientDevice;
 import org.rmatil.sync.network.core.model.User;
 import org.rmatil.sync.persistence.core.dht.DhtStorageAdapter;
@@ -35,7 +38,6 @@ import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.Executors;
@@ -65,7 +67,7 @@ public class Sync {
         LocalStorageAdapter localStorageAdapter = new LocalStorageAdapter(rootPath);
 
         // Use feature driven configuration to have more control over the configuration details
-        MBassador globalEventBus = new MBassador(new BusConfiguration()
+        MBassador<IBusEvent> globalEventBus = new MBassador<>(new BusConfiguration()
                 .addFeature(Feature.SyncPubSub.Default())
                 .addFeature(Feature.AsynchronousHandlerInvocation.Default())
                 .addFeature(Feature.AsynchronousMessageDispatch.Default())
@@ -81,6 +83,10 @@ public class Sync {
         // Init client
         IClient client = new Client(null, user, null);
         LocalStateObjectDataReplyHandler objectDataReplyHandler = new LocalStateObjectDataReplyHandler(localStorageAdapter, objectStore, client, globalEventBus);
+        // specify protocol
+        objectDataReplyHandler.addRequestCallbackHandler(FileOfferRequest.class, FileOfferRequestHandler.class);
+        objectDataReplyHandler.addRequestCallbackHandler(FilePushRequest.class, FilePushRequestHandler.class);
+
         ClientInitializer clientInitializer = new ClientInitializer(objectDataReplyHandler, user, port, bootstrapLocation);
         client = clientInitializer.init();
         clientInitializer.start();
@@ -167,7 +173,7 @@ public class Sync {
         sync.init(keyPair, "raphael", "password", "salt", 4003, null);
 
         Sync sync2 = new Sync(path2);
-        sync2.init(keyPair, "raphael", "password", "salt", 4004, new RemoteClientLocation("192.168.1.34", false, 4003));
+        sync2.init(keyPair, "raphael", "password", "salt", 4004, new RemoteClientLocation("192.168.3.1", false, 4003));
     }
 
 }
