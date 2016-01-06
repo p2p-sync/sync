@@ -40,8 +40,6 @@ public class FileDemandRequestHandler implements ObjectDataReply {
     public Object reply(PeerAddress sender, Object request)
             throws Exception {
 
-        // TODO: check if null is allowed as return value
-
         if (! (request instanceof FileDemandRequest)) {
             logger.error("Received an unknown file request. Aborting...");
             return null;
@@ -81,6 +79,7 @@ public class FileDemandRequestHandler implements ObjectDataReply {
                 ((FileDemandRequest) request).fileExchangeId,
                 this.clientDevice,
                 ((FileDemandRequest) request).getChunkCounter(),
+                this.chunkSize,
                 totalNrOfChunks,
                 fileMetaInfo.getTotalFileSize(),
                 data

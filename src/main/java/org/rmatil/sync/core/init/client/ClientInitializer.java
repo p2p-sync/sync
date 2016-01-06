@@ -32,10 +32,9 @@ public class ClientInitializer implements IInitializer<IClient> {
     protected Config            networkConfig;
 
     protected RemoteClientLocation bootstrapLocation;
+    protected ObjectDataReplyHandler objectDataReplyHandler;
 
-    protected Map<Class, ObjectDataReply> objectDataReplyHandler;
-
-    public ClientInitializer(Map<Class, ObjectDataReply> objectDataReplyHandler, IUser user, int port, RemoteClientLocation bootstrapLocation) {
+    public ClientInitializer(ObjectDataReplyHandler objectDataReplyHandler, IUser user, int port, RemoteClientLocation bootstrapLocation) {
         this.objectDataReplyHandler = objectDataReplyHandler;
         this.user = user;
         this.port = port;
@@ -56,7 +55,7 @@ public class ClientInitializer implements IInitializer<IClient> {
 
         // Set object reply handlers which handle direct requests to the peer, i.e. the client
         this.client.setObjectDataReplyHandler(
-                new ObjectDataReplyHandler(this.objectDataReplyHandler)
+                objectDataReplyHandler
         );
 
         return this.client;

@@ -151,6 +151,11 @@
             <artifactId>sync-network</artifactId>
             <version>0.1-SNAPSHOT</version>
         </dependency>
+        <dependency>
+            <groupId>net.engio</groupId>
+            <artifactId>mbassador</artifactId>
+            <version>1.2.4</version>
+        </dependency>
     </dependencies>
 
     <distributionManagement>

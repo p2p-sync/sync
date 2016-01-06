@@ -2,6 +2,7 @@ package org.rmatil.sync.core.messaging.fileexchange.offer;
 
 import org.rmatil.sync.network.api.IResponse;
 import org.rmatil.sync.network.core.model.ClientDevice;
+import org.rmatil.sync.network.core.model.ClientLocation;
 
 import java.util.UUID;
 
@@ -32,14 +33,21 @@ public class FileOfferResponse implements IResponse {
     protected UUID fileExchangeId;
 
     /**
-     * @param fileExchangeId The id of the file exchange
-     * @param clientDevice   The client device which is sending this response
-     * @param acceptedOffer  Whether the client has accepted the previous file offer
-     * @param conflict       Whether the client has detected a conflict
+     * The receiver address to which this response should be sent
      */
-    public FileOfferResponse(UUID fileExchangeId, ClientDevice clientDevice, boolean acceptedOffer, boolean conflict) {
+    protected ClientLocation receiverAddress;
+
+    /**
+     * @param fileExchangeId  The id of the file exchange
+     * @param clientDevice    The client device which is sending this response
+     * @param receiverAddress The address of the client to which this response should be sent
+     * @param acceptedOffer   Whether the client has accepted the previous file offer
+     * @param conflict        Whether the client has detected a conflict
+     */
+    public FileOfferResponse(UUID fileExchangeId, ClientDevice clientDevice, ClientLocation receiverAddress, boolean acceptedOffer, boolean conflict) {
         this.fileExchangeId = fileExchangeId;
         this.clientDevice = clientDevice;
+        this.receiverAddress = receiverAddress;
         this.acceptedOffer = acceptedOffer;
         this.conflict = conflict;
     }
@@ -70,5 +78,10 @@ public class FileOfferResponse implements IResponse {
     @Override
     public ClientDevice getClientDevice() {
         return this.clientDevice;
+    }
+
+    @Override
+    public ClientLocation getReceiverAddress() {
+        return this.receiverAddress;
     }
 }
