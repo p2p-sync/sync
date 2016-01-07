@@ -1,6 +1,5 @@
 package org.rmatil.sync.core.init.client;
 
-import net.tomp2p.rpc.ObjectDataReply;
 import org.rmatil.sync.core.exception.InitializationException;
 import org.rmatil.sync.core.exception.InitializationStartException;
 import org.rmatil.sync.core.exception.InitializationStopException;
@@ -16,8 +15,6 @@ import org.rmatil.sync.network.core.model.ClientLocation;
 import org.rmatil.sync.persistence.core.dht.DhtStorageAdapter;
 import org.rmatil.sync.persistence.exceptions.InputOutputException;
 
-import java.security.KeyPairGenerator;
-import java.util.Map;
 import java.util.UUID;
 
 public class ClientInitializer implements IInitializer<IClient> {
@@ -86,6 +83,7 @@ public class ClientInitializer implements IInitializer<IClient> {
                 networkConfig.getLocationsContentKey(),
                 networkConfig.getPrivateKeyContentKey(),
                 networkConfig.getPublicKeyContentKey(),
+                networkConfig.getSaltContentKey(),
                 networkConfig.getDomainKey()
         );
 
