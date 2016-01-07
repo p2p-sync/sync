@@ -13,24 +13,27 @@ public class SerializableEvent implements Serializable {
     protected long   timestamp;
     protected String fileName;
     protected String hash;
+    protected String hashBefore;
 
-    public SerializableEvent(String eventName, String path, String newPath, long timestamp, String fileName, String hash) {
+    public SerializableEvent(String eventName, String path, String newPath, long timestamp, String fileName, String hash, String hashBefore) {
         this.eventName = eventName;
         this.path = path;
         this.newPath = newPath;
         this.timestamp = timestamp;
         this.fileName = fileName;
         this.hash = hash;
+        this.hashBefore = hashBefore;
     }
 
-    public static SerializableEvent fromEvent(IEvent event) {
+    public static SerializableEvent fromEvent(IEvent event, String hashBeforeEvent) {
         return new SerializableEvent(
                 event.getEventName(),
                 event.getPath().toString(),
                 (event instanceof MoveEvent) ? ((MoveEvent) event).getNewPath().toString() : null,
                 event.getTimestamp(),
                 event.getName(),
-                event.getHash()
+                event.getHash(),
+                hashBeforeEvent
         );
     }
 
@@ -58,4 +61,7 @@ public class SerializableEvent implements Serializable {
         return hash;
     }
 
+    public String getHashBefore() {
+        return hashBefore;
+    }
 }

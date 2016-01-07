@@ -112,7 +112,7 @@ public class FileOfferRequestHandler implements ILocalStateRequestCallback {
 
                                 this.createConflictFile(new LocalPathElement(this.request.getEvent().getPath()));
                             } else {
-                                hasAccepted = false;
+                                hasAccepted = true;
                                 hasConflict = false;
                             }
                         } else {
@@ -177,7 +177,9 @@ public class FileOfferRequestHandler implements ILocalStateRequestCallback {
      */
     protected boolean hasVersionConflict(LocalPathElement pathElement) {
         String lastLocalFileVersionHash = null;
-        String lastRemoteFileVersionHash = null;
+        String eventHash = null;
+        // could be null, if the file contains only the first version
+        String beforeLastRemoteFileVersionHash = this.request.getEvent().getHashBefore();
 
         // check if the file does exist locally, if not then we agree automatically and fetch the latest changes later
         try {
@@ -198,22 +200,26 @@ public class FileOfferRequestHandler implements ILocalStateRequestCallback {
                 Version lastLocalFileVersion = localFileVersions.size() > 0 ? localFileVersions.get(localFileVersions.size() - 1) : null;
                 lastLocalFileVersionHash = (null != lastLocalFileVersion) ? lastLocalFileVersion.getHash() : null;
 
-                lastRemoteFileVersionHash = this.request.getEvent().getHash();
+                eventHash = this.request.getEvent().getHash();
             }
         } catch (InputOutputException e) {
             logger.error("Failed to check if file " + pathElement.getPath() + " exists. Message: " + e.getMessage() + ". Indicating that a conflict happened");
             return true;
         }
 
-        if ((null != lastRemoteFileVersionHash && null == lastLocalFileVersionHash) ||
-                (null == lastRemoteFileVersionHash && null != lastLocalFileVersionHash) ||
-                (null != lastRemoteFileVersionHash && null != lastLocalFileVersionHash && ! lastLocalFileVersionHash.equals(lastRemoteFileVersionHash))) {
+        if ((null != eventHash && null == lastLocalFileVersionHash) || // if both versions are null then we have no conflict
+                (null == eventHash && null != lastLocalFileVersionHash && ! this.request.getEvent().getEventName().equals(DeleteEvent.EVENT_NAME)) || // If the remote has a null hash and the request is not a delete event (there we do not care about the hash)
+                (null != eventHash && null != lastLocalFileVersionHash &&
+                        (! lastLocalFileVersionHash.equals(eventHash) && // if we do not have the same content in the file as remote and ...
+                                ! lastLocalFileVersionHash.equals(beforeLastRemoteFileVersionHash)) // ... if we do not have the version before the hash of the event
+                )) {
+
             logger.info("Detected conflict for fileExchange "
                     + this.request.getExchangeId()
                     + ": Remote version from client "
                     + this.request.getClientDevice().getClientDeviceId()
                     + " was "
-                    + ((lastRemoteFileVersionHash == null) ? "null" : lastRemoteFileVersionHash)
+                    + ((eventHash == null) ? "null" : eventHash)
                     + ", local version was "
                     + ((lastLocalFileVersionHash == null) ? "null" : lastLocalFileVersionHash)
             );

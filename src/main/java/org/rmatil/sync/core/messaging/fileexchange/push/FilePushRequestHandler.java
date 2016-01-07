@@ -77,14 +77,31 @@ public class FilePushRequestHandler implements ILocalStateRequestCallback {
                     )
             ));
         } else {
-            this.globalEventBus.publish(new IgnoreBusEvent(
-                    new CreateEvent(
-                            Paths.get(this.request.getRelativeFilePath()),
-                            Paths.get(this.request.getRelativeFilePath()).getFileName().toString(),
-                            "weIgnoreTheHash",
-                            System.currentTimeMillis()
-                    )
-            ));
+            // we check for local existence, if the file already exists, we just ignore the
+            // modify event, otherwise we ignore the create event
+            try {
+                if (this.storageAdapter.exists(StorageType.FILE, localPathElement)) {
+                    this.globalEventBus.publish(new IgnoreBusEvent(
+                            new ModifyEvent(
+                                    Paths.get(this.request.getRelativeFilePath()),
+                                    Paths.get(this.request.getRelativeFilePath()).getFileName().toString(),
+                                    "weIgnoreTheHash",
+                                    System.currentTimeMillis()
+                            )
+                    ));
+                } else {
+                    this.globalEventBus.publish(new IgnoreBusEvent(
+                            new CreateEvent(
+                                    Paths.get(this.request.getRelativeFilePath()),
+                                    Paths.get(this.request.getRelativeFilePath()).getFileName().toString(),
+                                    "weIgnoreTheHash",
+                                    System.currentTimeMillis()
+                            )
+                    ));
+                }
+            } catch (InputOutputException e) {
+                logger.error("Can not determine whether the file " + localPathElement.getPath() + " exists. Message: " + e.getMessage() + ". Just checking the chunk counters...");
+            }
         }
 
         try {

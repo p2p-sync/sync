@@ -9,12 +9,13 @@ import org.rmatil.sync.network.core.ANetworkHandler;
 import org.rmatil.sync.network.core.model.ClientDevice;
 import org.rmatil.sync.network.core.model.ClientLocation;
 import org.rmatil.sync.persistence.exceptions.InputOutputException;
+import org.rmatil.sync.version.api.IObjectStore;
+import org.rmatil.sync.version.core.model.PathObject;
+import org.rmatil.sync.version.core.model.Version;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 /**
  * Implements the crucial step of deciding whether a conflict
@@ -45,11 +46,14 @@ public class FileOfferExchangeHandler extends ANetworkHandler<FileOfferExchangeH
 
     protected List<IResponse> respondedClients;
 
-    public FileOfferExchangeHandler(UUID exchangeId, ClientDevice clientDevice, IClientManager clientManager, IClient client, IEvent eventToPropagate) {
+    protected IObjectStore objectStore;
+
+    public FileOfferExchangeHandler(UUID exchangeId, ClientDevice clientDevice, IClientManager clientManager, IClient client, IObjectStore objectStore, IEvent eventToPropagate) {
         super(client);
         this.clientDevice = clientDevice;
         this.exchangeId = exchangeId;
         this.clientManager = clientManager;
+        this.objectStore = objectStore;
         this.eventToPropagate = eventToPropagate;
         this.respondedClients = new ArrayList<>();
     }
@@ -64,10 +68,32 @@ public class FileOfferExchangeHandler extends ANetworkHandler<FileOfferExchangeH
             return;
         }
 
+        Map<String, String> indexPaths = this.objectStore.getObjectManager().getIndex().getPaths();
+        String hash = indexPaths.get(this.eventToPropagate.getPath().toString());
+
+        PathObject pathObject;
+        try {
+             pathObject = this.objectStore.getObjectManager().getObject(hash);
+        } catch (InputOutputException e) {
+            logger.error("Can not read versions from object store. Message: " + e.getMessage());
+            return;
+        }
+
+        // get version before the one we got from the event to propagate
+        Version versionBefore = null;
+        for (Version entry : pathObject.getVersions()) {
+            if (entry.getHash().equals(this.eventToPropagate.getHash())) {
+                // versionBefore contains now the version before this element
+                break;
+            }
+
+            versionBefore = entry;
+        }
+
         IRequest request = new FileOfferRequest(
             this.exchangeId,
                 this.clientDevice,
-                SerializableEvent.fromEvent(this.eventToPropagate),
+                SerializableEvent.fromEvent(this.eventToPropagate, (null != versionBefore) ? versionBefore.getHash() : null),
                 clientLocations
         );
 

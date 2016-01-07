@@ -107,6 +107,7 @@ public class FileSyncer implements ISyncer {
                 this.clientDevice,
                 this.clientManager,
                 this.client,
+                this.objectStore,
                 event
         );
 
