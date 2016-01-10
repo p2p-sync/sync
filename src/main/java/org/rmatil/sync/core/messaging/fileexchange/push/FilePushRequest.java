@@ -1,20 +1,19 @@
 package org.rmatil.sync.core.messaging.fileexchange.push;
 
-import org.rmatil.sync.network.api.IRequest;
+import org.rmatil.sync.core.messaging.fileexchange.base.ARequest;
 import org.rmatil.sync.network.core.model.ClientDevice;
 import org.rmatil.sync.network.core.model.ClientLocation;
 import org.rmatil.sync.network.core.model.Data;
 
 import java.util.ArrayList;
-import java.util.List;
 import java.util.UUID;
 
-public class FilePushRequest implements IRequest {
-
-    protected UUID exchangeId;
-    protected ClientDevice clientDevice;
+public class FilePushRequest extends ARequest {
 
     protected String relativeFilePath;
+
+    protected boolean isFile;
+
     /**
      * The number of the chunk which is returned
      */
@@ -41,35 +40,17 @@ public class FilePushRequest implements IRequest {
      */
     protected int chunkSize;
 
-    protected List<ClientLocation> receiverAddresses;
-
-    public FilePushRequest(UUID exchangeId, ClientDevice clientDevice, String relativeFilePath, long chunkCounter, int chunkSize, long totalNrOfChunks, long totalFileSize, Data data, ClientLocation receiverAddress) {
-        this.exchangeId = exchangeId;
-        this.clientDevice = clientDevice;
+    public FilePushRequest(UUID exchangeId, ClientDevice clientDevice, String relativeFilePath, boolean isFile, long chunkCounter, int chunkSize, long totalNrOfChunks, long totalFileSize, Data data, ClientLocation receiverAddress) {
+        super(exchangeId, clientDevice, new ArrayList<>());
         this.relativeFilePath = relativeFilePath;
-        this.receiverAddresses = new ArrayList<>();
-        this.receiverAddresses.add(receiverAddress);
+        this.isFile = isFile;
         this.chunkCounter = chunkCounter;
         this.chunkSize = chunkSize;
         this.totalNrOfChunks = totalNrOfChunks;
         this.totalFileSize = totalFileSize;
         this.data = data;
-    }
 
-    @Override
-    public List<ClientLocation> getReceiverAddresses() {
-        return this.receiverAddresses;
-    }
-
-
-    @Override
-    public UUID getExchangeId() {
-        return this.exchangeId;
-    }
-
-    @Override
-    public ClientDevice getClientDevice() {
-        return this.clientDevice;
+        super.receiverAddresses.add(receiverAddress);
     }
 
     /**
@@ -81,8 +62,13 @@ public class FilePushRequest implements IRequest {
         return relativeFilePath;
     }
 
+    public boolean isFile() {
+        return isFile;
+    }
+
     /**
      * Returns the counter for the chunk which is hold by this request
+     *
      * @return The chunk counter
      */
     public long getChunkCounter() {

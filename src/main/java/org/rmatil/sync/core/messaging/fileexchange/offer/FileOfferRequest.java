@@ -1,6 +1,6 @@
 package org.rmatil.sync.core.messaging.fileexchange.offer;
 
-import org.rmatil.sync.network.api.IRequest;
+import org.rmatil.sync.core.messaging.fileexchange.base.ARequest;
 import org.rmatil.sync.network.core.model.ClientDevice;
 import org.rmatil.sync.network.core.model.ClientLocation;
 
@@ -11,22 +11,7 @@ import java.util.UUID;
  * Send this request object to clients, to offer
  * a file creation / modification / deletion.
  */
-public class FileOfferRequest implements IRequest {
-
-    /**
-     * The client device which sends this request
-     */
-    protected ClientDevice clientDevice;
-
-    /**
-     * The id of the file exchange
-     */
-    protected UUID exchangeId;
-
-    /**
-     * All addresses which should receive this request
-     */
-    protected List<ClientLocation> receiverAddresses;
+public class FileOfferRequest extends ARequest {
 
     /**
      * The event to offer to other clients
@@ -40,25 +25,8 @@ public class FileOfferRequest implements IRequest {
      * @param receiverAddresses All client locations which should receive this request
      */
     public FileOfferRequest(UUID exchangeId, ClientDevice clientDevice, SerializableEvent event, List<ClientLocation> receiverAddresses) {
-        this.clientDevice = clientDevice;
-        this.exchangeId = exchangeId;
-        this.receiverAddresses = receiverAddresses;
+        super(exchangeId, clientDevice, receiverAddresses);
         this.event = event;
-    }
-
-    @Override
-    public List<ClientLocation> getReceiverAddresses() {
-        return this.receiverAddresses;
-    }
-
-    @Override
-    public UUID getExchangeId() {
-        return exchangeId;
-    }
-
-    @Override
-    public ClientDevice getClientDevice() {
-        return this.clientDevice;
     }
 
     /**

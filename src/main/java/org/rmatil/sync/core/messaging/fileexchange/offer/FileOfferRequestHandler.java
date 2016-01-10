@@ -86,25 +86,29 @@ public class FileOfferRequestHandler implements ILocalStateRequestCallback {
 
             switch (this.request.getEvent().getEventName()) {
                 case DeleteEvent.EVENT_NAME:
-                    // create positive response if file exists
+                    // create positive response if file or directory exists
                     try {
-                        if (this.storageAdapter.exists(StorageType.FILE, pathElement)) {
+                        if (this.request.getEvent().isFile() && this.storageAdapter.exists(StorageType.FILE, pathElement)) {
+                            hasAccepted = true;
+                            hasConflict = false;
+                        } else if (this.storageAdapter.exists(StorageType.DIRECTORY, pathElement)) {
                             hasAccepted = true;
                             hasConflict = false;
                         }
                     } catch (InputOutputException e) {
-                        logger.error("Could not check whether the file " + this.request.getEvent().getPath() + " exists or not. Message: " + e.getMessage() + ". Sending back an unaccepted offer");
+                        logger.error("Could not check whether the path " + this.request.getEvent().getPath() + " exists or not. Message: " + e.getMessage() + ". Sending back an unaccepted offer");
                         hasAccepted = false;
                         hasConflict = false;
                     }
                     break;
                 case MoveEvent.EVENT_NAME:
+                    // TODO: what is intended to be done, if target already exists?
                     // overwrite path element to check with target
                     pathElement = new LocalPathElement(this.request.getEvent().getNewPath());
                 case CreateEvent.EVENT_NAME:
                 case ModifyEvent.EVENT_NAME:
                     try {
-                        if (this.storageAdapter.exists(StorageType.FILE, pathElement)) {
+                        if (this.request.getEvent().isFile() && this.storageAdapter.exists(StorageType.FILE, pathElement)) {
                             // compare versions
                             if (this.hasVersionConflict(pathElement)) {
                                 hasAccepted = true;
@@ -116,6 +120,7 @@ public class FileOfferRequestHandler implements ILocalStateRequestCallback {
                                 hasConflict = false;
                             }
                         } else {
+                            // we accept any offer if it is a directory, whether it exists or not
                             hasAccepted = true;
                             hasConflict = false;
                         }
@@ -201,6 +206,9 @@ public class FileOfferRequestHandler implements ILocalStateRequestCallback {
                 lastLocalFileVersionHash = (null != lastLocalFileVersion) ? lastLocalFileVersion.getHash() : null;
 
                 eventHash = this.request.getEvent().getHash();
+            } else if (this.storageAdapter.exists(StorageType.DIRECTORY, pathElement)) {
+                // we do not care, if we get a modify event for a directory only
+                return false;
             }
         } catch (InputOutputException e) {
             logger.error("Failed to check if file " + pathElement.getPath() + " exists. Message: " + e.getMessage() + ". Indicating that a conflict happened");

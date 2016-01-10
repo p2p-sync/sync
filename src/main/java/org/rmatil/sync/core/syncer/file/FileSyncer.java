@@ -7,15 +7,16 @@ import org.rmatil.sync.core.eventbus.CreateBusEvent;
 import org.rmatil.sync.core.eventbus.IBusEvent;
 import org.rmatil.sync.core.eventbus.IgnoreBusEvent;
 import org.rmatil.sync.core.exception.SyncFailedException;
+import org.rmatil.sync.core.messaging.fileexchange.delete.FileDeleteExchangeHandler;
+import org.rmatil.sync.core.messaging.fileexchange.move.FileMoveExchangeHandler;
 import org.rmatil.sync.core.messaging.fileexchange.offer.FileOfferExchangeHandler;
 import org.rmatil.sync.core.messaging.fileexchange.offer.FileOfferExchangeHandlerResult;
 import org.rmatil.sync.core.messaging.fileexchange.push.FilePushExchangeHandler;
 import org.rmatil.sync.core.syncer.ISyncer;
-import org.rmatil.sync.event.aggregator.core.events.CreateEvent;
-import org.rmatil.sync.event.aggregator.core.events.IEvent;
-import org.rmatil.sync.event.aggregator.core.events.MoveEvent;
+import org.rmatil.sync.event.aggregator.core.events.*;
 import org.rmatil.sync.network.api.IClient;
 import org.rmatil.sync.network.api.IUser;
+import org.rmatil.sync.network.core.ANetworkHandler;
 import org.rmatil.sync.network.core.ClientManager;
 import org.rmatil.sync.network.core.model.ClientDevice;
 import org.rmatil.sync.persistence.api.IFileMetaInfo;
@@ -98,9 +99,69 @@ public class FileSyncer implements ISyncer {
             }
         }
 
+        // TODO: check why we sometimes still get modify events for directories despite adding the IgnoreDirModifier
+        if (event instanceof ModifyEvent) {
+            try {
+                if (this.storageAdapter.isDir(new LocalPathElement(event.getPath().toString()))) {
+                    logger.info("Skipping unintentionally received modified event for directory " + event.getPath().toString());
+                    return;
+                }
+            } catch (InputOutputException e) {
+                logger.error("Failed to check whether the modify event for " + event.getPath().toString() + " should be ignored. Therefore will sync...");
+            }
+        }
+
         logger.debug("Syncing event " + event.getEventName() + " for path " + event.getPath().toString());
 
         UUID fileExchangeId = UUID.randomUUID();
+
+        if (event instanceof DeleteEvent) {
+            // directly send a delete request without bothering
+            // about any conflict etc.
+
+            // TODO: start deletePushExchangeHandler
+            ANetworkHandler exchangeHandler = new FileDeleteExchangeHandler(
+                    fileExchangeId,
+                    this.clientDevice,
+                    this.storageAdapter,
+                    this.clientManager,
+                    this.client,
+                    this.globalEventBus,
+                    (DeleteEvent) event
+            );
+            logger.debug("Starting fileDelete handler for exchangeId " + fileExchangeId);
+
+            this.client.getObjectDataReplyHandler().addResponseCallbackHandler(fileExchangeId, exchangeHandler);
+            new Thread(exchangeHandler).start();
+
+            try {
+                Thread.sleep(100L);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+
+
+//        logger.debug("Waiting for delete exchange " + fileExchangeId + " to complete...");
+//        try {
+//            exchangeHandler.await();
+//        } catch (InterruptedException e) {
+//            e.printStackTrace();
+//        }
+//        logger.debug("Delete exchange " + fileExchangeId + " completed");
+//
+//        this.client.getObjectDataReplyHandler().removeCallbackHandler(fileExchangeId);
+//
+//        if (! filePushRequestHandler.isCompleted()) {
+//            logger.error("No result received from clients for request " + fileExchangeId + ". Aborting file push");
+//            return;
+//        }
+//
+//        FilePushExchangeHandlerResult result2 = filePushRequestHandler.getResult();
+//        logger.info("Result of file push " + fileExchangeId + " is " + result2.toString());
+            return;
+        }
+
+        // all other events require an offering step
 
         FileOfferExchangeHandler fileOfferExchangeHandler = new FileOfferExchangeHandler(
                 fileExchangeId,
@@ -108,13 +169,13 @@ public class FileSyncer implements ISyncer {
                 this.clientManager,
                 this.client,
                 this.objectStore,
+                this.storageAdapter,
                 event
         );
 
         logger.debug("Starting fileExchange handler for exchangeId " + fileExchangeId);
 
         this.client.getObjectDataReplyHandler().addResponseCallbackHandler(fileExchangeId, fileOfferExchangeHandler);
-
         new Thread(fileOfferExchangeHandler).start();
 
         try {
@@ -151,23 +212,38 @@ public class FileSyncer implements ISyncer {
         }
 
         // TODO: what if client did not accept request
-        // TODO: maybe resend request if any client did not accept
+        // TODO: maybe resend request if any client did not accept -> yep (do not accept if multiple offerings for the same file at the same time)
 
         // Now we can start to send the file
 
-        FilePushExchangeHandler filePushRequestHandler = new FilePushExchangeHandler(
-                fileExchangeId,
-                this.clientDevice,
-                this.storageAdapter,
-                this.clientManager,
-                this.client,
-                event.getPath().toString()
-        );
+        ANetworkHandler exchangeHandler;
+        if (event instanceof MoveEvent) {
+            // TODO: start movePushExchangeHandler
+            exchangeHandler = new FileMoveExchangeHandler(
+                    fileExchangeId,
+                    this.clientDevice,
+                    this.storageAdapter,
+                    this.clientManager,
+                    this.client,
+                    this.globalEventBus,
+                    (MoveEvent) event
+            );
+            logger.debug("Starting fileMove handler for exchangeId " + fileExchangeId);
+        } else {
+            exchangeHandler = new FilePushExchangeHandler(
+                    fileExchangeId,
+                    this.clientDevice,
+                    this.storageAdapter,
+                    this.clientManager,
+                    this.client,
+                    event.getPath().toString()
+            );
 
-        logger.debug("Starting filePush handler for exchangeId " + fileExchangeId);
+            logger.debug("Starting filePush handler for exchangeId " + fileExchangeId);
+        }
 
-        this.client.getObjectDataReplyHandler().addResponseCallbackHandler(fileExchangeId, filePushRequestHandler);
-        new Thread(filePushRequestHandler).start();
+        this.client.getObjectDataReplyHandler().addResponseCallbackHandler(fileExchangeId, exchangeHandler);
+        new Thread(exchangeHandler).start();
 
         try {
             Thread.sleep(100L);
@@ -193,6 +269,8 @@ public class FileSyncer implements ISyncer {
 //
 //        FilePushExchangeHandlerResult result2 = filePushRequestHandler.getResult();
 //        logger.info("Result of file push " + fileExchangeId + " is " + result2.toString());
+
+
 
     }
 

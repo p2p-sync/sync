@@ -1,6 +1,7 @@
 package org.rmatil.sync.core.messaging.fileexchange.offer;
 
 import org.rmatil.sync.event.aggregator.core.events.IEvent;
+import org.rmatil.sync.event.aggregator.core.events.MoveEvent;
 import org.rmatil.sync.network.api.IClient;
 import org.rmatil.sync.network.api.IClientManager;
 import org.rmatil.sync.network.api.IRequest;
@@ -8,6 +9,8 @@ import org.rmatil.sync.network.api.IResponse;
 import org.rmatil.sync.network.core.ANetworkHandler;
 import org.rmatil.sync.network.core.model.ClientDevice;
 import org.rmatil.sync.network.core.model.ClientLocation;
+import org.rmatil.sync.persistence.api.IStorageAdapter;
+import org.rmatil.sync.persistence.core.local.LocalPathElement;
 import org.rmatil.sync.persistence.exceptions.InputOutputException;
 import org.rmatil.sync.version.api.IObjectStore;
 import org.rmatil.sync.version.core.model.PathObject;
@@ -48,12 +51,15 @@ public class FileOfferExchangeHandler extends ANetworkHandler<FileOfferExchangeH
 
     protected IObjectStore objectStore;
 
-    public FileOfferExchangeHandler(UUID exchangeId, ClientDevice clientDevice, IClientManager clientManager, IClient client, IObjectStore objectStore, IEvent eventToPropagate) {
+    protected IStorageAdapter storageAdapter;
+
+    public FileOfferExchangeHandler(UUID exchangeId, ClientDevice clientDevice, IClientManager clientManager, IClient client, IObjectStore objectStore, IStorageAdapter storageAdapter, IEvent eventToPropagate) {
         super(client);
         this.clientDevice = clientDevice;
         this.exchangeId = exchangeId;
         this.clientManager = clientManager;
         this.objectStore = objectStore;
+        this.storageAdapter = storageAdapter;
         this.eventToPropagate = eventToPropagate;
         this.respondedClients = new ArrayList<>();
     }
@@ -68,32 +74,43 @@ public class FileOfferExchangeHandler extends ANetworkHandler<FileOfferExchangeH
             return;
         }
 
-        Map<String, String> indexPaths = this.objectStore.getObjectManager().getIndex().getPaths();
-        String hash = indexPaths.get(this.eventToPropagate.getPath().toString());
-
-        PathObject pathObject;
+        boolean isDir = false;
+        String pathToCheck = this.eventToPropagate.getEventName().equals(MoveEvent.EVENT_NAME) ? ((MoveEvent) this.eventToPropagate).getNewPath().toString() : this.eventToPropagate.getPath().toString();
         try {
-             pathObject = this.objectStore.getObjectManager().getObject(hash);
+            isDir = this.storageAdapter.isDir(new LocalPathElement(pathToCheck));
         } catch (InputOutputException e) {
-            logger.error("Can not read versions from object store. Message: " + e.getMessage());
-            return;
+            logger.error("Could not check whether the file " + pathToCheck + " is a file or directory");
         }
 
-        // get version before the one we got from the event to propagate
         Version versionBefore = null;
-        for (Version entry : pathObject.getVersions()) {
-            if (entry.getHash().equals(this.eventToPropagate.getHash())) {
-                // versionBefore contains now the version before this element
-                break;
+        // we check versions only for files
+        if (! isDir) {
+            Map<String, String> indexPaths = this.objectStore.getObjectManager().getIndex().getPaths();
+            String hash = indexPaths.get(pathToCheck);
+
+            PathObject pathObject;
+            try {
+                pathObject = this.objectStore.getObjectManager().getObject(hash);
+            } catch (InputOutputException e) {
+                logger.error("Can not read versions from object store. Message: " + e.getMessage());
+                return;
             }
 
-            versionBefore = entry;
+            // get version before the one we got from the event to propagate
+            for (Version entry : pathObject.getVersions()) {
+                if (entry.getHash().equals(this.eventToPropagate.getHash())) {
+                    // versionBefore contains now the version before this element
+                    break;
+                }
+
+                versionBefore = entry;
+            }
         }
 
         IRequest request = new FileOfferRequest(
-            this.exchangeId,
+                this.exchangeId,
                 this.clientDevice,
-                SerializableEvent.fromEvent(this.eventToPropagate, (null != versionBefore) ? versionBefore.getHash() : null),
+                SerializableEvent.fromEvent(this.eventToPropagate, (null != versionBefore) ? versionBefore.getHash() : null, ! isDir),
                 clientLocations
         );
 

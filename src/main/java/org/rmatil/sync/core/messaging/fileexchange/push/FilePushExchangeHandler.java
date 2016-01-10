@@ -104,25 +104,30 @@ public class FilePushExchangeHandler extends ANetworkHandler<FilePushExchangeHan
             return;
         }
 
-        // should round to the next bigger int value anyway
-        int totalNrOfChunks = (int) Math.ceil(fileMetaInfo.getTotalFileSize() / CHUNK_SIZE);
-        long fileChunkStartOffset = chunkCounter * CHUNK_SIZE;
+        int totalNrOfChunks = 0;
+        Data data = null;
+        if (fileMetaInfo.isFile()) {
+            // should round to the next bigger int value anyway
+             totalNrOfChunks = (int) Math.ceil(fileMetaInfo.getTotalFileSize() / CHUNK_SIZE);
+            long fileChunkStartOffset = chunkCounter * CHUNK_SIZE;
 
-        // storage adapter trims requests for a too large chunk
-        byte[] content;
-        try {
-            content = this.storageAdapter.read(pathElement, fileChunkStartOffset, CHUNK_SIZE);
-        } catch (InputOutputException e) {
-            logger.error("Could not read file contents of " + pathElement.getPath() + " at offset " + fileChunkStartOffset + " bytes with chunk size of " + CHUNK_SIZE + " bytes");
-            return;
+            // storage adapter trims requests for a too large chunk
+            byte[] content;
+            try {
+                content = this.storageAdapter.read(pathElement, fileChunkStartOffset, CHUNK_SIZE);
+            } catch (InputOutputException e) {
+                logger.error("Could not read file contents of " + pathElement.getPath() + " at offset " + fileChunkStartOffset + " bytes with chunk size of " + CHUNK_SIZE + " bytes");
+                return;
+            }
+
+            data = new Data(content, false);
         }
-
-        Data data = new Data(content, false);
 
         IRequest request = new FilePushRequest(
                 exchangeId,
                 this.clientDevice,
                 this.relativeFilePath,
+                fileMetaInfo.isFile(),
                 chunkCounter,
                 CHUNK_SIZE,
                 totalNrOfChunks,

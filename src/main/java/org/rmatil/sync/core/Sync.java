@@ -11,6 +11,11 @@ import org.rmatil.sync.core.init.client.ClientInitializer;
 import org.rmatil.sync.core.init.client.LocalStateObjectDataReplyHandler;
 import org.rmatil.sync.core.init.eventaggregator.EventAggregatorInitializer;
 import org.rmatil.sync.core.init.objecstore.ObjectStoreInitializer;
+import org.rmatil.sync.core.messaging.fileexchange.delete.FileDeleteRequest;
+import org.rmatil.sync.core.messaging.fileexchange.delete.FileDeleteRequestHandler;
+import org.rmatil.sync.core.messaging.fileexchange.move.FileMoveExchangeHandler;
+import org.rmatil.sync.core.messaging.fileexchange.move.FileMoveRequest;
+import org.rmatil.sync.core.messaging.fileexchange.move.FileMoveRequestHandler;
 import org.rmatil.sync.core.messaging.fileexchange.offer.FileOfferRequest;
 import org.rmatil.sync.core.messaging.fileexchange.offer.FileOfferRequestHandler;
 import org.rmatil.sync.core.messaging.fileexchange.push.FilePushRequest;
@@ -86,6 +91,8 @@ public class Sync {
         // specify protocol
         objectDataReplyHandler.addRequestCallbackHandler(FileOfferRequest.class, FileOfferRequestHandler.class);
         objectDataReplyHandler.addRequestCallbackHandler(FilePushRequest.class, FilePushRequestHandler.class);
+        objectDataReplyHandler.addRequestCallbackHandler(FileDeleteRequest.class, FileDeleteRequestHandler.class);
+        objectDataReplyHandler.addRequestCallbackHandler(FileMoveRequest.class, FileMoveRequestHandler.class);
 
         ClientInitializer clientInitializer = new ClientInitializer(objectDataReplyHandler, user, port, bootstrapLocation);
         client = clientInitializer.init();

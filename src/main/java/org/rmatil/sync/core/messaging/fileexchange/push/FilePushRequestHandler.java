@@ -4,12 +4,12 @@ import net.engio.mbassy.bus.MBassador;
 import org.rmatil.sync.core.eventbus.IBusEvent;
 import org.rmatil.sync.core.eventbus.IgnoreBusEvent;
 import org.rmatil.sync.core.init.client.ILocalStateRequestCallback;
-import org.rmatil.sync.core.messaging.fileexchange.offer.FileOfferRequest;
 import org.rmatil.sync.event.aggregator.core.events.CreateEvent;
 import org.rmatil.sync.event.aggregator.core.events.ModifyEvent;
 import org.rmatil.sync.network.api.IClient;
 import org.rmatil.sync.network.api.IRequest;
 import org.rmatil.sync.network.api.IResponse;
+import org.rmatil.sync.network.core.model.ClientDevice;
 import org.rmatil.sync.network.core.model.ClientLocation;
 import org.rmatil.sync.persistence.api.IPathElement;
 import org.rmatil.sync.persistence.api.IStorageAdapter;
@@ -29,7 +29,7 @@ public class FilePushRequestHandler implements ILocalStateRequestCallback {
     protected IStorageAdapter      storageAdapter;
     protected IObjectStore         objectStore;
     protected IClient              client;
-    protected FilePushRequest     request;
+    protected FilePushRequest      request;
     protected MBassador<IBusEvent> globalEventBus;
 
     @Override
@@ -67,6 +67,8 @@ public class FilePushRequestHandler implements ILocalStateRequestCallback {
 
         IPathElement localPathElement = new LocalPathElement(this.request.getRelativeFilePath());
 
+        // if the chunk counter is greater than 0
+        // we only modify the existing file, so we generate an ignore modify event
         if (this.request.getChunkCounter() > 0) {
             this.globalEventBus.publish(new IgnoreBusEvent(
                     new ModifyEvent(
@@ -80,7 +82,7 @@ public class FilePushRequestHandler implements ILocalStateRequestCallback {
             // we check for local existence, if the file already exists, we just ignore the
             // modify event, otherwise we ignore the create event
             try {
-                if (this.storageAdapter.exists(StorageType.FILE, localPathElement)) {
+                if (this.storageAdapter.exists(StorageType.FILE, localPathElement) || this.storageAdapter.exists(StorageType.DIRECTORY, localPathElement)) {
                     this.globalEventBus.publish(new IgnoreBusEvent(
                             new ModifyEvent(
                                     Paths.get(this.request.getRelativeFilePath()),
@@ -104,21 +106,32 @@ public class FilePushRequestHandler implements ILocalStateRequestCallback {
             }
         }
 
-        try {
-            this.storageAdapter.persist(StorageType.FILE, localPathElement, this.request.getChunkCounter() * this.request.getChunkSize(), this.request.getData().getContent());
-        } catch (InputOutputException e) {
-            logger.error("Could not write chunk " + this.request.getChunkCounter() + " of file " + this.request.getRelativeFilePath());
+        if (this.request.isFile()) {
+            try {
+                this.storageAdapter.persist(StorageType.FILE, localPathElement, this.request.getChunkCounter() * this.request.getChunkSize(), this.request.getData().getContent());
+            } catch (InputOutputException e) {
+                logger.error("Could not write chunk " + this.request.getChunkCounter() + " of file " + this.request.getRelativeFilePath());
+            }
+        } else {
+            try {
+                if (! this.storageAdapter.exists(StorageType.DIRECTORY, localPathElement)) {
+                    this.storageAdapter.persist(StorageType.DIRECTORY, localPathElement, null);
+                }
+            } catch (InputOutputException e) {
+                logger.error("Could not create directory " + localPathElement.getPath());
+            }
         }
+
 
         long requestingChunk = this.request.getChunkCounter();
         if (this.request.getChunkCounter() == this.request.getTotalNrOfChunks()) {
             // indicate we got all chunks
-            requestingChunk = -1;
+            requestingChunk = - 1;
         }
 
         IResponse response = new FilePushResponse(
                 this.request.getExchangeId(),
-                this.request.getClientDevice(),
+                new ClientDevice(this.client.getUser().getUserName(), this.client.getClientDeviceId(), this.client.getPeerAddress()),
                 this.request.getRelativeFilePath(),
                 new ClientLocation(this.request.getClientDevice().getClientDeviceId(), this.request.getClientDevice().getPeerAddress()),
                 requestingChunk
