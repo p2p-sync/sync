@@ -52,33 +52,8 @@ public class FileMoveExchangeHandler extends ANetworkHandler<FileMoveExchangeHan
 
     @Override
     public void run() {
-        // TODO: traverse directory and ignore all move events of its contents
         try {
             boolean isFile = this.storageAdapter.isFile(new LocalPathElement(this.moveEvent.getNewPath().toString()));
-
-            // since this sync is triggered by a move, the actual operation is already
-            // done on this client, therefore we traverse the dir on the new path
-            if (! isFile) {
-                Path dirToMove = this.storageAdapter.getRootDir().resolve(this.moveEvent.getNewPath());
-                try (Stream<Path> paths = Files.walk(dirToMove)) {
-                    paths.forEach((entry) -> {
-                        Path relPath = this.storageAdapter.getRootDir().toAbsolutePath().relativize(entry);
-                        Path oldPath = this.moveEvent.getPath().resolve(this.moveEvent.getNewPath().relativize(relPath));
-
-                        globalEventBus.publish(new IgnoreBusEvent(
-                                new MoveEvent(
-                                        oldPath,
-                                        entry,
-                                        entry.getFileName().toString(),
-                                        "weIgnoreTheHash",
-                                        System.currentTimeMillis()
-                                )
-                        ));
-                    });
-                } catch (IOException e) {
-                    logger.error("Could not create ignore events for moving " + this.moveEvent.getPath().toString() + " to " + this.moveEvent.getNewPath().toString() + ". Message: " + e.getMessage());
-                }
-            }
 
             List<ClientLocation> clientLocations;
             try {

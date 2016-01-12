@@ -1,5 +1,8 @@
 package org.rmatil.sync.core.messaging.fileexchange.offer;
 
+import net.engio.mbassy.bus.MBassador;
+import org.rmatil.sync.core.eventbus.IBusEvent;
+import org.rmatil.sync.core.eventbus.IgnoreBusEvent;
 import org.rmatil.sync.event.aggregator.core.events.IEvent;
 import org.rmatil.sync.event.aggregator.core.events.MoveEvent;
 import org.rmatil.sync.network.api.IClient;
@@ -18,7 +21,11 @@ import org.rmatil.sync.version.core.model.Version;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.*;
+import java.util.stream.Stream;
 
 /**
  * Implements the crucial step of deciding whether a conflict
@@ -53,33 +60,63 @@ public class FileOfferExchangeHandler extends ANetworkHandler<FileOfferExchangeH
 
     protected IStorageAdapter storageAdapter;
 
-    public FileOfferExchangeHandler(UUID exchangeId, ClientDevice clientDevice, IClientManager clientManager, IClient client, IObjectStore objectStore, IStorageAdapter storageAdapter, IEvent eventToPropagate) {
+    protected MBassador<IBusEvent> globalEventBus;
+
+    public FileOfferExchangeHandler(UUID exchangeId, ClientDevice clientDevice, IClientManager clientManager, IClient client, IObjectStore objectStore, IStorageAdapter storageAdapter, MBassador<IBusEvent> globalEventBus, IEvent eventToPropagate) {
         super(client);
         this.clientDevice = clientDevice;
         this.exchangeId = exchangeId;
         this.clientManager = clientManager;
         this.objectStore = objectStore;
         this.storageAdapter = storageAdapter;
+        this.globalEventBus = globalEventBus;
         this.eventToPropagate = eventToPropagate;
         this.respondedClients = new ArrayList<>();
     }
 
     @Override
     public void run() {
+        String pathToCheck = this.eventToPropagate.getEventName().equals(MoveEvent.EVENT_NAME) ? ((MoveEvent) this.eventToPropagate).getNewPath().toString() : this.eventToPropagate.getPath().toString();
+
+        boolean isDir = false;
+        try {
+            isDir = this.storageAdapter.isDir(new LocalPathElement(pathToCheck));
+        } catch (InputOutputException e) {
+            logger.error("Could not check whether the file " + pathToCheck + " is a file or directory");
+        }
+
+        // since this sync is triggered by a move, the actual operation is already
+        // done on this client, therefore we traverse the dir on the new path
+        if (isDir && this.eventToPropagate instanceof MoveEvent) {
+            // we only offer the move event from the "root" directory
+            Path dirToMove = this.storageAdapter.getRootDir().resolve(((MoveEvent) this.eventToPropagate).getNewPath());
+            try (Stream<Path> paths = Files.walk(dirToMove)) {
+                paths.forEach((entry) -> {
+                    Path relPath = this.storageAdapter.getRootDir().toAbsolutePath().relativize(entry);
+                    Path oldPath = this.eventToPropagate.getPath().resolve(((MoveEvent) this.eventToPropagate).getNewPath().relativize(relPath));
+
+                    globalEventBus.publish(new IgnoreBusEvent(
+                            new MoveEvent(
+                                    oldPath,
+                                    relPath,
+                                    entry.getFileName().toString(),
+                                    "weIgnoreTheHash",
+                                    System.currentTimeMillis()
+                            )
+                    ));
+                });
+            } catch (IOException e) {
+                logger.error("Could not create ignore events for moving " + this.eventToPropagate.getPath().toString() + " to " + ((MoveEvent) this.eventToPropagate).getNewPath().toString() + ". Message: " + e.getMessage());
+            }
+        }
+
+        // Fetch client locations from the DHT
         List<ClientLocation> clientLocations;
         try {
             clientLocations = this.clientManager.getClientLocations(super.client.getUser());
         } catch (InputOutputException e) {
             logger.error("Could not fetch client locations from user " + super.client.getUser().getUserName() + ". Message: " + e.getMessage());
             return;
-        }
-
-        boolean isDir = false;
-        String pathToCheck = this.eventToPropagate.getEventName().equals(MoveEvent.EVENT_NAME) ? ((MoveEvent) this.eventToPropagate).getNewPath().toString() : this.eventToPropagate.getPath().toString();
-        try {
-            isDir = this.storageAdapter.isDir(new LocalPathElement(pathToCheck));
-        } catch (InputOutputException e) {
-            logger.error("Could not check whether the file " + pathToCheck + " is a file or directory");
         }
 
         Version versionBefore = null;

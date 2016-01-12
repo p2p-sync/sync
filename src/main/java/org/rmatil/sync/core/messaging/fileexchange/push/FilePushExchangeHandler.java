@@ -22,7 +22,7 @@ public class FilePushExchangeHandler extends ANetworkHandler<FilePushExchangeHan
 
     private static final Logger logger = LoggerFactory.getLogger(FileOfferExchangeHandler.class);
 
-    protected static final int CHUNK_SIZE = 1024;
+    protected static final int CHUNK_SIZE = 1024 * 1024; // 1MB
 
     /**
      * The id of the file exchange
@@ -66,7 +66,7 @@ public class FilePushExchangeHandler extends ANetworkHandler<FilePushExchangeHan
             for (ClientLocation location : clientLocations) {
                 UUID uuid = UUID.randomUUID();
                 logger.info("Sending first chunk as subRequest of " + this.exchangeId + " with id " + uuid + " to client " + location.getPeerAddress().inetAddress().getHostName() + ":" + location.getPeerAddress().tcpPort());
-                // add callback handler for subrequest
+                // add callback handler for sub request
                 super.client.getObjectDataReplyHandler().addResponseCallbackHandler(uuid, this);
 
                 this.sendChunk(0, uuid, location);

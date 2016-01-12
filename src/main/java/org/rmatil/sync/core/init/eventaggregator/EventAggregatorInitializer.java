@@ -41,7 +41,7 @@ public class EventAggregatorInitializer implements IInitializer<IEventAggregator
         IModifier relativePathModifier = new RelativePathModifier(this.rootPath);
         IModifier addDirectoryContentModifier = new AddDirectoryContentModifier(this.rootPath, this.objectStore);
         IModifier ignorePathsModifier = new IgnorePathsModifier(ignoredPaths);
-        IModifier ignoreDirectoryModifier = new IgnoreDirectoryModifier();
+        IModifier ignoreDirectoryModifier = new IgnoreDirectoryModifier(this.rootPath);
 
         IAggregator historyMoveAggregator = new HistoryMoveAggregator(objectStore.getObjectManager());
 
@@ -56,12 +56,10 @@ public class EventAggregatorInitializer implements IInitializer<IEventAggregator
 
         this.eventAggregator.addModifier(relativePathModifier);
         this.eventAggregator.addModifier(addDirectoryContentModifier);
-        // TODO: check if ignoreDirectoryModifier can be used
-        // TODO: Do we really want no modification of the path object of a directory?
-        // TODO: i think yes -> at least in the propagation of file offers (only need to forward concrete file changes)
-        // TODO: in the object store nothing changes since the version for a dir is null
+        // we do not ignore directory modifications because we rely on the hash of the
+        // directory contents for move events of directories
         // must be after addDirectoryContentModifier so that events for dir contents are generated
-        this.eventAggregator.addModifier(ignoreDirectoryModifier);
+//        this.eventAggregator.addModifier(ignoreDirectoryModifier);
         this.eventAggregator.addModifier(ignorePathsModifier);
 
         this.eventAggregator.addAggregator(historyMoveAggregator);

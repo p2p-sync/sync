@@ -44,7 +44,7 @@ public class FileSyncer implements ISyncer {
 
     protected static final Logger logger = LoggerFactory.getLogger(FileSyncer.class);
 
-    public static final int NUMBER_OF_SYNCS = 25;
+    public static final int NUMBER_OF_SYNCS = 1;
 
     protected       IUser           user;
     protected       IClient         client;
@@ -76,7 +76,7 @@ public class FileSyncer implements ISyncer {
     @Handler
     public void handleBusEvent(IgnoreBusEvent event) {
         // ignore the given event if it arises in sync()
-        logger.debug("Got notified from event bus: " + event.getEvent().getEventName() + " for file " + event.getEvent().getPath().toString());
+        logger.debug("Got ignore event from global event bus: " + event.getEvent().getEventName() + " for file " + event.getEvent().getPath().toString());
         synchronized (this.eventsToIgnore) {
             this.eventsToIgnore.add(event.getEvent());
         }
@@ -119,7 +119,6 @@ public class FileSyncer implements ISyncer {
             // directly send a delete request without bothering
             // about any conflict etc.
 
-            // TODO: start deletePushExchangeHandler
             ANetworkHandler exchangeHandler = new FileDeleteExchangeHandler(
                     fileExchangeId,
                     this.clientDevice,
@@ -132,32 +131,24 @@ public class FileSyncer implements ISyncer {
             logger.debug("Starting fileDelete handler for exchangeId " + fileExchangeId);
 
             this.client.getObjectDataReplyHandler().addResponseCallbackHandler(fileExchangeId, exchangeHandler);
-            new Thread(exchangeHandler).start();
+            Thread fileDeleteExchangeHandlerThread = new Thread(exchangeHandler);
+            fileDeleteExchangeHandlerThread.setName("FileDeleteExchangeHandler for request " + fileExchangeId);
+            fileDeleteExchangeHandlerThread.start();
 
+            logger.debug("Waiting for delete exchange " + fileExchangeId + " to complete...");
             try {
-                Thread.sleep(100L);
+                exchangeHandler.await();
             } catch (InterruptedException e) {
-                e.printStackTrace();
+                logger.error("Failed to await for delete exchange " + fileExchangeId + ". Message: " + e.getMessage());
             }
 
+            this.client.getObjectDataReplyHandler().removeResponseCallbackHandler(fileExchangeId);
 
-//        logger.debug("Waiting for delete exchange " + fileExchangeId + " to complete...");
-//        try {
-//            exchangeHandler.await();
-//        } catch (InterruptedException e) {
-//            e.printStackTrace();
-//        }
-//        logger.debug("Delete exchange " + fileExchangeId + " completed");
-//
-//        this.client.getObjectDataReplyHandler().removeCallbackHandler(fileExchangeId);
-//
-//        if (! filePushRequestHandler.isCompleted()) {
-//            logger.error("No result received from clients for request " + fileExchangeId + ". Aborting file push");
-//            return;
-//        }
-//
-//        FilePushExchangeHandlerResult result2 = filePushRequestHandler.getResult();
-//        logger.info("Result of file push " + fileExchangeId + " is " + result2.toString());
+            if (! exchangeHandler.isCompleted()) {
+                logger.error("No result received from clients for request " + fileExchangeId);
+                return;
+            }
+
             return;
         }
 
@@ -170,28 +161,23 @@ public class FileSyncer implements ISyncer {
                 this.client,
                 this.objectStore,
                 this.storageAdapter,
+                this.globalEventBus,
                 event
         );
 
-        logger.debug("Starting fileExchange handler for exchangeId " + fileExchangeId);
+        logger.debug("Starting file offer exchange handler for exchangeId " + fileExchangeId);
 
         this.client.getObjectDataReplyHandler().addResponseCallbackHandler(fileExchangeId, fileOfferExchangeHandler);
-        new Thread(fileOfferExchangeHandler).start();
-
-        try {
-            Thread.sleep(1000L);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-
+        Thread fileOfferExchangeHandlerThread = new Thread(fileOfferExchangeHandler);
+        fileOfferExchangeHandlerThread.setName("FileOfferExchangeHandler for request " + fileExchangeId);
+        fileOfferExchangeHandlerThread.start();
 
         logger.debug("Waiting for offer exchange " + fileExchangeId + " to complete... (Max. " + FileOfferExchangeHandler.MAX_WAITING_TIME + "ms)");
         try {
             fileOfferExchangeHandler.await();
         } catch (InterruptedException e) {
-            e.printStackTrace();
+            logger.error("Failed to await for file offer exchange " + fileExchangeId + ". Message: " + e.getMessage());
         }
-        logger.debug("Offer exchange " + fileExchangeId + " completed");
 
         this.client.getObjectDataReplyHandler().removeResponseCallbackHandler(fileExchangeId);
 
@@ -202,7 +188,6 @@ public class FileSyncer implements ISyncer {
 
         FileOfferExchangeHandlerResult result = fileOfferExchangeHandler.getResult();
         logger.info("Result of file offering " + fileExchangeId + " is " + result.toString());
-
 
         if (result.hasConflictDetected()) {
             this.createConflictFile(new LocalPathElement(event.getPath().toString()));
@@ -217,8 +202,8 @@ public class FileSyncer implements ISyncer {
         // Now we can start to send the file
 
         ANetworkHandler exchangeHandler;
+        Thread exchangeHandlerThread;
         if (event instanceof MoveEvent) {
-            // TODO: start movePushExchangeHandler
             exchangeHandler = new FileMoveExchangeHandler(
                     fileExchangeId,
                     this.clientDevice,
@@ -228,7 +213,10 @@ public class FileSyncer implements ISyncer {
                     this.globalEventBus,
                     (MoveEvent) event
             );
+
             logger.debug("Starting fileMove handler for exchangeId " + fileExchangeId);
+            exchangeHandlerThread = new Thread(exchangeHandler);
+            exchangeHandlerThread.setName("MoveEventExchangeHandler for request " + fileExchangeId);
         } else {
             exchangeHandler = new FilePushExchangeHandler(
                     fileExchangeId,
@@ -240,40 +228,38 @@ public class FileSyncer implements ISyncer {
             );
 
             logger.debug("Starting filePush handler for exchangeId " + fileExchangeId);
+            exchangeHandlerThread = new Thread(exchangeHandler);
+            exchangeHandlerThread.setName("FilePushExchangeHandler for request " + fileExchangeId);
         }
 
         this.client.getObjectDataReplyHandler().addResponseCallbackHandler(fileExchangeId, exchangeHandler);
-        new Thread(exchangeHandler).start();
+        exchangeHandlerThread.start();
 
+        logger.debug("Waiting for push exchange " + fileExchangeId + " to complete...");
         try {
-            Thread.sleep(100L);
+            exchangeHandler.await();
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
 
+        this.client.getObjectDataReplyHandler().removeResponseCallbackHandler(fileExchangeId);
 
-//        logger.debug("Waiting for push exchange " + fileExchangeId + " to complete...");
-//        try {
-//            filePushRequestHandler.await();
-//        } catch (InterruptedException e) {
-//            e.printStackTrace();
-//        }
-//        logger.debug("Push exchange " + fileExchangeId + " completed");
-//
-//        this.client.getObjectDataReplyHandler().removeCallbackHandler(fileExchangeId);
-//
-//        if (! filePushRequestHandler.isCompleted()) {
-//            logger.error("No result received from clients for request " + fileExchangeId + ". Aborting file push");
-//            return;
-//        }
-//
-//        FilePushExchangeHandlerResult result2 = filePushRequestHandler.getResult();
-//        logger.info("Result of file push " + fileExchangeId + " is " + result2.toString());
+        if (! exchangeHandler.isCompleted()) {
+            logger.error("No result received from clients for request " + fileExchangeId + ". Aborting file push");
+            return;
+        }
 
-
-
+        Object exchangeHandlerResult = exchangeHandler.getResult();
+        logger.info("Result of file push " + fileExchangeId + " is " + exchangeHandlerResult.toString());
     }
 
+    /**
+     * Creates a conflict file for the given path element.
+     * The conflict file is then synchronized by processing the
+     * whole file offering & file push protocol again.
+     *
+     * @param pathElement The path element for which to create a conflict file
+     */
     protected void createConflictFile(LocalPathElement pathElement) {
         PathObject pathObject;
         try {

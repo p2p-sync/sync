@@ -23,9 +23,12 @@ import org.rmatil.sync.version.core.model.PathObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
+import java.util.stream.Stream;
 
 public class FileMoveRequestHandler implements ILocalStateRequestCallback {
 
@@ -93,7 +96,7 @@ public class FileMoveRequestHandler implements ILocalStateRequestCallback {
                     true
             ));
         } catch (Exception e) {
-            logger.error("Error in FileMoveRequestHandler thread. Message: " + e.getMessage(), e);
+            logger.error("Error in FileMoveRequestHandler thread for exchangeId " + this.request.getExchangeId() + ". Message: " + e.getMessage(), e);
         }
     }
 
@@ -101,36 +104,64 @@ public class FileMoveRequestHandler implements ILocalStateRequestCallback {
             throws InputOutputException {
 
         if (StorageType.DIRECTORY == storageType) {
-            if (! this.storageAdapter.exists(StorageType.DIRECTORY, newPath)) {
-                this.storageAdapter.persist(StorageType.DIRECTORY, newPath, null);
-                // ignore the move event for this
-                // since the persisting and the later removing will be aggregated to a move
-                this.globalEventBus.publish(new IgnoreBusEvent(
-                        new MoveEvent(
-                                Paths.get(oldPath.getPath()),
-                                Paths.get(newPath.getPath()),
-                                Paths.get(newPath.getPath()).getFileName().toString(),
-                                "weIgnoreTheHash",
-                                System.currentTimeMillis()
-                        )
-                ));
+//            if (! this.storageAdapter.exists(StorageType.DIRECTORY, newPath)) {
+////                this.storageAdapter.persist(StorageType.DIRECTORY, newPath, null);
+//                // ignore the move event for this
+//                // since the persisting and the later removing will be aggregated to a move
+//                this.globalEventBus.publish(new IgnoreBusEvent(
+//                        new MoveEvent(
+//                                Paths.get(oldPath.getPath()),
+//                                Paths.get(newPath.getPath()),
+//                                Paths.get(newPath.getPath()).getFileName().toString(),
+//                                "weIgnoreTheHash",
+//                                System.currentTimeMillis()
+//                        )
+//                ));
+//            }
+
+//            List<IPathElement> pathElements = this.storageAdapter.getDirectoryContents(oldPath);
+//
+//            for (IPathElement pathElement : pathElements) {
+//                StorageType childStorageType = this.storageAdapter.isFile(pathElement) ? StorageType.FILE : StorageType.DIRECTORY;
+//
+//                Path childPath = Paths.get(newPath.getPath()).resolve(Paths.get(oldPath.getPath()).relativize(Paths.get(pathElement.getPath())));
+//                this.move(childStorageType, pathElement, new LocalPathElement(childPath.toString()));
+//            }
+//
+//            this.storageAdapter.delete(oldPath);
+
+            try (Stream<Path> paths = Files.walk(this.storageAdapter.getRootDir().resolve(oldPath.getPath()))) {
+                paths.forEach((entry) -> {
+                    this.globalEventBus.publish(new IgnoreBusEvent(
+                            new MoveEvent(
+                                    this.storageAdapter.getRootDir().relativize(entry),
+                                    Paths.get(newPath.getPath()).resolve(Paths.get(oldPath.getPath()).relativize(this.storageAdapter.getRootDir().relativize(Paths.get(entry.toString())))),
+                                    Paths.get(oldPath.getPath()).getFileName().toString(),
+                                    "weIgnoreTheHash",
+                                    System.currentTimeMillis()
+                            )
+                    ));
+                });
+            } catch (IOException e) {
+                logger.error("Could not create ignore events for the move of " + oldPath.getPath() + ". Message: " + e.getMessage());
             }
 
-            List<IPathElement> pathElements = this.storageAdapter.getDirectoryContents(oldPath);
 
-            for (IPathElement pathElement : pathElements) {
-                StorageType childStorageType = this.storageAdapter.isFile(pathElement) ? StorageType.FILE : StorageType.DIRECTORY;
-
-                Path childPath = Paths.get(newPath.getPath()).resolve(Paths.get(oldPath.getPath()).relativize(Paths.get(pathElement.getPath())));
-                this.move(childStorageType, pathElement, new LocalPathElement(childPath.toString()));
-            }
-
-            this.storageAdapter.delete(oldPath);
+            this.storageAdapter.move(storageType, oldPath, newPath);
         } else {
             Index idx = this.objectStore.getObjectManager().getIndex();
             String hashToObject = idx.getPaths().get(oldPath.getPath());
 
             PathObject pathObject = this.objectStore.getObjectManager().getObject(hashToObject);
+            this.globalEventBus.publish(new IgnoreBusEvent(
+                    new MoveEvent(
+                            Paths.get(oldPath.getPath()),
+                            Paths.get(newPath.getPath()),
+                            Paths.get(newPath.getPath()).getFileName().toString(),
+                            pathObject.getVersions().get(Math.max(pathObject.getVersions().size() - 1, 0)).getHash(),
+                            System.currentTimeMillis()
+                    )
+            ));
 
             this.storageAdapter.move(StorageType.FILE, oldPath, new LocalPathElement(newPath.getPath()));
             // since the history move aggregator gets notified only about the deletion of the old path
@@ -153,16 +184,6 @@ public class FileMoveRequestHandler implements ILocalStateRequestCallback {
 //                            System.currentTimeMillis()
 //                    )
 //            ));
-
-            this.globalEventBus.publish(new IgnoreBusEvent(
-                    new MoveEvent(
-                            Paths.get(oldPath.getPath()),
-                            Paths.get(newPath.getPath()),
-                            Paths.get(newPath.getPath()).getFileName().toString(),
-                            pathObject.getVersions().get(Math.max(pathObject.getVersions().size() - 1, 0)).getHash(),
-                            System.currentTimeMillis()
-                    )
-            ));
         }
     }
 }

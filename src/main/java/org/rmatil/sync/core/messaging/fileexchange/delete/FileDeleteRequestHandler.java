@@ -102,7 +102,7 @@ public class FileDeleteRequestHandler implements ILocalStateRequestCallback {
             ));
 
         } catch (Exception e) {
-            logger.error("Error in FileDeleteRequestHandler thread. Message: " + e.getMessage(), e);
+            logger.error("Error in FileDeleteRequestHandler thread for exchangeId " + this.request.getExchangeId() + ". Message: " + e.getMessage(), e);
         }
     }
 }

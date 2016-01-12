@@ -134,7 +134,7 @@ public class Sync {
         // Init event aggregator
         List<Path> ignoredPaths = new ArrayList<>();
         ignoredPaths.add(this.rootPath.relativize(rootPath.resolve(Paths.get(".sync"))));
-        EventAggregatorInitializer eventAggregatorInitializer = new EventAggregatorInitializer(this.rootPath, objectStore, eventListeners, ignoredPaths, 5000L);
+        EventAggregatorInitializer eventAggregatorInitializer = new EventAggregatorInitializer(this.rootPath, objectStore, eventListeners, ignoredPaths, 25000L);
         eventAggregatorInitializer.init();
         eventAggregatorInitializer.start();
 
