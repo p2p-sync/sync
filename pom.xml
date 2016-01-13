@@ -25,6 +25,30 @@
                 <updatePolicy>always</updatePolicy>
             </snapshots>
         </repository>
+        <repository>
+            <id>network-mvn-repo</id>
+            <url>https://raw.github.com/p2p-sync/network/mvn-repo/</url>
+            <snapshots>
+                <enabled>true</enabled>
+                <updatePolicy>always</updatePolicy>
+            </snapshots>
+        </repository>
+        <repository>
+            <id>persistence-mvn-repo</id>
+            <url>https://raw.github.com/p2p-sync/persistence/mvn-repo/</url>
+            <snapshots>
+                <enabled>true</enabled>
+                <updatePolicy>always</updatePolicy>
+            </snapshots>
+        </repository>
+        <repository>
+            <id>version-mvn-repo</id>
+            <url>https://raw.github.com/p2p-sync/version/mvn-repo/</url>
+            <snapshots>
+                <enabled>true</enabled>
+                <updatePolicy>always</updatePolicy>
+            </snapshots>
+        </repository>
     </repositories>
 
     <properties>
@@ -142,13 +166,18 @@
             <version>0.1-SNAPSHOT</version>
         </dependency>
         <dependency>
-            <groupId>org.rmatil.sync.locations</groupId>
-            <artifactId>sync-locations</artifactId>
+            <groupId>org.rmatil.sync.network</groupId>
+            <artifactId>sync-network</artifactId>
             <version>0.1-SNAPSHOT</version>
         </dependency>
         <dependency>
-            <groupId>org.rmatil.sync.network</groupId>
-            <artifactId>sync-network</artifactId>
+            <groupId>org.rmatil.sync.persistence</groupId>
+            <artifactId>sync-persistence</artifactId>
+            <version>0.1-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>org.rmatil.sync.version</groupId>
+            <artifactId>sync-version</artifactId>
             <version>0.1-SNAPSHOT</version>
         </dependency>
         <dependency>
