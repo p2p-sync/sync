@@ -30,14 +30,38 @@ import java.nio.file.Paths;
 import java.util.List;
 import java.util.stream.Stream;
 
+/**
+ * Handles incoming {@link FileMoveRequest} and moves the
+ * file resp. directory to the specified new path without
+ * fetching the file contents again from other peers.
+ */
 public class FileMoveRequestHandler implements ILocalStateRequestCallback {
 
     private static final Logger logger = LoggerFactory.getLogger(FileMoveRequestHandler.class);
 
-    protected IStorageAdapter      storageAdapter;
-    protected IObjectStore         objectStore;
-    protected IClient              client;
-    protected FileMoveRequest      request;
+    /**
+     * The storage adapter to access the synchronized folder
+     */
+    protected IStorageAdapter storageAdapter;
+
+    /**
+     * The object store to access versions
+     */
+    protected IObjectStore objectStore;
+
+    /**
+     * The client to send back messages
+     */
+    protected IClient client;
+
+    /**
+     * The file move request from the sender
+     */
+    protected FileMoveRequest request;
+
+    /**
+     * The global event bus to add ignore events
+     */
     protected MBassador<IBusEvent> globalEventBus;
 
     @Override
@@ -100,36 +124,19 @@ public class FileMoveRequestHandler implements ILocalStateRequestCallback {
         }
     }
 
+    /**
+     * Moves the specified element from oldPath > newPath
+     *
+     * @param storageType The storage type of the element to move
+     * @param oldPath     The old path to the element
+     * @param newPath     The new path to which the element should be moved
+     *
+     * @throws InputOutputException If moving failed
+     */
     protected void move(StorageType storageType, IPathElement oldPath, IPathElement newPath)
             throws InputOutputException {
 
         if (StorageType.DIRECTORY == storageType) {
-//            if (! this.storageAdapter.exists(StorageType.DIRECTORY, newPath)) {
-////                this.storageAdapter.persist(StorageType.DIRECTORY, newPath, null);
-//                // ignore the move event for this
-//                // since the persisting and the later removing will be aggregated to a move
-//                this.globalEventBus.publish(new IgnoreBusEvent(
-//                        new MoveEvent(
-//                                Paths.get(oldPath.getPath()),
-//                                Paths.get(newPath.getPath()),
-//                                Paths.get(newPath.getPath()).getFileName().toString(),
-//                                "weIgnoreTheHash",
-//                                System.currentTimeMillis()
-//                        )
-//                ));
-//            }
-
-//            List<IPathElement> pathElements = this.storageAdapter.getDirectoryContents(oldPath);
-//
-//            for (IPathElement pathElement : pathElements) {
-//                StorageType childStorageType = this.storageAdapter.isFile(pathElement) ? StorageType.FILE : StorageType.DIRECTORY;
-//
-//                Path childPath = Paths.get(newPath.getPath()).resolve(Paths.get(oldPath.getPath()).relativize(Paths.get(pathElement.getPath())));
-//                this.move(childStorageType, pathElement, new LocalPathElement(childPath.toString()));
-//            }
-//
-//            this.storageAdapter.delete(oldPath);
-
             try (Stream<Path> paths = Files.walk(this.storageAdapter.getRootDir().resolve(oldPath.getPath()))) {
                 paths.forEach((entry) -> {
                     this.globalEventBus.publish(new IgnoreBusEvent(
@@ -164,26 +171,6 @@ public class FileMoveRequestHandler implements ILocalStateRequestCallback {
             ));
 
             this.storageAdapter.move(StorageType.FILE, oldPath, new LocalPathElement(newPath.getPath()));
-            // since the history move aggregator gets notified only about the deletion of the old path
-            // and the creation of the new one combined with the fact, that the object store already has
-            // moved its objects, he is unable to create a move event. Therefore, we ignore the create and
-            // the delete event for the file
-//            this.globalEventBus.publish(new IgnoreBusEvent(
-//                    new DeleteEvent(
-//                            Paths.get(oldPath.getPath()),
-//                            Paths.get(oldPath.getPath()).getFileName().toString(),
-//                            "weIgnoreTheHash",
-//                            System.currentTimeMillis()
-//                    )
-//            ));
-//            this.globalEventBus.publish(new IgnoreBusEvent(
-//                    new CreateEvent(
-//                            Paths.get(newPath.getPath()),
-//                            Paths.get(newPath.getPath()).getFileName().toString(),
-//                            "weIgnoreTheHash",
-//                            System.currentTimeMillis()
-//                    )
-//            ));
         }
     }
 }
