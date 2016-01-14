@@ -57,7 +57,7 @@ public class Sync {
         this.rootPath = rootPath;
     }
 
-    public void init(KeyPair keyPair, String userName, String password, String salt, int port, RemoteClientLocation bootstrapLocation) {
+    public ClientDevice init(KeyPair keyPair, String userName, String password, String salt, int port, RemoteClientLocation bootstrapLocation) {
         IUser user = new User(
                 userName,
                 password,
@@ -139,9 +139,7 @@ public class Sync {
         eventAggregatorInitializer.start();
 
         // now set the peer address once we know it
-        ClientDevice clientDevice = new ClientDevice(userName, clientId, client.getPeerAddress());
-
-
+        return new ClientDevice(userName, clientId, client.getPeerAddress());
     }
 
     public static void main(String[] args) {
@@ -178,10 +176,14 @@ public class Sync {
         KeyPair keyPair = keyPairGenerator.generateKeyPair();
 
         Sync sync = new Sync(path);
-        sync.init(keyPair, "raphael", "password", "salt", 4003, null);
+        ClientDevice client1 = sync.init(keyPair, "raphael", "password", "salt", 4003, null);
 
         Sync sync2 = new Sync(path2);
-        sync2.init(keyPair, "raphael", "password", "salt", 4004, new RemoteClientLocation("192.168.3.1", false, 4003));
+        sync2.init(keyPair, "raphael", "password", "salt", 4004, new RemoteClientLocation(
+                client1.getPeerAddress().inetAddress().getHostName(),
+                client1.getPeerAddress().isIPv6(),
+                client1.getPeerAddress().tcpPort()
+        ));
     }
 
 }
