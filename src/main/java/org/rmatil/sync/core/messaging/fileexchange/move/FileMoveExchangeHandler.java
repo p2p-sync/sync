@@ -22,6 +22,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
 public class FileMoveExchangeHandler extends ANetworkHandler<FileMoveExchangeHandlerResult> {
@@ -90,6 +91,12 @@ public class FileMoveExchangeHandler extends ANetworkHandler<FileMoveExchangeHan
     @Override
     public void onResponse(IResponse iResponse) {
         // Currently, we do not handle a response of a move exchange
+        try {
+            super.waitForSentCountDownLatch.await(MAX_WAITING_TIME, TimeUnit.MILLISECONDS);
+        } catch (InterruptedException e) {
+            logger.error("Got interrupted while waiting that all requests have been sent to all clients");
+        }
+
         super.countDownLatch.countDown();
     }
 

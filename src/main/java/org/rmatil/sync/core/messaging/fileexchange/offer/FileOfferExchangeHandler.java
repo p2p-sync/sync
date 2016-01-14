@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
 /**
@@ -185,6 +186,13 @@ public class FileOfferExchangeHandler extends ANetworkHandler<FileOfferExchangeH
     @Override
     public void onResponse(IResponse iResponse) {
         logger.info("Received response for exchange " + iResponse.getExchangeId() + " of client " + iResponse.getClientDevice().getClientDeviceId() + " (" + iResponse.getClientDevice().getPeerAddress().inetAddress().getHostAddress() + ":" + iResponse.getClientDevice().getPeerAddress().tcpPort() + ")");
+
+        try {
+            super.waitForSentCountDownLatch.await(MAX_WAITING_TIME, TimeUnit.MILLISECONDS);
+        } catch (InterruptedException e) {
+            logger.error("Got interrupted while waiting that all requests have been sent to all clients");
+        }
+
         this.respondedClients.add(iResponse);
         super.countDownLatch.countDown();
     }

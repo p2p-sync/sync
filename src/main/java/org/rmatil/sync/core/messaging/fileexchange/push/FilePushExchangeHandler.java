@@ -118,7 +118,14 @@ public class FilePushExchangeHandler extends ANetworkHandler<FilePushExchangeHan
             } else {
                 // exchange is finished
                 super.client.getObjectDataReplyHandler().removeResponseCallbackHandler(response.getExchangeId());
-                this.countDownLatch.countDown();
+
+                try {
+                    super.waitForSentCountDownLatch.await(MAX_WAITING_TIME, TimeUnit.MILLISECONDS);
+                } catch (InterruptedException e) {
+                    logger.error("Got interrupted while waiting that all requests have been sent to all clients");
+                }
+
+                super.countDownLatch.countDown();
                 this.chunkCountDownLatch.countDown();
             }
         }

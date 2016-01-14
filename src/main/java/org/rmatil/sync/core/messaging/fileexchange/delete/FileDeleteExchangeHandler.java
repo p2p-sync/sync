@@ -19,6 +19,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 public class FileDeleteExchangeHandler extends ANetworkHandler<FileDeleteExchangeHandlerResult> {
 
@@ -76,7 +77,13 @@ public class FileDeleteExchangeHandler extends ANetworkHandler<FileDeleteExchang
 
     @Override
     public void onResponse(IResponse iResponse) {
-        // Currently, we do not handle a response of a move exchange
+        // Currently, we do not handle a response of a delete exchange
+        try {
+            super.waitForSentCountDownLatch.await(MAX_WAITING_TIME, TimeUnit.MILLISECONDS);
+        } catch (InterruptedException e) {
+            logger.error("Got interrupted while waiting that all requests have been sent to all clients");
+        }
+
         super.countDownLatch.countDown();
     }
 

@@ -11,6 +11,8 @@ import org.rmatil.sync.persistence.api.IStorageAdapter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.concurrent.TimeUnit;
+
 public class FileDemandExchangeHandler extends ANetworkHandler<FileDemandExchangeHandlerResult> {
 
     private static final Logger logger = LoggerFactory.getLogger(FileDemandExchangeHandler.class);
@@ -76,7 +78,11 @@ public class FileDemandExchangeHandler extends ANetworkHandler<FileDemandExchang
 
     @Override
     public void onResponse(IResponse iResponse) {
-
+        try {
+            super.waitForSentCountDownLatch.await(MAX_WAITING_TIME, TimeUnit.MILLISECONDS);
+        } catch (InterruptedException e) {
+            logger.error("Got interrupted while waiting that all requests have been sent to all clients");
+        }
     }
 
     @Override
