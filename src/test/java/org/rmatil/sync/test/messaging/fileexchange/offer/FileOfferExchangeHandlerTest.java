@@ -4,6 +4,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.rmatil.sync.core.messaging.fileexchange.offer.FileOfferExchangeHandler;
 import org.rmatil.sync.core.messaging.fileexchange.offer.FileOfferExchangeHandlerResult;
+import org.rmatil.sync.event.aggregator.core.events.DeleteEvent;
 import org.rmatil.sync.event.aggregator.core.events.MoveEvent;
 import org.rmatil.sync.persistence.api.StorageType;
 import org.rmatil.sync.persistence.core.local.LocalPathElement;
@@ -23,18 +24,25 @@ public class FileOfferExchangeHandlerTest extends BaseNetworkHandlerTest {
 
     protected static Path TEST_DIR_1  = Paths.get("testDir1");
     protected static Path TEST_DIR_2  = Paths.get("testDir2");
+    protected static Path TEST_DIR_3  = Paths.get("dirToDelete");
     protected static Path TEST_FILE_1 = TEST_DIR_1.resolve("myFile.txt");
     protected static Path TEST_FILE_2 = TEST_DIR_2.resolve("myFile2.txt");
     protected static Path TEST_FILE_3 = TEST_DIR_2.resolve("myFile3.txt");
+    protected static Path TEST_FILE_4 = TEST_DIR_3.resolve("fileToDeleteInDir.txt");
+    protected static Path TEST_FILE_5 = Paths.get("fileToDelete.txt");
     protected static Path TARGET_DIR  = Paths.get("targetDir");
 
     protected static UUID exchangeId = UUID.randomUUID();
     protected static MoveEvent                moveDirEvent;
     protected static MoveEvent                moveFileEvent;
     protected static MoveEvent                moveConflictFileEvent;
+    protected static DeleteEvent              deleteDirEvent;
+    protected static DeleteEvent              deleteFileEvent;
     protected static FileOfferExchangeHandler dirOfferExchangeHandler;
     protected static FileOfferExchangeHandler fileOfferExchangeHandler;
     protected static FileOfferExchangeHandler conflictFileOfferExchangeHandler;
+    protected static FileOfferExchangeHandler deleteDirOfferExchangeHandler;
+    protected static FileOfferExchangeHandler deleteFileOfferExchangeHandler;
 
     @BeforeClass
     public static void setUpChild()
@@ -52,9 +60,18 @@ public class FileOfferExchangeHandlerTest extends BaseNetworkHandlerTest {
         //  | |--- myFile3.txt // mv to targetDir after creating conflict manually
         //  |
         //  - targetDir
+        //  |
+        //  - dirToDelete
+        //  | |
+        //  | |--- fileToDeleteInDir.txt
+        //  |
+        //  |--- fileToDelete.txt
 
         Files.createDirectory(ROOT_TEST_DIR1.resolve(TEST_DIR_1));
         Files.createDirectory(ROOT_TEST_DIR2.resolve(TEST_DIR_1));
+
+        Files.createDirectory(ROOT_TEST_DIR1.resolve(TEST_DIR_3));
+        Files.createDirectory(ROOT_TEST_DIR2.resolve(TEST_DIR_3));
 
         Files.createDirectory(ROOT_TEST_DIR1.resolve(TEST_DIR_2));
         Files.createDirectory(ROOT_TEST_DIR2.resolve(TEST_DIR_2));
@@ -67,6 +84,12 @@ public class FileOfferExchangeHandlerTest extends BaseNetworkHandlerTest {
 
         Files.createFile(ROOT_TEST_DIR1.resolve(TEST_FILE_3));
         Files.createFile(ROOT_TEST_DIR2.resolve(TEST_FILE_3));
+
+        Files.createFile(ROOT_TEST_DIR1.resolve(TEST_FILE_4));
+        Files.createFile(ROOT_TEST_DIR2.resolve(TEST_FILE_4));
+
+        Files.createFile(ROOT_TEST_DIR1.resolve(TEST_FILE_5));
+        Files.createFile(ROOT_TEST_DIR2.resolve(TEST_FILE_5));
 
         // create directory to where the files should be moved
         Files.createDirectory(ROOT_TEST_DIR1.resolve(TARGET_DIR));
@@ -95,7 +118,7 @@ public class FileOfferExchangeHandlerTest extends BaseNetworkHandlerTest {
                 TEST_FILE_2,
                 TARGET_DIR.resolve(TEST_FILE_2.getFileName().toString()),
                 TEST_FILE_2.getFileName().toString(),
-                fileObject.getVersions().get(Math.max(fileObject.getVersions().size() -1 , 0)).getHash(),
+                fileObject.getVersions().get(Math.max(fileObject.getVersions().size() - 1, 0)).getHash(),
                 System.currentTimeMillis()
         );
 
@@ -103,7 +126,7 @@ public class FileOfferExchangeHandlerTest extends BaseNetworkHandlerTest {
                 TEST_FILE_3,
                 TARGET_DIR.resolve(TEST_FILE_3.getFileName().toString()),
                 TEST_FILE_3.getFileName().toString(),
-                fileObject.getVersions().get(Math.max(fileObject.getVersions().size() -1 , 0)).getHash(),
+                fileObject.getVersions().get(Math.max(fileObject.getVersions().size() - 1, 0)).getHash(),
                 System.currentTimeMillis()
         );
 
@@ -227,5 +250,85 @@ public class FileOfferExchangeHandlerTest extends BaseNetworkHandlerTest {
 
         assertTrue("Client2 should have accepted offer", result.hasOfferAccepted());
         assertTrue("Client2 should have detected a conflict", result.hasConflictDetected());
+    }
+
+    @Test
+    public void testDeleteDir()
+            throws InterruptedException {
+        deleteDirEvent = new DeleteEvent(
+                TEST_DIR_3,
+                TEST_DIR_3.getFileName().toString(),
+                null,
+                System.currentTimeMillis()
+        );
+
+        deleteDirOfferExchangeHandler = new FileOfferExchangeHandler(
+                exchangeId,
+                CLIENT_DEVICE_1,
+                CLIENT_MANAGER_1,
+                CLIENT_1,
+                OBJECT_STORE_1,
+                STORAGE_ADAPTER_1,
+                GLOBAL_EVENT_BUS_1,
+                deleteDirEvent
+        );
+
+        CLIENT_1.getObjectDataReplyHandler().addResponseCallbackHandler(exchangeId, deleteDirOfferExchangeHandler);
+
+        Thread deleteDirOfferExchangeHandlerThread = new Thread(deleteDirOfferExchangeHandler);
+        deleteDirOfferExchangeHandlerThread.setName("TEST-DeleteDirOfferExchangeHandler");
+        deleteDirOfferExchangeHandlerThread.start();
+
+        // wait for completion
+        deleteDirOfferExchangeHandler.await();
+
+        CLIENT_1.getObjectDataReplyHandler().removeResponseCallbackHandler(exchangeId);
+
+        assertTrue("FileOfferExchangeHandler should be completed after wait", deleteDirOfferExchangeHandler.isCompleted());
+
+        FileOfferExchangeHandlerResult result = deleteDirOfferExchangeHandler.getResult();
+
+        assertTrue("Client2 should have accepted offer", result.hasOfferAccepted());
+        assertFalse("Client2 should not have detected a conflict", result.hasConflictDetected());
+    }
+
+    @Test
+    public void testDeleteFile()
+            throws InterruptedException {
+        deleteFileEvent = new DeleteEvent(
+                TEST_FILE_5,
+                TEST_FILE_5.getFileName().toString(),
+                null,
+                System.currentTimeMillis()
+        );
+
+        deleteFileOfferExchangeHandler = new FileOfferExchangeHandler(
+                exchangeId,
+                CLIENT_DEVICE_1,
+                CLIENT_MANAGER_1,
+                CLIENT_1,
+                OBJECT_STORE_1,
+                STORAGE_ADAPTER_1,
+                GLOBAL_EVENT_BUS_1,
+                deleteFileEvent
+        );
+
+        CLIENT_1.getObjectDataReplyHandler().addResponseCallbackHandler(exchangeId, deleteFileOfferExchangeHandler);
+
+        Thread deleteFileOfferExchangeHandlerThread = new Thread(deleteFileOfferExchangeHandler);
+        deleteFileOfferExchangeHandlerThread.setName("TEST-DeleteFileOfferExchangeHandler");
+        deleteFileOfferExchangeHandlerThread.start();
+
+        // wait for completion
+        deleteFileOfferExchangeHandler.await();
+
+        CLIENT_1.getObjectDataReplyHandler().removeResponseCallbackHandler(exchangeId);
+
+        assertTrue("FileOfferExchangeHandler should be completed after wait", deleteFileOfferExchangeHandler.isCompleted());
+
+        FileOfferExchangeHandlerResult result = deleteFileOfferExchangeHandler.getResult();
+
+        assertTrue("Client2 should have accepted offer", result.hasOfferAccepted());
+        assertFalse("Client2 should not have detected a conflict", result.hasConflictDetected());
     }
 }
