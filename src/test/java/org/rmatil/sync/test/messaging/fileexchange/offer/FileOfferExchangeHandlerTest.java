@@ -146,7 +146,7 @@ public class FileOfferExchangeHandlerTest extends BaseNetworkHandlerTest {
             throws InterruptedException, InputOutputException {
 
         // first move the directory
-        STORAGE_ADAPTER_1.move(StorageType.DIRECTORY, new LocalPathElement(TEST_DIR_1.toString()), new LocalPathElement(TARGET_DIR.toString()));
+        STORAGE_ADAPTER_1.move(StorageType.DIRECTORY, new LocalPathElement(TEST_DIR_1.toString()), new LocalPathElement(TARGET_DIR.resolve(TEST_DIR_1).toString()));
         // force recreation of object store
         OBJECT_STORE_1.sync(ROOT_TEST_DIR1.toFile());
 
