@@ -1,37 +1,30 @@
 package org.rmatil.sync.core.messaging.fileexchange.push;
 
-import net.engio.mbassy.bus.MBassador;
-import org.rmatil.sync.core.eventbus.IgnoreBusEvent;
-import org.rmatil.sync.event.aggregator.core.events.CreateEvent;
-import org.rmatil.sync.event.aggregator.core.events.ModifyEvent;
-import org.rmatil.sync.network.api.IClient;
-import org.rmatil.sync.network.api.IRequest;
-import org.rmatil.sync.network.api.IResponse;
+import org.rmatil.sync.core.messaging.fileexchange.base.ARequest;
 import org.rmatil.sync.network.core.model.ClientDevice;
 import org.rmatil.sync.network.core.model.ClientLocation;
 import org.rmatil.sync.network.core.model.Data;
-import org.rmatil.sync.persistence.api.IPathElement;
-import org.rmatil.sync.persistence.api.IStorageAdapter;
-import org.rmatil.sync.persistence.api.StorageType;
-import org.rmatil.sync.persistence.core.local.LocalPathElement;
-import org.rmatil.sync.persistence.exceptions.InputOutputException;
-import org.rmatil.sync.version.api.IObjectStore;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.List;
 import java.util.UUID;
 
-public class FilePushRequest implements IRequest {
+/**
+ * Send this request object to clients, to push chunks
+ * of a file or a creation of a directory
+ */
+public class FilePushRequest extends ARequest {
 
-    private static final Logger logger = LoggerFactory.getLogger(FilePushRequest.class);
-
-    protected UUID exchangeId;
-    protected ClientDevice clientDevice;
-
+    /**
+     * The relative file to the path which should be created
+     * or completed with chunks
+     */
     protected String relativeFilePath;
+
+    /**
+     * Whether the path represents a directory or a file
+     */
+    protected boolean isFile;
+
     /**
      * The number of the chunk which is returned
      */
@@ -49,7 +42,8 @@ public class FilePushRequest implements IRequest {
     protected long totalFileSize;
 
     /**
-     * The actual data of the request
+     * The actual data of the request.
+     * May be null if its a directory.
      */
     protected Data data;
 
@@ -58,116 +52,98 @@ public class FilePushRequest implements IRequest {
      */
     protected int chunkSize;
 
-    protected List<ClientLocation> receiverAddresses;
-
-    protected IClient client;
-    protected IStorageAdapter storageAdapter;
-    protected IObjectStore    objectStore;
-    protected MBassador       globalEventBus;
-
-    public FilePushRequest(UUID exchangeId, ClientDevice clientDevice, String relativeFilePath, long chunkCounter, int chunkSize, long totalNrOfChunks, long totalFileSize, Data data, ClientLocation receiverAddress) {
-        this.exchangeId = exchangeId;
-        this.clientDevice = clientDevice;
+    /**
+     * @param exchangeId       The exchange id of the request
+     * @param clientDevice     The client device which is sending this request
+     * @param relativeFilePath The relative path to the file which should be created
+     * @param isFile           Whether the path represents a file or a directory
+     * @param chunkCounter     The counter of the chunk contained in this request (starts at 0)
+     * @param chunkSize        The size of the chunk for the whole file exchange in bytes.
+     *                         MUST stay the same for the whole file exchange, i.e. until all chunks of a file have been transferred
+     * @param totalNrOfChunks  The total number of chunks to request to get the complete file
+     * @param totalFileSize    The total file size of the file once all chunks have been transferred
+     * @param data             The actual chunk data
+     * @param receiverAddress  The receiver of this request
+     */
+    public FilePushRequest(UUID exchangeId, ClientDevice clientDevice, String relativeFilePath, boolean isFile, long chunkCounter, int chunkSize, long totalNrOfChunks, long totalFileSize, Data data, ClientLocation receiverAddress) {
+        super(exchangeId, clientDevice, new ArrayList<>());
         this.relativeFilePath = relativeFilePath;
-        this.receiverAddresses = new ArrayList<>();
-        this.receiverAddresses.add(receiverAddress);
+        this.isFile = isFile;
         this.chunkCounter = chunkCounter;
         this.chunkSize = chunkSize;
         this.totalNrOfChunks = totalNrOfChunks;
         this.totalFileSize = totalFileSize;
         this.data = data;
+
+        super.receiverAddresses.add(receiverAddress);
     }
 
+    /**
+     * Returns the relative file path of the file for which this chunk is for
+     *
+     * @return The relative file path to the file
+     */
     public String getRelativeFilePath() {
         return relativeFilePath;
     }
 
-    @Override
-    public List<ClientLocation> getReceiverAddresses() {
-        return this.receiverAddresses;
+    /**
+     * Whether the path represents a file or a directory
+     *
+     * @return True, if it's a file, false otherwise
+     */
+    public boolean isFile() {
+        return isFile;
     }
 
-    @Override
-    public void setClient(IClient iClient) {
-        this.client = iClient;
+    /**
+     * Returns the counter for the chunk which is hold by this request
+     *
+     * @return The chunk counter
+     */
+    public long getChunkCounter() {
+        return chunkCounter;
     }
 
-    public void setStorageAdapter(IStorageAdapter storageAdapter) {
-        this.storageAdapter = storageAdapter;
+    /**
+     * Returns the total number of chunks which have to be fetched
+     * to get the complete file represented by the file on the path
+     * returned by {@link FilePushRequest#getRelativeFilePath()}
+     *
+     * @return The total number of chunks
+     */
+    public long getTotalNrOfChunks() {
+        return totalNrOfChunks;
     }
 
-    public void setObjectStore(IObjectStore objectStore) {
-        this.objectStore = objectStore;
+    /**
+     * Returns the total file size of the file once all
+     * chunks have been combined.
+     *
+     * @return The total file size in bytes
+     */
+    public long getTotalFileSize() {
+        return totalFileSize;
     }
 
-    public void setGlobalEventBus(MBassador globalEventBus) {
-        this.globalEventBus = globalEventBus;
+    /**
+     * Returns the actual chunk data. May be null
+     * if the path returned by {@link FilePushRequest#getRelativeFilePath()}
+     * represents a directory
+     *
+     * @return The actual chunk
+     */
+    public Data getData() {
+        return data;
     }
 
-    @Override
-    public UUID getExchangeId() {
-        return this.exchangeId;
-    }
-
-    @Override
-    public ClientDevice getClientDevice() {
-        return this.clientDevice;
-    }
-
-    @Override
-    public void sendResponse(IResponse iResponse) {
-        if (null == this.client) {
-            throw new IllegalStateException("A client instance is required to send a response back");
-        }
-
-        this.client.sendDirect(iResponse.getReceiverAddress().getPeerAddress(), iResponse);
-    }
-
-    @Override
-    public void run() {
-        logger.info("Writing chunk " + this.chunkCounter + " for file " + this.relativeFilePath);
-
-        IPathElement localPathElement = new LocalPathElement(this.relativeFilePath);
-
-        if (this.chunkCounter > 0) {
-            this.globalEventBus.publish(new IgnoreBusEvent(
-                    new ModifyEvent(
-                            Paths.get(this.relativeFilePath),
-                            Paths.get(this.relativeFilePath).getFileName().toString(),
-                            "weIgnoreTheHash",
-                            System.currentTimeMillis()
-                    )
-            ));
-        } else {
-            this.globalEventBus.publish(new IgnoreBusEvent(
-                    new CreateEvent(
-                            Paths.get(this.relativeFilePath),
-                            Paths.get(this.relativeFilePath).getFileName().toString(),
-                            "weIgnoreTheHash",
-                            System.currentTimeMillis()
-                    )
-            ));
-        }
-
-        try {
-            this.storageAdapter.persist(StorageType.FILE, localPathElement, this.chunkCounter * this.chunkSize, this.data.getContent());
-        } catch (InputOutputException e) {
-            logger.error("Could not write chunk " + this.chunkCounter + " of file " + this.relativeFilePath);
-        }
-
-        if (this.chunkCounter == this.totalNrOfChunks) {
-            // indicate we got all chunks
-            this.chunkCounter = -1;
-        }
-
-        IResponse response = new FilePushResponse(
-                this.exchangeId,
-                this.clientDevice,
-                this.relativeFilePath,
-                new ClientLocation(this.clientDevice.getClientDeviceId(), this.clientDevice.getPeerAddress()),
-                this.chunkCounter
-        );
-
-        this.sendResponse(response);
+    /**
+     * Returns size of chunks.
+     * This <b style="color:red">must</b> not be changed during a file exchange process.
+     *
+     * @return The chunk size in bytes
+     */
+    public int getChunkSize() {
+        return chunkSize;
     }
 }

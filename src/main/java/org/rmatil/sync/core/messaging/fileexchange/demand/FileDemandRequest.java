@@ -1,8 +1,6 @@
 package org.rmatil.sync.core.messaging.fileexchange.demand;
 
-import org.rmatil.sync.network.api.IClient;
 import org.rmatil.sync.network.api.IRequest;
-import org.rmatil.sync.network.api.IResponse;
 import org.rmatil.sync.network.core.model.ClientDevice;
 import org.rmatil.sync.network.core.model.ClientLocation;
 
@@ -72,11 +70,6 @@ public class FileDemandRequest implements IRequest {
     }
 
     @Override
-    public void setClient(IClient iClient) {
-
-    }
-
-    @Override
     public UUID getExchangeId() {
         return this.fileExchangeId;
     }
@@ -84,15 +77,5 @@ public class FileDemandRequest implements IRequest {
     @Override
     public ClientDevice getClientDevice() {
         return this.clientDevice;
-    }
-
-    @Override
-    public void sendResponse(IResponse iResponse) {
-
-    }
-
-    @Override
-    public void run() {
-
     }
 }

@@ -18,8 +18,32 @@
             </snapshots>
         </repository>
         <repository>
-            <id>aggregator-mvn-repo</id>
+            <id>event-aggregator-mvn-repo</id>
             <url>https://raw.github.com/p2p-sync/aggregator/mvn-repo/</url>
+            <snapshots>
+                <enabled>true</enabled>
+                <updatePolicy>always</updatePolicy>
+            </snapshots>
+        </repository>
+        <repository>
+            <id>network-mvn-repo</id>
+            <url>https://raw.github.com/p2p-sync/network/mvn-repo/</url>
+            <snapshots>
+                <enabled>true</enabled>
+                <updatePolicy>always</updatePolicy>
+            </snapshots>
+        </repository>
+        <repository>
+            <id>persistence-mvn-repo</id>
+            <url>https://raw.github.com/p2p-sync/persistence/mvn-repo/</url>
+            <snapshots>
+                <enabled>true</enabled>
+                <updatePolicy>always</updatePolicy>
+            </snapshots>
+        </repository>
+        <repository>
+            <id>version-mvn-repo</id>
+            <url>https://raw.github.com/p2p-sync/versions/mvn-repo/</url>
             <snapshots>
                 <enabled>true</enabled>
                 <updatePolicy>always</updatePolicy>
@@ -114,7 +138,7 @@
                     <includes>
                         <include>**/*</include>
                     </includes>
-                    <repositoryName>aggregator</repositoryName>      <!-- github repo name -->
+                    <repositoryName>sync</repositoryName>      <!-- github repo name -->
                     <repositoryOwner>p2p-sync</repositoryOwner>    <!-- github username  -->
                 </configuration>
                 <executions>
@@ -142,13 +166,18 @@
             <version>0.1-SNAPSHOT</version>
         </dependency>
         <dependency>
-            <groupId>org.rmatil.sync.locations</groupId>
-            <artifactId>sync-locations</artifactId>
+            <groupId>org.rmatil.sync.network</groupId>
+            <artifactId>sync-network</artifactId>
             <version>0.1-SNAPSHOT</version>
         </dependency>
         <dependency>
-            <groupId>org.rmatil.sync.network</groupId>
-            <artifactId>sync-network</artifactId>
+            <groupId>org.rmatil.sync.persistence</groupId>
+            <artifactId>sync-persistence</artifactId>
+            <version>0.1-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>org.rmatil.sync.version</groupId>
+            <artifactId>sync-version</artifactId>
             <version>0.1-SNAPSHOT</version>
         </dependency>
         <dependency>

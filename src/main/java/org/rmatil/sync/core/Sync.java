@@ -5,22 +5,30 @@ import net.engio.mbassy.bus.config.BusConfiguration;
 import net.engio.mbassy.bus.config.Feature;
 import net.engio.mbassy.bus.config.IBusConfiguration;
 import net.engio.mbassy.bus.error.IPublicationErrorHandler;
+import org.rmatil.sync.core.eventbus.IBusEvent;
 import org.rmatil.sync.core.exception.InitializationException;
 import org.rmatil.sync.core.init.client.ClientInitializer;
 import org.rmatil.sync.core.init.client.LocalStateObjectDataReplyHandler;
 import org.rmatil.sync.core.init.eventaggregator.EventAggregatorInitializer;
 import org.rmatil.sync.core.init.objecstore.ObjectStoreInitializer;
+import org.rmatil.sync.core.messaging.fileexchange.delete.FileDeleteRequest;
+import org.rmatil.sync.core.messaging.fileexchange.delete.FileDeleteRequestHandler;
+import org.rmatil.sync.core.messaging.fileexchange.move.FileMoveExchangeHandler;
+import org.rmatil.sync.core.messaging.fileexchange.move.FileMoveRequest;
+import org.rmatil.sync.core.messaging.fileexchange.move.FileMoveRequestHandler;
+import org.rmatil.sync.core.messaging.fileexchange.offer.FileOfferRequest;
+import org.rmatil.sync.core.messaging.fileexchange.offer.FileOfferRequestHandler;
+import org.rmatil.sync.core.messaging.fileexchange.push.FilePushRequest;
+import org.rmatil.sync.core.messaging.fileexchange.push.FilePushRequestHandler;
 import org.rmatil.sync.core.model.RemoteClientLocation;
 import org.rmatil.sync.core.syncer.file.FileSyncer;
 import org.rmatil.sync.core.syncer.file.SyncFileChangeListener;
 import org.rmatil.sync.event.aggregator.api.IEventListener;
-import org.rmatil.sync.event.aggregator.core.events.IEvent;
 import org.rmatil.sync.network.api.IClient;
 import org.rmatil.sync.network.api.IUser;
 import org.rmatil.sync.network.config.Config;
 import org.rmatil.sync.network.core.Client;
 import org.rmatil.sync.network.core.ClientManager;
-import org.rmatil.sync.network.core.messaging.ObjectDataReplyHandler;
 import org.rmatil.sync.network.core.model.ClientDevice;
 import org.rmatil.sync.network.core.model.User;
 import org.rmatil.sync.persistence.core.dht.DhtStorageAdapter;
@@ -35,7 +43,6 @@ import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.Executors;
@@ -50,7 +57,7 @@ public class Sync {
         this.rootPath = rootPath;
     }
 
-    public void init(KeyPair keyPair, String userName, String password, String salt, int port, RemoteClientLocation bootstrapLocation) {
+    public ClientDevice init(KeyPair keyPair, String userName, String password, String salt, int port, RemoteClientLocation bootstrapLocation) {
         IUser user = new User(
                 userName,
                 password,
@@ -65,7 +72,7 @@ public class Sync {
         LocalStorageAdapter localStorageAdapter = new LocalStorageAdapter(rootPath);
 
         // Use feature driven configuration to have more control over the configuration details
-        MBassador globalEventBus = new MBassador(new BusConfiguration()
+        MBassador<IBusEvent> globalEventBus = new MBassador<>(new BusConfiguration()
                 .addFeature(Feature.SyncPubSub.Default())
                 .addFeature(Feature.AsynchronousHandlerInvocation.Default())
                 .addFeature(Feature.AsynchronousMessageDispatch.Default())
@@ -81,6 +88,12 @@ public class Sync {
         // Init client
         IClient client = new Client(null, user, null);
         LocalStateObjectDataReplyHandler objectDataReplyHandler = new LocalStateObjectDataReplyHandler(localStorageAdapter, objectStore, client, globalEventBus);
+        // specify protocol
+        objectDataReplyHandler.addRequestCallbackHandler(FileOfferRequest.class, FileOfferRequestHandler.class);
+        objectDataReplyHandler.addRequestCallbackHandler(FilePushRequest.class, FilePushRequestHandler.class);
+        objectDataReplyHandler.addRequestCallbackHandler(FileDeleteRequest.class, FileDeleteRequestHandler.class);
+        objectDataReplyHandler.addRequestCallbackHandler(FileMoveRequest.class, FileMoveRequestHandler.class);
+
         ClientInitializer clientInitializer = new ClientInitializer(objectDataReplyHandler, user, port, bootstrapLocation);
         client = clientInitializer.init();
         clientInitializer.start();
@@ -98,6 +111,7 @@ public class Sync {
                         Config.IPv4.getLocationsContentKey(),
                         Config.IPv4.getPrivateKeyContentKey(),
                         Config.IPv4.getPublicKeyContentKey(),
+                        Config.IPv4.getSaltContentKey(),
                         Config.IPv4.getDomainKey()
                 ),
                 new LocalStorageAdapter(rootPath),
@@ -120,14 +134,12 @@ public class Sync {
         // Init event aggregator
         List<Path> ignoredPaths = new ArrayList<>();
         ignoredPaths.add(this.rootPath.relativize(rootPath.resolve(Paths.get(".sync"))));
-        EventAggregatorInitializer eventAggregatorInitializer = new EventAggregatorInitializer(this.rootPath, objectStore, eventListeners, ignoredPaths, 5000L);
+        EventAggregatorInitializer eventAggregatorInitializer = new EventAggregatorInitializer(this.rootPath, objectStore, eventListeners, ignoredPaths, 25000L);
         eventAggregatorInitializer.init();
         eventAggregatorInitializer.start();
 
         // now set the peer address once we know it
-        ClientDevice clientDevice = new ClientDevice(userName, clientId, client.getPeerAddress());
-
-
+        return new ClientDevice(userName, clientId, client.getPeerAddress());
     }
 
     public static void main(String[] args) {
@@ -164,10 +176,14 @@ public class Sync {
         KeyPair keyPair = keyPairGenerator.generateKeyPair();
 
         Sync sync = new Sync(path);
-        sync.init(keyPair, "raphael", "password", "salt", 4003, null);
+        ClientDevice client1 = sync.init(keyPair, "raphael", "password", "salt", 4003, null);
 
         Sync sync2 = new Sync(path2);
-        sync2.init(keyPair, "raphael", "password", "salt", 4004, new RemoteClientLocation("192.168.1.34", false, 4003));
+        sync2.init(keyPair, "raphael", "password", "salt", 4004, new RemoteClientLocation(
+                client1.getPeerAddress().inetAddress().getHostName(),
+                client1.getPeerAddress().isIPv6(),
+                client1.getPeerAddress().tcpPort()
+        ));
     }
 
 }

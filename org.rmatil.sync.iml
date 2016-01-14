@@ -7,6 +7,8 @@
       <sourceFolder url="file://$MODULE_DIR$/src/main/java" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/src/main/resources" type="java-resource" />
       <sourceFolder url="file://$MODULE_DIR$/src/test/java" isTestSource="true" />
+      <excludeFolder url="file://$MODULE_DIR$/org.rmatil.sync.test.dir1" />
+      <excludeFolder url="file://$MODULE_DIR$/org.rmatil.sync.test.dir2" />
       <excludeFolder url="file://$MODULE_DIR$/target" />
     </content>
     <orderEntry type="inheritedJdk" />
@@ -20,11 +22,7 @@
     <orderEntry type="library" name="Maven: org.slf4j:slf4j-api:1.7.5" level="project" />
     <orderEntry type="library" name="Maven: log4j:log4j:1.2.17" level="project" />
     <orderEntry type="library" name="Maven: org.rmatil.sync.event.aggregator:sync-event-aggregator:0.1-SNAPSHOT" level="project" />
-    <orderEntry type="library" name="Maven: org.rmatil.sync.version:sync-version:0.1-SNAPSHOT" level="project" />
-    <orderEntry type="library" name="Maven: com.google.code.gson:gson:2.5" level="project" />
     <orderEntry type="library" name="Maven: name.mitterdorfer.perlock:perlock-core:0.3.0" level="project" />
-    <orderEntry type="library" name="Maven: org.rmatil.sync.locations:sync-locations:0.1-SNAPSHOT" level="project" />
-    <orderEntry type="library" name="Maven: org.rmatil.sync.persistence:sync-persistence:0.1-SNAPSHOT" level="project" />
     <orderEntry type="library" name="Maven: org.rmatil.sync.network:sync-network:0.1-SNAPSHOT" level="project" />
     <orderEntry type="library" name="Maven: org.bouncycastle:bcprov-jdk15on:1.53" level="project" />
     <orderEntry type="library" name="Maven: net.tomp2p:tomp2p-dht:5.0-Beta6" level="project" />
@@ -34,6 +32,9 @@
     <orderEntry type="library" name="Maven: net.tomp2p:tomp2p-core:5.0-Beta6" level="project" />
     <orderEntry type="library" name="Maven: net.tomp2p:tomp2p-replication:5.0-Beta8" level="project" />
     <orderEntry type="library" name="Maven: org.apache.commons:commons-lang3:3.1" level="project" />
+    <orderEntry type="library" name="Maven: org.rmatil.sync.persistence:sync-persistence:0.1-SNAPSHOT" level="project" />
+    <orderEntry type="library" name="Maven: org.rmatil.sync.version:sync-version:0.1-SNAPSHOT" level="project" />
+    <orderEntry type="library" name="Maven: com.google.code.gson:gson:2.5" level="project" />
     <orderEntry type="library" name="Maven: net.engio:mbassador:1.2.4" level="project" />
   </component>
 </module>
