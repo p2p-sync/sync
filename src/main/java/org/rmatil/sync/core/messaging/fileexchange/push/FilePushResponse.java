@@ -6,6 +6,10 @@ import org.rmatil.sync.network.core.model.ClientLocation;
 
 import java.util.UUID;
 
+/**
+ * Send this response to clients which have
+ * previously sent a {@link FilePushRequest}
+ */
 public class FilePushResponse extends AResponse {
 
     /**

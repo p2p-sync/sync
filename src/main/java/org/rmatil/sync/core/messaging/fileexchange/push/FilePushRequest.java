@@ -8,10 +8,21 @@ import org.rmatil.sync.network.core.model.Data;
 import java.util.ArrayList;
 import java.util.UUID;
 
+/**
+ * Send this request object to clients, to push chunks
+ * of a file or a creation of a directory
+ */
 public class FilePushRequest extends ARequest {
 
+    /**
+     * The relative file to the path which should be created
+     * or completed with chunks
+     */
     protected String relativeFilePath;
 
+    /**
+     * Whether the path represents a directory or a file
+     */
     protected boolean isFile;
 
     /**
@@ -31,7 +42,8 @@ public class FilePushRequest extends ARequest {
     protected long totalFileSize;
 
     /**
-     * The actual data of the request
+     * The actual data of the request.
+     * May be null if its a directory.
      */
     protected Data data;
 
@@ -40,6 +52,19 @@ public class FilePushRequest extends ARequest {
      */
     protected int chunkSize;
 
+    /**
+     * @param exchangeId       The exchange id of the request
+     * @param clientDevice     The client device which is sending this request
+     * @param relativeFilePath The relative path to the file which should be created
+     * @param isFile           Whether the path represents a file or a directory
+     * @param chunkCounter     The counter of the chunk contained in this request (starts at 0)
+     * @param chunkSize        The size of the chunk for the whole file exchange in bytes.
+     *                         MUST stay the same for the whole file exchange, i.e. until all chunks of a file have been transferred
+     * @param totalNrOfChunks  The total number of chunks to request to get the complete file
+     * @param totalFileSize    The total file size of the file once all chunks have been transferred
+     * @param data             The actual chunk data
+     * @param receiverAddress  The receiver of this request
+     */
     public FilePushRequest(UUID exchangeId, ClientDevice clientDevice, String relativeFilePath, boolean isFile, long chunkCounter, int chunkSize, long totalNrOfChunks, long totalFileSize, Data data, ClientLocation receiverAddress) {
         super(exchangeId, clientDevice, new ArrayList<>());
         this.relativeFilePath = relativeFilePath;
@@ -62,6 +87,11 @@ public class FilePushRequest extends ARequest {
         return relativeFilePath;
     }
 
+    /**
+     * Whether the path represents a file or a directory
+     *
+     * @return True, if it's a file, false otherwise
+     */
     public boolean isFile() {
         return isFile;
     }
@@ -97,7 +127,9 @@ public class FilePushRequest extends ARequest {
     }
 
     /**
-     * Returns the actual chunk
+     * Returns the actual chunk data. May be null
+     * if the path returned by {@link FilePushRequest#getRelativeFilePath()}
+     * represents a directory
      *
      * @return The actual chunk
      */
