@@ -2,7 +2,6 @@ package org.rmatil.sync.core.messaging.fileexchange.move;
 
 import net.engio.mbassy.bus.MBassador;
 import org.rmatil.sync.core.eventbus.IBusEvent;
-import org.rmatil.sync.core.eventbus.IgnoreBusEvent;
 import org.rmatil.sync.event.aggregator.core.events.MoveEvent;
 import org.rmatil.sync.network.api.IClient;
 import org.rmatil.sync.network.api.IClientManager;
@@ -16,14 +15,10 @@ import org.rmatil.sync.persistence.exceptions.InputOutputException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Stream;
 
 public class FileMoveExchangeHandler extends ANetworkHandler<FileMoveExchangeHandlerResult> {
 
@@ -40,6 +35,8 @@ public class FileMoveExchangeHandler extends ANetworkHandler<FileMoveExchangeHan
     protected MBassador<IBusEvent> globalEventBus;
 
     protected MoveEvent moveEvent;
+
+    protected CountDownLatch moveCountDownLatch;
 
     public FileMoveExchangeHandler(UUID exchangeId, ClientDevice clientDevice, IStorageAdapter storageAdapter, IClientManager clientManager, IClient client, MBassador<IBusEvent> globalEventBus, MoveEvent moveEvent) {
         super(client);
@@ -63,6 +60,17 @@ public class FileMoveExchangeHandler extends ANetworkHandler<FileMoveExchangeHan
                 logger.error("Could not fetch client locations from user " + super.client.getUser().getUserName() + ". Message: " + e.getMessage());
                 return;
             }
+
+            // check whether the own client is also in the list (should be usually, but you never know...)
+            int clientCounter = clientLocations.size();
+            for (ClientLocation location : clientLocations) {
+                if (location.getPeerAddress().equals(this.client.getPeerAddress())) {
+                    clientCounter--;
+                    break;
+                }
+            }
+
+            this.moveCountDownLatch = new CountDownLatch(clientCounter);
 
             for (ClientLocation location : clientLocations) {
                 UUID uuid = UUID.randomUUID();
@@ -98,10 +106,30 @@ public class FileMoveExchangeHandler extends ANetworkHandler<FileMoveExchangeHan
         }
 
         super.countDownLatch.countDown();
+        this.moveCountDownLatch.countDown();
     }
 
     @Override
     public FileMoveExchangeHandlerResult getResult() {
         return new FileMoveExchangeHandlerResult();
+    }
+
+    @Override
+    public void await()
+            throws InterruptedException {
+        super.await();
+        this.moveCountDownLatch.await(MAX_WAITING_TIME, TimeUnit.MILLISECONDS);
+    }
+
+    @Override
+    public void await(long timeout, TimeUnit timeUnit)
+            throws InterruptedException {
+        super.await();
+        this.moveCountDownLatch.await(MAX_WAITING_TIME, TimeUnit.MILLISECONDS);
+    }
+
+    @Override
+    public boolean isCompleted() {
+        return null != this.moveCountDownLatch && 0L == this.moveCountDownLatch.getCount();
     }
 }
