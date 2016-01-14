@@ -17,11 +17,21 @@ import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 public class FilePushExchangeHandler extends ANetworkHandler<FilePushExchangeHandlerResult> {
 
     private static final Logger logger = LoggerFactory.getLogger(FileOfferExchangeHandler.class);
 
+    /**
+     * Wait a maximum of 2 minutes for a file exchange to complete
+     */
+    protected static final long MAX_FILE_WWAITNG_TIME = 120000L;
+
+    /**
+     * The chunk size to use for the whole file exchange
+     */
     protected static final int CHUNK_SIZE = 1024 * 1024; // 1MB
 
     /**
@@ -39,11 +49,24 @@ public class FilePushExchangeHandler extends ANetworkHandler<FilePushExchangeHan
      */
     protected ClientDevice clientDevice;
 
+    /**
+     * The client manager to access client locations
+     */
     protected IClientManager clientManager;
 
+    /**
+     * The relative path to the file/directory which should be pushed
+     */
     protected String relativeFilePath;
 
-    public FilePushExchangeHandler(UUID exchangeId, ClientDevice clientDevice, IStorageAdapter storageAdapter, ClientManager clientManager, IClient client, String relativeFilePath) {
+    /**
+     * A count down latch to check if all clients have received all chunks.
+     * We have to use this one instead of {@link ANetworkHandler#countDownLatch} since
+     * we are sending file chunks as subrequests one by one
+     */
+    protected CountDownLatch chunkCountDownLatch;
+
+    public FilePushExchangeHandler(UUID exchangeId, ClientDevice clientDevice, IStorageAdapter storageAdapter, IClientManager clientManager, IClient client, String relativeFilePath) {
         super(client);
         this.clientDevice = clientDevice;
         this.exchangeId = exchangeId;
@@ -63,6 +86,17 @@ public class FilePushExchangeHandler extends ANetworkHandler<FilePushExchangeHan
                 return;
             }
 
+            // check whether the own client is also in the list (should be usually, but you never know...)
+            int clientCounter = clientLocations.size();
+            for (ClientLocation location : clientLocations) {
+                if (location.getPeerAddress().equals(this.client.getPeerAddress())) {
+                    clientCounter--;
+                    break;
+                }
+            }
+
+            this.chunkCountDownLatch = new CountDownLatch(clientCounter);
+
             for (ClientLocation location : clientLocations) {
                 UUID uuid = UUID.randomUUID();
                 logger.info("Sending first chunk as subRequest of " + this.exchangeId + " with id " + uuid + " to client " + location.getPeerAddress().inetAddress().getHostName() + ":" + location.getPeerAddress().tcpPort());
@@ -79,12 +113,13 @@ public class FilePushExchangeHandler extends ANetworkHandler<FilePushExchangeHan
     @Override
     public void onResponse(IResponse response) {
         if (response instanceof FilePushResponse) {
-            if ( -1 < ((FilePushResponse) response).getChunkCounter()) {
+            if (- 1 < ((FilePushResponse) response).getChunkCounter()) {
                 this.sendChunk(((FilePushResponse) response).getChunkCounter(), response.getExchangeId(), new ClientLocation(response.getClientDevice().getClientDeviceId(), response.getClientDevice().getPeerAddress()));
             } else {
                 // exchange is finished
                 super.client.getObjectDataReplyHandler().removeResponseCallbackHandler(response.getExchangeId());
                 this.countDownLatch.countDown();
+                this.chunkCountDownLatch.countDown();
             }
         }
     }
@@ -94,6 +129,32 @@ public class FilePushExchangeHandler extends ANetworkHandler<FilePushExchangeHan
         return new FilePushExchangeHandlerResult();
     }
 
+    @Override
+    public void await()
+            throws InterruptedException {
+        super.await();
+        this.chunkCountDownLatch.await(MAX_FILE_WWAITNG_TIME, TimeUnit.MILLISECONDS);
+    }
+
+    @Override
+    public void await(long timeout, TimeUnit timeUnit)
+            throws InterruptedException {
+        super.await();
+        this.chunkCountDownLatch.await(MAX_FILE_WWAITNG_TIME, TimeUnit.MILLISECONDS);
+    }
+
+    @Override
+    public boolean isCompleted() {
+        return null != this.chunkCountDownLatch && 0L == this.chunkCountDownLatch.getCount();
+    }
+
+    /**
+     * Send a chunk to another client
+     *
+     * @param chunkCounter The chunk counter
+     * @param exchangeId The exchange id for the request
+     * @param receiver The receiver which should get the chunk
+     */
     protected void sendChunk(long chunkCounter, UUID exchangeId, ClientLocation receiver) {
         IPathElement pathElement = new LocalPathElement(this.relativeFilePath);
         IFileMetaInfo fileMetaInfo;
@@ -108,7 +169,7 @@ public class FilePushExchangeHandler extends ANetworkHandler<FilePushExchangeHan
         Data data = null;
         if (fileMetaInfo.isFile()) {
             // should round to the next bigger int value anyway
-             totalNrOfChunks = (int) Math.ceil(fileMetaInfo.getTotalFileSize() / CHUNK_SIZE);
+            totalNrOfChunks = (int) Math.ceil(fileMetaInfo.getTotalFileSize() / CHUNK_SIZE);
             long fileChunkStartOffset = chunkCounter * CHUNK_SIZE;
 
             // storage adapter trims requests for a too large chunk
