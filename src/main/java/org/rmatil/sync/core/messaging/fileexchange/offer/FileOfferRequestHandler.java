@@ -114,7 +114,7 @@ public class FileOfferRequestHandler implements ILocalStateRequestCallback {
                                 hasAccepted = true;
                                 hasConflict = true;
 
-                                this.createConflictFile(new LocalPathElement(this.request.getEvent().getPath()));
+                                this.createConflictFile(pathElement);
                             } else {
                                 hasAccepted = true;
                                 hasConflict = false;
