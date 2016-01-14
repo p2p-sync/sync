@@ -2,6 +2,7 @@ package org.rmatil.sync.test.messaging.fileexchange.push;
 
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.omg.CORBA.TIMEOUT;
 import org.rmatil.sync.core.messaging.fileexchange.push.FilePushExchangeHandler;
 import org.rmatil.sync.core.messaging.fileexchange.push.FilePushExchangeHandlerResult;
 import org.rmatil.sync.test.messaging.base.BaseNetworkHandlerTest;
@@ -12,6 +13,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.Assert.*;
 
@@ -55,7 +57,8 @@ public class FilePushExchangeHandlerTest extends BaseNetworkHandlerTest {
         filePushExchangeHandlerThread.setName("TEST-FilePushExchangeHandler");
         filePushExchangeHandlerThread.start();
 
-        filePushExchangeHandler.await();
+        // use a max of 30000 milliseconds to wait
+        filePushExchangeHandler.await(30000L, TimeUnit.MILLISECONDS);
 
         CLIENT_1.getObjectDataReplyHandler().removeResponseCallbackHandler(EXCHANGE_ID);
 
