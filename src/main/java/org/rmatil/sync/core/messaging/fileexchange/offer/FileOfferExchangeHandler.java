@@ -28,10 +28,12 @@ import java.util.*;
 import java.util.stream.Stream;
 
 /**
- * Implements the crucial step of deciding whether a conflict
- * file has to be created locally or not.
- * <p>
- * All clients will then be informed of the result.
+ * Tries to determine whether a particular {@link IEvent} resp. {@link SerializableEvent}
+ * causes a conflict on any connected client.
+ * This is done, by sending {@link FileOfferRequest} to all connected clients. These
+ * determine whether the event causes a conflict and response with the appropriate answer.
+ * If a conflict is detected, a {@link FileOfferExchangeHandlerResult} is returned having
+ * the fields for conflict set to true.
  */
 public class FileOfferExchangeHandler extends ANetworkHandler<FileOfferExchangeHandlerResult> {
 
@@ -52,16 +54,41 @@ public class FileOfferExchangeHandler extends ANetworkHandler<FileOfferExchangeH
      */
     protected ClientDevice clientDevice;
 
+    /**
+     * The actual event to check for conflicts on other clients
+     */
     protected IEvent eventToPropagate;
 
+    /**
+     * A list of clients which responded to the file offer request
+     */
     protected List<IResponse> respondedClients;
 
+    /**
+     * The object store to access the file versions
+     */
     protected IObjectStore objectStore;
 
+    /**
+     * The storage adapter for the synchronized folder
+     */
     protected IStorageAdapter storageAdapter;
 
+    /**
+     * The global bus event used for adding events
+     */
     protected MBassador<IBusEvent> globalEventBus;
 
+    /**
+     * @param exchangeId       The exchange id used for the file offer handling
+     * @param clientDevice     The client device used to identify the sending client for any file offer requests
+     * @param clientManager    The client manager to access client locations
+     * @param client           The client to send messages
+     * @param objectStore      The object store to get versions of a particular file
+     * @param storageAdapter   The storage adapter for the synchronized folder
+     * @param globalEventBus   The global event bus to add events to
+     * @param eventToPropagate The actual event to check for conflicts
+     */
     public FileOfferExchangeHandler(UUID exchangeId, ClientDevice clientDevice, IClientManager clientManager, IClient client, IObjectStore objectStore, IStorageAdapter storageAdapter, MBassador<IBusEvent> globalEventBus, IEvent eventToPropagate) {
         super(client);
         this.clientDevice = clientDevice;
@@ -92,7 +119,8 @@ public class FileOfferExchangeHandler extends ANetworkHandler<FileOfferExchangeH
             Path dirToMove = this.storageAdapter.getRootDir().resolve(((MoveEvent) this.eventToPropagate).getNewPath());
             try (Stream<Path> paths = Files.walk(dirToMove)) {
                 paths.forEach((entry) -> {
-                    Path relPath = this.storageAdapter.getRootDir().toAbsolutePath().relativize(entry);
+                    // do not use toAbsolutePath() since we could have also paths starting with "./myDir"
+                    Path relPath = this.storageAdapter.getRootDir().relativize(entry);
                     Path oldPath = this.eventToPropagate.getPath().resolve(((MoveEvent) this.eventToPropagate).getNewPath().relativize(relPath));
 
                     globalEventBus.publish(new IgnoreBusEvent(

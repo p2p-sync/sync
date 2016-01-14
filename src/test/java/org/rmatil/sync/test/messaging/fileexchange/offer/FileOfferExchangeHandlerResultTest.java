@@ -13,5 +13,6 @@ public class FileOfferExchangeHandlerResultTest {
 
         assertTrue("Offer should be accepted", fileOfferExchangeHandlerResult.hasOfferAccepted());
         assertTrue("Offer should have been a conflict", fileOfferExchangeHandlerResult.hasConflictDetected());
+        assertEquals("String is not equals", "HasAccepted: true, HasConflict: true", fileOfferExchangeHandlerResult.toString());
     }
 }
