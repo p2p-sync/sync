@@ -115,44 +115,7 @@ public class FileSyncer implements ISyncer {
 
         UUID fileExchangeId = UUID.randomUUID();
 
-        if (event instanceof DeleteEvent) {
-            // directly send a delete request without bothering
-            // about any conflict etc.
-
-            ANetworkHandler exchangeHandler = new FileDeleteExchangeHandler(
-                    fileExchangeId,
-                    this.clientDevice,
-                    this.storageAdapter,
-                    this.clientManager,
-                    this.client,
-                    this.globalEventBus,
-                    (DeleteEvent) event
-            );
-            logger.debug("Starting fileDelete handler for exchangeId " + fileExchangeId);
-
-            this.client.getObjectDataReplyHandler().addResponseCallbackHandler(fileExchangeId, exchangeHandler);
-            Thread fileDeleteExchangeHandlerThread = new Thread(exchangeHandler);
-            fileDeleteExchangeHandlerThread.setName("FileDeleteExchangeHandler for request " + fileExchangeId);
-            fileDeleteExchangeHandlerThread.start();
-
-            logger.debug("Waiting for delete exchange " + fileExchangeId + " to complete...");
-            try {
-                exchangeHandler.await();
-            } catch (InterruptedException e) {
-                logger.error("Failed to await for delete exchange " + fileExchangeId + ". Message: " + e.getMessage());
-            }
-
-            this.client.getObjectDataReplyHandler().removeResponseCallbackHandler(fileExchangeId);
-
-            if (! exchangeHandler.isCompleted()) {
-                logger.error("No result received from clients for request " + fileExchangeId);
-                return;
-            }
-
-            return;
-        }
-
-        // all other events require an offering step
+        // all events require an offering step
 
         FileOfferExchangeHandler fileOfferExchangeHandler = new FileOfferExchangeHandler(
                 fileExchangeId,
@@ -193,17 +156,35 @@ public class FileSyncer implements ISyncer {
             this.createConflictFile(new LocalPathElement(event.getPath().toString()));
             return;
         } else if (! result.hasOfferAccepted()) {
+            logger.info("Rescheduling event " + event.getEventName() + " for file " + event.getPath().toString());
+
+            this.globalEventBus.publish(new CreateBusEvent(
+                    event
+            ));
+
             return;
         }
-
-        // TODO: what if client did not accept request
-        // TODO: maybe resend request if any client did not accept -> yep (do not accept if multiple offerings for the same file at the same time)
 
         // Now we can start to send the file
 
         ANetworkHandler exchangeHandler;
         Thread exchangeHandlerThread;
-        if (event instanceof MoveEvent) {
+
+        if (event instanceof DeleteEvent) {
+            exchangeHandler = new FileDeleteExchangeHandler(
+                    fileExchangeId,
+                    this.clientDevice,
+                    this.storageAdapter,
+                    this.clientManager,
+                    this.client,
+                    this.globalEventBus,
+                    (DeleteEvent) event
+            );
+            logger.debug("Starting fileDelete handler for exchangeId " + fileExchangeId);
+
+            exchangeHandlerThread = new Thread(exchangeHandler);
+            exchangeHandlerThread.setName("FileDeleteExchangeHandler for request " + fileExchangeId);
+        } else if (event instanceof MoveEvent) {
             exchangeHandler = new FileMoveExchangeHandler(
                     fileExchangeId,
                     this.clientDevice,

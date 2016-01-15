@@ -3,6 +3,7 @@ package org.rmatil.sync.core.messaging.fileexchange.offer;
 import net.engio.mbassy.bus.MBassador;
 import org.rmatil.sync.core.eventbus.IBusEvent;
 import org.rmatil.sync.core.eventbus.IgnoreBusEvent;
+import org.rmatil.sync.core.init.client.ILocalStateResponseCallback;
 import org.rmatil.sync.event.aggregator.core.events.IEvent;
 import org.rmatil.sync.event.aggregator.core.events.MoveEvent;
 import org.rmatil.sync.network.api.IClient;
@@ -36,7 +37,7 @@ import java.util.stream.Stream;
  * If a conflict is detected, a {@link FileOfferExchangeHandlerResult} is returned having
  * the fields for conflict set to true.
  */
-public class FileOfferExchangeHandler extends ANetworkHandler<FileOfferExchangeHandlerResult> {
+public class FileOfferExchangeHandler extends ANetworkHandler<FileOfferExchangeHandlerResult> implements ILocalStateResponseCallback{
 
     private static final Logger logger = LoggerFactory.getLogger(FileOfferExchangeHandler.class);
 
@@ -181,6 +182,13 @@ public class FileOfferExchangeHandler extends ANetworkHandler<FileOfferExchangeH
         );
 
         super.sendRequest(request);
+    }
+
+    @Override
+    public List<String> getAffectedFilePaths() {
+        List<String> affectedFiles = new ArrayList<>();
+        affectedFiles.add(this.eventToPropagate.getPath().toString());
+        return affectedFiles;
     }
 
     @Override

@@ -1,5 +1,6 @@
 package org.rmatil.sync.core.messaging.fileexchange.demand;
 
+import org.rmatil.sync.core.init.client.ILocalStateResponseCallback;
 import org.rmatil.sync.network.api.IClient;
 import org.rmatil.sync.network.api.IClientManager;
 import org.rmatil.sync.network.api.IResponse;
@@ -11,9 +12,10 @@ import org.rmatil.sync.persistence.api.IStorageAdapter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-public class FileDemandExchangeHandler extends ANetworkHandler<FileDemandExchangeHandlerResult> {
+public class FileDemandExchangeHandler extends ANetworkHandler<FileDemandExchangeHandlerResult> implements ILocalStateResponseCallback {
 
     private static final Logger logger = LoggerFactory.getLogger(FileDemandExchangeHandler.class);
 
@@ -74,6 +76,11 @@ public class FileDemandExchangeHandler extends ANetworkHandler<FileDemandExchang
     @Override
     public void run() {
 
+    }
+
+    @Override
+    public List<String> getAffectedFilePaths() {
+        return null;
     }
 
     @Override

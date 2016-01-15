@@ -2,6 +2,7 @@ package org.rmatil.sync.core.messaging.fileexchange.delete;
 
 import net.engio.mbassy.bus.MBassador;
 import org.rmatil.sync.core.eventbus.IBusEvent;
+import org.rmatil.sync.core.init.client.ILocalStateResponseCallback;
 import org.rmatil.sync.core.messaging.fileexchange.move.FileMoveRequest;
 import org.rmatil.sync.event.aggregator.core.events.DeleteEvent;
 import org.rmatil.sync.event.aggregator.core.events.MoveEvent;
@@ -17,11 +18,12 @@ import org.rmatil.sync.persistence.exceptions.InputOutputException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
-public class FileDeleteExchangeHandler extends ANetworkHandler<FileDeleteExchangeHandlerResult> {
+public class FileDeleteExchangeHandler extends ANetworkHandler<FileDeleteExchangeHandlerResult> implements ILocalStateResponseCallback {
 
     private static final Logger logger = LoggerFactory.getLogger(FileDeleteExchangeHandler.class);
 
@@ -58,6 +60,9 @@ public class FileDeleteExchangeHandler extends ANetworkHandler<FileDeleteExchang
                 return;
             }
 
+            // TODO: ignore file delete events for children
+            // TODO: check version
+
             logger.info("Sending delete request " + this.exchangeId);
 
             FileDeleteRequest fileDeleteRequest = new FileDeleteRequest(
@@ -73,6 +78,13 @@ public class FileDeleteExchangeHandler extends ANetworkHandler<FileDeleteExchang
             logger.error("Failed to execute FileDeleteExchange. Message: " + e.getMessage());
         }
 
+    }
+
+    @Override
+    public List<String> getAffectedFilePaths() {
+        List<String> affectedFiles = new ArrayList<>();
+        affectedFiles.add(this.deleteEvent.getPath().toString());
+        return affectedFiles;
     }
 
     @Override

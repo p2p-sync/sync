@@ -1,5 +1,6 @@
 package org.rmatil.sync.core.messaging.fileexchange.push;
 
+import org.rmatil.sync.core.init.client.ILocalStateResponseCallback;
 import org.rmatil.sync.core.messaging.fileexchange.offer.FileOfferExchangeHandler;
 import org.rmatil.sync.network.api.*;
 import org.rmatil.sync.network.core.ANetworkHandler;
@@ -15,12 +16,13 @@ import org.rmatil.sync.persistence.exceptions.InputOutputException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-public class FilePushExchangeHandler extends ANetworkHandler<FilePushExchangeHandlerResult> {
+public class FilePushExchangeHandler extends ANetworkHandler<FilePushExchangeHandlerResult> implements ILocalStateResponseCallback {
 
     private static final Logger logger = LoggerFactory.getLogger(FileOfferExchangeHandler.class);
 
@@ -108,6 +110,14 @@ public class FilePushExchangeHandler extends ANetworkHandler<FilePushExchangeHan
         } catch (Exception e) {
             logger.error("Failed to execute FilePushExchangeHandler. Message: " + e.getMessage());
         }
+    }
+
+    @Override
+    public List<String> getAffectedFilePaths() {
+        List<String> affectedPaths = new ArrayList<>();
+        affectedPaths.add(this.relativeFilePath);
+
+        return affectedPaths;
     }
 
     @Override

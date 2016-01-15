@@ -2,6 +2,7 @@ package org.rmatil.sync.core.messaging.fileexchange.move;
 
 import net.engio.mbassy.bus.MBassador;
 import org.rmatil.sync.core.eventbus.IBusEvent;
+import org.rmatil.sync.core.init.client.ILocalStateResponseCallback;
 import org.rmatil.sync.event.aggregator.core.events.MoveEvent;
 import org.rmatil.sync.network.api.IClient;
 import org.rmatil.sync.network.api.IClientManager;
@@ -15,12 +16,13 @@ import org.rmatil.sync.persistence.exceptions.InputOutputException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-public class FileMoveExchangeHandler extends ANetworkHandler<FileMoveExchangeHandlerResult> {
+public class FileMoveExchangeHandler extends ANetworkHandler<FileMoveExchangeHandlerResult> implements ILocalStateResponseCallback {
 
     private static final Logger logger = LoggerFactory.getLogger(FileMoveExchangeHandler.class);
 
@@ -94,6 +96,16 @@ public class FileMoveExchangeHandler extends ANetworkHandler<FileMoveExchangeHan
         } catch (Exception e) {
             logger.error("Failed to execute FileMoveExchange. Message: " + e.getMessage());
         }
+    }
+
+    @Override
+    public List<String> getAffectedFilePaths() {
+        List<String> affectedFiles = new ArrayList<>();
+
+        affectedFiles.add(this.moveEvent.getPath().toString());
+        affectedFiles.add(this.moveEvent.getNewPath().toString());
+
+        return affectedFiles;
     }
 
     @Override
