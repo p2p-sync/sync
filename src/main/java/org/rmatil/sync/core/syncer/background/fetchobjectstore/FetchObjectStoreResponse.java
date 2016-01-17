@@ -1,0 +1,27 @@
+package org.rmatil.sync.core.syncer.background.fetchobjectstore;
+
+import org.rmatil.sync.core.messaging.fileexchange.base.AResponse;
+import org.rmatil.sync.network.core.model.ClientDevice;
+import org.rmatil.sync.network.core.model.ClientLocation;
+
+import java.util.UUID;
+
+public class FetchObjectStoreResponse extends AResponse {
+
+    protected byte[] objectStore;
+
+    /**
+     * @param exchangeId      The id of the exchange to which this request belongs
+     * @param clientDevice    The client device which sends this request
+     * @param receiverAddress The client which had sent the corresponding request to this response
+     * @param objectStore     The object store as zip file
+     */
+    public FetchObjectStoreResponse(UUID exchangeId, ClientDevice clientDevice, ClientLocation receiverAddress, byte[] objectStore) {
+        super(exchangeId, clientDevice, receiverAddress);
+        this.objectStore = objectStore;
+    }
+
+    public byte[] getObjectStore() {
+        return objectStore;
+    }
+}

@@ -152,12 +152,10 @@ public class FileOfferExchangeHandler extends ANetworkHandler<FileOfferExchangeH
         Version versionBefore = null;
         // we check versions only for files
         if (! isDir) {
-            Map<String, String> indexPaths = this.objectStore.getObjectManager().getIndex().getPaths();
-            String hash = indexPaths.get(pathToCheck);
-
             PathObject pathObject;
+
             try {
-                pathObject = this.objectStore.getObjectManager().getObject(hash);
+                pathObject = this.objectStore.getObjectManager().getObjectForPath(pathToCheck);
             } catch (InputOutputException e) {
                 logger.error("Can not read versions from object store. Message: " + e.getMessage());
                 return;

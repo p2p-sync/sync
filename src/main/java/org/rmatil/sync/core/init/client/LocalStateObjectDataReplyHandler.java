@@ -4,6 +4,7 @@ import net.engio.mbassy.bus.MBassador;
 import net.tomp2p.peers.PeerAddress;
 import org.rmatil.sync.core.messaging.fileexchange.offer.FileOfferRequest;
 import org.rmatil.sync.core.messaging.fileexchange.offer.FileOfferResponse;
+import org.rmatil.sync.core.syncer.background.masterelection.MasterElectionRequest;
 import org.rmatil.sync.network.api.*;
 import org.rmatil.sync.network.core.messaging.ObjectDataReplyHandler;
 import org.rmatil.sync.network.core.model.ClientDevice;
@@ -20,7 +21,8 @@ public class LocalStateObjectDataReplyHandler extends ObjectDataReplyHandler {
     protected IStorageAdapter storageAdapter;
     protected IObjectStore    objectStore;
     protected MBassador       globalEventBus;
-    protected Map<String, Set<UUID>> pathsInProgess = new HashMap<>();
+    protected Map<String, Set<UUID>> pathsInProgress = new HashMap<>();
+    protected MasterElectionRequest masterElectionRequest;
 
     public LocalStateObjectDataReplyHandler(IStorageAdapter storageAdapter, IObjectStore objectStore, IClient client, MBassador globalEventBus, Map<UUID, IResponseCallback> responseCallbackHandlers, Map<Class<? extends IRequest>, Class<? extends IRequestCallback>> requestCallbackHandlers) {
         super(client, responseCallbackHandlers, requestCallbackHandlers);
@@ -57,7 +59,7 @@ public class LocalStateObjectDataReplyHandler extends ObjectDataReplyHandler {
 
         if (responseCallback instanceof ILocalStateResponseCallback) {
             for (String entry :((ILocalStateResponseCallback) responseCallback).getAffectedFilePaths()) {
-                Set<UUID> exchangesInProgress = this.pathsInProgess.get(entry);
+                Set<UUID> exchangesInProgress = this.pathsInProgress.get(entry);
 
                 if (null == exchangesInProgress) {
                     exchangesInProgress = new HashSet<>();
@@ -81,7 +83,7 @@ public class LocalStateObjectDataReplyHandler extends ObjectDataReplyHandler {
     public void removeResponseCallbackHandler(UUID requestExchangeId) {
         super.removeResponseCallbackHandler(requestExchangeId);
 
-        for (Map.Entry<String, Set<UUID>> entry : this.pathsInProgess.entrySet()) {
+        for (Map.Entry<String, Set<UUID>> entry : this.pathsInProgress.entrySet()) {
             Set<UUID> exchangeIdsInProgress = entry.getValue();
 
             if (null != exchangeIdsInProgress && exchangeIdsInProgress.contains(requestExchangeId)) {
@@ -95,6 +97,18 @@ public class LocalStateObjectDataReplyHandler extends ObjectDataReplyHandler {
 
         // forward the request to the correct data reply instance
         if (request instanceof IRequest) {
+
+            if (null == this.masterElectionRequest) {
+                // this is the first master election request
+                if (request instanceof MasterElectionRequest) {
+                    this.masterElectionRequest = (MasterElectionRequest) request;
+                }
+            } else {
+                if (((MasterElectionRequest) request).getTimestamp() < this.masterElectionRequest.getTimestamp()) {
+                    // we got an earlier master request
+
+                }
+            }
 
             // check if any other exchange is in progress
             if (request instanceof FileOfferRequest &&
@@ -166,7 +180,7 @@ public class LocalStateObjectDataReplyHandler extends ObjectDataReplyHandler {
     protected boolean exchangeInProgress(FileOfferRequest request) {
         String relativePath = request.getEvent().getPath();
 
-        Set<UUID> exchangesInProgress = this.pathsInProgess.get(relativePath);
+        Set<UUID> exchangesInProgress = this.pathsInProgress.get(relativePath);
 
         if (null != exchangesInProgress && exchangesInProgress.contains(request.getExchangeId())) {
             // exchange is still in progress, we allow incoming requests for this exchange
@@ -180,14 +194,14 @@ public class LocalStateObjectDataReplyHandler extends ObjectDataReplyHandler {
     protected boolean affectedFileIsInProgress(FileOfferRequest request) {
         String relativePath = request.getEvent().getPath();
 
-        Set<UUID> exchangesInProgress = this.pathsInProgess.get(relativePath);
+        Set<UUID> exchangesInProgress = this.pathsInProgress.get(relativePath);
 
         while (null == exchangesInProgress) {
             Path path = Paths.get(relativePath);
 
             path = path.subpath(0, Math.max(1, path.getNameCount() - 1));
 
-            exchangesInProgress = this.pathsInProgess.get(path.getFileName().toString());
+            exchangesInProgress = this.pathsInProgress.get(path.getFileName().toString());
 
             // only the top level is left
             if (1 == path.getNameCount()) {

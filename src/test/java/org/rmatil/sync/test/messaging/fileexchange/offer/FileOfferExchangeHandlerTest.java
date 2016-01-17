@@ -100,8 +100,7 @@ public class FileOfferExchangeHandlerTest extends BaseNetworkHandlerTest {
         OBJECT_STORE_2.sync(ROOT_TEST_DIR2.toFile());
 
         // do not start the event aggregator but manually sync the event
-        String hashToDir = OBJECT_STORE_1.getObjectManager().getIndex().getPaths().get(TEST_DIR_1.toString());
-        PathObject pathObject = OBJECT_STORE_1.getObjectManager().getObject(hashToDir);
+        PathObject pathObject = OBJECT_STORE_1.getObjectManager().getObjectForPath(TEST_DIR_1.toString());
 
         moveDirEvent = new MoveEvent(
                 TEST_DIR_1,
@@ -111,8 +110,7 @@ public class FileOfferExchangeHandlerTest extends BaseNetworkHandlerTest {
                 System.currentTimeMillis()
         );
 
-        String hashToFile = OBJECT_STORE_1.getObjectManager().getIndex().getPaths().get(TEST_FILE_2.toString());
-        PathObject fileObject = OBJECT_STORE_1.getObjectManager().getObject(hashToFile);
+        PathObject fileObject = OBJECT_STORE_1.getObjectManager().getObjectForPath(TEST_FILE_2.toString());
 
         moveFileEvent = new MoveEvent(
                 TEST_FILE_2,

@@ -2,6 +2,7 @@ package org.rmatil.sync.core.messaging.fileexchange.delete;
 
 import net.engio.mbassy.bus.MBassador;
 import org.rmatil.sync.core.eventbus.IBusEvent;
+import org.rmatil.sync.core.eventbus.IgnoreBusEvent;
 import org.rmatil.sync.core.init.client.ILocalStateResponseCallback;
 import org.rmatil.sync.core.messaging.fileexchange.move.FileMoveRequest;
 import org.rmatil.sync.event.aggregator.core.events.DeleteEvent;
@@ -15,9 +16,12 @@ import org.rmatil.sync.network.core.model.ClientLocation;
 import org.rmatil.sync.persistence.api.IStorageAdapter;
 import org.rmatil.sync.persistence.core.local.LocalPathElement;
 import org.rmatil.sync.persistence.exceptions.InputOutputException;
+import org.rmatil.sync.version.api.IObjectStore;
+import org.rmatil.sync.version.core.model.PathObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -35,11 +39,13 @@ public class FileDeleteExchangeHandler extends ANetworkHandler<FileDeleteExchang
 
     protected IClientManager clientManager;
 
+    protected IObjectStore objectStore;
+
     protected DeleteEvent deleteEvent;
 
     protected MBassador<IBusEvent> globalEventBus;
 
-    public FileDeleteExchangeHandler(UUID exchangeId, ClientDevice clientDevice, IStorageAdapter storageAdapter, IClientManager clientManager, IClient client, MBassador<IBusEvent> globalEventBus, DeleteEvent deleteEvent) {
+    public FileDeleteExchangeHandler(UUID exchangeId, ClientDevice clientDevice, IStorageAdapter storageAdapter, IClientManager clientManager, IClient client, IObjectStore objectStore, MBassador<IBusEvent> globalEventBus, DeleteEvent deleteEvent) {
         super(client);
         this.exchangeId = exchangeId;
         this.clientDevice = clientDevice;
@@ -60,8 +66,21 @@ public class FileDeleteExchangeHandler extends ANetworkHandler<FileDeleteExchang
                 return;
             }
 
-            // TODO: ignore file delete events for children
-            // TODO: check version
+            List<PathObject> deletedPaths = this.objectStore.getObjectManager().getChildren(this.deleteEvent.getPath().toString());
+
+            // ignore delete events from children
+            for (PathObject entry : deletedPaths) {
+                this.globalEventBus.publish(
+                        new IgnoreBusEvent(
+                                new DeleteEvent(
+                                        Paths.get(entry.getAbsolutePath()),
+                                        entry.getName(),
+                                        "weIgnoreTheHash",
+                                        System.currentTimeMillis()
+                                )
+                        )
+                );
+            }
 
             logger.info("Sending delete request " + this.exchangeId);
 

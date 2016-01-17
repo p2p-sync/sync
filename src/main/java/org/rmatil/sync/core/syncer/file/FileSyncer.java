@@ -177,6 +177,7 @@ public class FileSyncer implements ISyncer {
                     this.storageAdapter,
                     this.clientManager,
                     this.client,
+                    this.objectStore,
                     this.globalEventBus,
                     (DeleteEvent) event
             );
@@ -244,10 +245,7 @@ public class FileSyncer implements ISyncer {
     protected void createConflictFile(LocalPathElement pathElement) {
         PathObject pathObject;
         try {
-            Map<String, String> indexPaths = this.objectStore.getObjectManager().getIndex().getPaths();
-            String hash = indexPaths.get(pathElement.getPath());
-
-            pathObject = this.objectStore.getObjectManager().getObject(hash);
+            pathObject = this.objectStore.getObjectManager().getObjectForPath(pathElement.getPath());
         } catch (InputOutputException e) {
             logger.error("Failed to check file versions of file " + pathElement.getPath() + ". Message: " + e.getMessage() + ". Indicating that a conflict happened");
             return;

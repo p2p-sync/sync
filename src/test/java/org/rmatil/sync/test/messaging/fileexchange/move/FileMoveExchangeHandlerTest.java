@@ -117,8 +117,7 @@ public class FileMoveExchangeHandlerTest extends BaseNetworkHandlerTest {
         // rebuild object store
         OBJECT_STORE_1.sync(ROOT_TEST_DIR1.toFile());
 
-        String hashToFile = OBJECT_STORE_1.getObjectManager().getIndex().getPaths().get(TARGET_DIR.resolve(TEST_FILE_3).toString());
-        PathObject pathObject = OBJECT_STORE_1.getObjectManager().getObject(hashToFile);
+        PathObject pathObject = OBJECT_STORE_1.getObjectManager().getObjectForPath(TARGET_DIR.resolve(TEST_FILE_3).toString());
 
         MoveEvent moveEvent = new MoveEvent(
                 TEST_FILE_3,

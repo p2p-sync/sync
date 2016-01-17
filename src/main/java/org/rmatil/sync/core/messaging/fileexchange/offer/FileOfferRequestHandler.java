@@ -191,10 +191,7 @@ public class FileOfferRequestHandler implements ILocalStateRequestCallback {
             if (this.storageAdapter.exists(StorageType.FILE, pathElement)) {
                 PathObject pathObject;
                 try {
-                    Map<String, String> indexPaths = this.objectStore.getObjectManager().getIndex().getPaths();
-                    String hash = indexPaths.get(pathElement.getPath());
-
-                    pathObject = this.objectStore.getObjectManager().getObject(hash);
+                    pathObject = this.objectStore.getObjectManager().getObjectForPath(pathElement.getPath());
                 } catch (InputOutputException e) {
                     logger.error("Failed to check file versions of file " + pathElement.getPath() + ". Message: " + e.getMessage() + ". Indicating that a conflict happened");
                     return true;
@@ -247,10 +244,7 @@ public class FileOfferRequestHandler implements ILocalStateRequestCallback {
     protected void createConflictFile(LocalPathElement pathElement) {
         PathObject pathObject;
         try {
-            Map<String, String> indexPaths = this.objectStore.getObjectManager().getIndex().getPaths();
-            String hash = indexPaths.get(pathElement.getPath());
-
-            pathObject = this.objectStore.getObjectManager().getObject(hash);
+            pathObject = this.objectStore.getObjectManager().getObjectForPath(pathElement.getPath());
         } catch (InputOutputException e) {
             logger.error("Failed to check file versions of file " + pathElement.getPath() + ". Message: " + e.getMessage() + ". Indicating that a conflict happened", e);
             return;

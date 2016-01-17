@@ -156,10 +156,7 @@ public class FileMoveRequestHandler implements ILocalStateRequestCallback {
 
             this.storageAdapter.move(storageType, oldPath, newPath);
         } else {
-            Index idx = this.objectStore.getObjectManager().getIndex();
-            String hashToObject = idx.getPaths().get(oldPath.getPath());
-
-            PathObject pathObject = this.objectStore.getObjectManager().getObject(hashToObject);
+            PathObject pathObject = this.objectStore.getObjectManager().getObjectForPath(oldPath.getPath());
             this.globalEventBus.publish(new IgnoreBusEvent(
                     new MoveEvent(
                             Paths.get(oldPath.getPath()),
