@@ -52,7 +52,6 @@ public class MasterElectionRequestHandler implements ILocalStateRequestCallback 
         this.request = (MasterElectionRequest) iRequest;
     }
 
-
     @Override
     public void run() {
         try {

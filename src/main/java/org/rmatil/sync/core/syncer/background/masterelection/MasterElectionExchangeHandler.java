@@ -47,6 +47,7 @@ public class MasterElectionExchangeHandler extends ANetworkHandler<MasterElectio
         ClientLocation electedMaster = clientLocations.get(Math.max(0, clientLocations.size() - 1));
 
         if (electedMaster.getPeerAddress().equals(this.client.getPeerAddress())) {
+            logger.info("Detected that i have the highest peer id. Electing me as master (" + this.client.getPeerAddress().inetAddress().getHostName() + ":" + this.client.getPeerAddress().tcpPort() + ")");
             // we are the master
             super.countDownLatch = new CountDownLatch(0);
 

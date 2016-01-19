@@ -15,9 +15,9 @@ import org.rmatil.sync.core.messaging.fileexchange.push.FilePushExchangeHandler;
 import org.rmatil.sync.core.syncer.ISyncer;
 import org.rmatil.sync.event.aggregator.core.events.*;
 import org.rmatil.sync.network.api.IClient;
+import org.rmatil.sync.network.api.IClientManager;
 import org.rmatil.sync.network.api.IUser;
 import org.rmatil.sync.network.core.ANetworkHandler;
-import org.rmatil.sync.network.core.ClientManager;
 import org.rmatil.sync.network.core.model.ClientDevice;
 import org.rmatil.sync.persistence.api.IFileMetaInfo;
 import org.rmatil.sync.persistence.api.IStorageAdapter;
@@ -32,7 +32,10 @@ import org.slf4j.LoggerFactory;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -48,7 +51,7 @@ public class FileSyncer implements ISyncer {
 
     protected       IUser           user;
     protected       IClient         client;
-    protected       ClientManager   clientManager;
+    protected       IClientManager  clientManager;
     protected       IStorageAdapter storageAdapter;
     protected       IObjectStore    objectStore;
     protected final List<IEvent>    eventsToIgnore;
@@ -58,7 +61,7 @@ public class FileSyncer implements ISyncer {
 
     protected ClientDevice clientDevice;
 
-    public FileSyncer(IUser user, IClient client, ClientManager clientManager, IStorageAdapter storageAdapter, IObjectStore objectStore, MBassador<IBusEvent> globalEventBus) {
+    public FileSyncer(IUser user, IClient client, IClientManager clientManager, IStorageAdapter storageAdapter, IObjectStore objectStore, MBassador<IBusEvent> globalEventBus) {
         this.user = user;
         this.client = client;
         this.clientManager = clientManager;
