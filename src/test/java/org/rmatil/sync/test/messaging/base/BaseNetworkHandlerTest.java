@@ -314,7 +314,9 @@ public abstract class BaseNetworkHandlerTest {
                 storageAdapter,
                 objectStore,
                 client,
-                globalEventBus
+                globalEventBus,
+                null,
+                null
         );
         // specify protocol
         objectDataReplyHandler.addRequestCallbackHandler(FileOfferRequest.class, FileOfferRequestHandler.class);

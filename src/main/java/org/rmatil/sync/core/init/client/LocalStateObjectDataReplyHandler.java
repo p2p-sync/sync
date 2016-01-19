@@ -2,9 +2,11 @@ package org.rmatil.sync.core.init.client;
 
 import net.engio.mbassy.bus.MBassador;
 import net.tomp2p.peers.PeerAddress;
+import org.rmatil.sync.core.eventbus.IBusEvent;
 import org.rmatil.sync.core.messaging.fileexchange.offer.FileOfferRequest;
 import org.rmatil.sync.core.messaging.fileexchange.offer.FileOfferResponse;
 import org.rmatil.sync.core.syncer.background.masterelection.MasterElectionRequest;
+import org.rmatil.sync.event.aggregator.api.IEventAggregator;
 import org.rmatil.sync.network.api.*;
 import org.rmatil.sync.network.core.messaging.ObjectDataReplyHandler;
 import org.rmatil.sync.network.core.model.ClientDevice;
@@ -18,47 +20,62 @@ import java.util.*;
 
 public class LocalStateObjectDataReplyHandler extends ObjectDataReplyHandler {
 
-    protected IStorageAdapter storageAdapter;
-    protected IObjectStore    objectStore;
-    protected MBassador       globalEventBus;
-    protected Map<String, Set<UUID>> pathsInProgress = new HashMap<>();
+    protected IStorageAdapter       storageAdapter;
+    protected IObjectStore          objectStore;
+    protected MBassador<IBusEvent>  globalEventBus;
     protected MasterElectionRequest masterElectionRequest;
+    protected IEventAggregator      eventAggregator;
+    protected IClientManager clientManager;
 
-    public LocalStateObjectDataReplyHandler(IStorageAdapter storageAdapter, IObjectStore objectStore, IClient client, MBassador globalEventBus, Map<UUID, IResponseCallback> responseCallbackHandlers, Map<Class<? extends IRequest>, Class<? extends IRequestCallback>> requestCallbackHandlers) {
+    protected Map<String, Set<UUID>> pathsInProgress = new HashMap<>();
+
+    public LocalStateObjectDataReplyHandler(IStorageAdapter storageAdapter, IObjectStore objectStore, IClient client, MBassador<IBusEvent> globalEventBus, IEventAggregator eventAggregator, IClientManager clientManager, Map<UUID, IResponseCallback> responseCallbackHandlers, Map<Class<? extends IRequest>, Class<? extends IRequestCallback>> requestCallbackHandlers) {
         super(client, responseCallbackHandlers, requestCallbackHandlers);
         this.storageAdapter = storageAdapter;
         this.objectStore = objectStore;
         this.globalEventBus = globalEventBus;
+        this.eventAggregator = eventAggregator;
+        this.clientManager = clientManager;
     }
 
-    public LocalStateObjectDataReplyHandler(IStorageAdapter storageAdapter, IObjectStore objectStore, IClient client, MBassador globalEventBus) {
+    public LocalStateObjectDataReplyHandler(IStorageAdapter storageAdapter, IObjectStore objectStore, IClient client, MBassador<IBusEvent> globalEventBus, IEventAggregator eventAggregator, IClientManager clientManager) {
         super(client);
         this.storageAdapter = storageAdapter;
         this.objectStore = objectStore;
         this.globalEventBus = globalEventBus;
+        this.eventAggregator = eventAggregator;
+        this.clientManager = clientManager;
     }
 
     public void setClient(IClient client) {
         super.client = client;
     }
 
+    public void setEventAggregator(IEventAggregator eventAggregator) {
+        this.eventAggregator = eventAggregator;
+    }
+
+    public void setClientManager(IClientManager clientManager) {
+        this.clientManager = clientManager;
+    }
+
     /**
      * Add a response callback for a particular file.
      * This ensures that if a file offer request is received for the same file
      * as edited in this registered exchange, it will be denied.
-     *
+     * <p>
      * Contrary, {@link ObjectDataReplyHandler#removeResponseCallbackHandler(UUID)} can not
      * ensure this protection.
      *
      * @param requestExchangeId The exchange id of the request to add the callback handler
-     * @param responseCallback The callback handler to add
+     * @param responseCallback  The callback handler to add
      */
     @Override
     public void addResponseCallbackHandler(UUID requestExchangeId, IResponseCallback responseCallback) {
         super.addResponseCallbackHandler(requestExchangeId, responseCallback);
 
         if (responseCallback instanceof ILocalStateResponseCallback) {
-            for (String entry :((ILocalStateResponseCallback) responseCallback).getAffectedFilePaths()) {
+            for (String entry : ((ILocalStateResponseCallback) responseCallback).getAffectedFilePaths()) {
                 Set<UUID> exchangesInProgress = this.pathsInProgress.get(entry);
 
                 if (null == exchangesInProgress) {
@@ -74,7 +91,7 @@ public class LocalStateObjectDataReplyHandler extends ObjectDataReplyHandler {
      * Remove a response callback for a particular file.
      * This ensures that if a file offer request is received for the same file
      * as edited in this registered exchange, it will be denied.
-     *
+     * <p>
      * Contrary, {@link ObjectDataReplyHandler#removeResponseCallbackHandler(UUID)} can not
      * ensure this protection.
      *
@@ -104,9 +121,13 @@ public class LocalStateObjectDataReplyHandler extends ObjectDataReplyHandler {
                     this.masterElectionRequest = (MasterElectionRequest) request;
                 }
             } else {
-                if (((MasterElectionRequest) request).getTimestamp() < this.masterElectionRequest.getTimestamp()) {
-                    // we got an earlier master request
 
+                if (request instanceof MasterElectionRequest) {
+                    if (((MasterElectionRequest) request).getTimestamp() < this.masterElectionRequest.getTimestamp()) {
+                        // we got an earlier master request
+                        // TODO: what do we do here?
+                        throw new RuntimeException("Not implemented yet! ");
+                    }
                 }
             }
 
@@ -138,7 +159,25 @@ public class LocalStateObjectDataReplyHandler extends ObjectDataReplyHandler {
                 logger.debug("Using " + this.requestCallbackHandlers.get(request.getClass()).getName() + " as handler for request " + ((IRequest) request).getExchangeId());
                 Class<? extends IRequestCallback> requestCallbackClass = this.requestCallbackHandlers.get(request.getClass());
 
-                if (requestCallbackClass.getClass().isInstance(ILocalStateRequestCallback.class)) {
+                if (IExtendedLocalStateRequestCallback.class.isAssignableFrom(requestCallbackClass)) {
+                    // create a new instance running in its own thread
+                    IExtendedLocalStateRequestCallback requestCallback = (IExtendedLocalStateRequestCallback) requestCallbackClass.newInstance();
+                    requestCallback.setClient(this.client);
+                    requestCallback.setStorageAdapter(this.storageAdapter);
+                    requestCallback.setObjectStore(this.objectStore);
+                    requestCallback.setGlobalEventBus(this.globalEventBus);
+                    requestCallback.setRequest((IRequest) request);
+                    requestCallback.setEventAggregator(this.eventAggregator);
+                    requestCallback.setClientManager(this.clientManager);
+
+                    Thread thread = new Thread(requestCallback);
+                    thread.setName("RequestCallback for request " + ((IRequest) request).getExchangeId());
+                    thread.start();
+
+                    return null;
+                }
+
+                if (ILocalStateRequestCallback.class.isAssignableFrom(requestCallbackClass)) {
                     // create a new instance running in its own thread
                     ILocalStateRequestCallback requestCallback = (ILocalStateRequestCallback) requestCallbackClass.newInstance();
                     requestCallback.setClient(this.client);
@@ -147,12 +186,9 @@ public class LocalStateObjectDataReplyHandler extends ObjectDataReplyHandler {
                     requestCallback.setGlobalEventBus(this.globalEventBus);
                     requestCallback.setRequest((IRequest) request);
 
-                    requestCallback.setRequest((IRequest) request);
-
                     Thread thread = new Thread(requestCallback);
                     thread.setName("RequestCallback for request " + ((IRequest) request).getExchangeId());
                     thread.start();
-
 
                     return null;
                 }
