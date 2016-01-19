@@ -7,6 +7,7 @@ import org.rmatil.sync.core.syncer.background.fetchobjectstore.FetchObjectStoreE
 import org.rmatil.sync.core.syncer.background.fetchobjectstore.FetchObjectStoreExchangeHandlerResult;
 import org.rmatil.sync.core.syncer.background.synccomplete.SyncCompleteExchangeHandler;
 import org.rmatil.sync.core.syncer.background.synccomplete.SyncCompleteExchangeHandlerResult;
+import org.rmatil.sync.core.syncer.background.synccomplete.SyncCompleteRequest;
 import org.rmatil.sync.core.syncer.background.syncresult.SyncResultExchangeHandler;
 import org.rmatil.sync.network.api.IClient;
 import org.rmatil.sync.network.api.IClientManager;
@@ -22,18 +23,53 @@ import org.slf4j.LoggerFactory;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
+/**
+ * This class actually reconciles the object stores and the synchronized
+ * folders among all clients. The following steps are traversed to accomplish this task:
+ * </p>
+ * <ol>
+ * <li>Fetch all object stores from all other clients
+ * ({@link FetchObjectStoreExchangeHandler})</li>
+ * <li>Compare the object stores and remove obsolete files
+ * resp. fetch missing files from the corresponding clients
+ * ({@link FileDemandExchangeHandler})</li>
+ * <li>After having established a merged object store and
+ * synchronized folder, send the merged object store to all
+ * other clients ({@link SyncResultExchangeHandler})</li>
+ * <li>All notified clients will then compare their object
+ * store with the received one and also remove deleted paths
+ * resp. fetch missing ones ({@link FileDemandExchangeHandler})</li>
+ * <li>After having completed the synchronization on all
+ * clients, the {@link ObjectStoreSyncer} will send a {@link SyncCompleteRequest} to all clients, which restart their event aggregator and publish changes made in the mean time</li>
+ * </ol>
+ */
 public class ObjectStoreSyncer implements Runnable {
 
     private static final Logger logger = LoggerFactory.getLogger(ObjectStoreSyncer.class);
 
+    /**
+     * The client to send messages
+     */
     protected IClient client;
 
+    /**
+     * The client manager to fetch all locations from
+     */
     protected IClientManager clientManager;
 
+    /**
+     * The object store which has to been merged with the ones of the other clients
+     */
     protected IObjectStore objectStore;
 
+    /**
+     * The storage adapter to the synchronized folder
+     */
     protected IStorageAdapter storageAdapter;
 
+    /**
+     * The exchange id of the master election and init sync step
+     */
     protected UUID exchangeId;
 
     public ObjectStoreSyncer(IClient client, IClientManager clientManager, IObjectStore objectStore, IStorageAdapter storageAdapter, UUID exchangeId) {
@@ -47,14 +83,19 @@ public class ObjectStoreSyncer implements Runnable {
     @Override
     public void run() {
         try {
+            UUID subExchangeId = UUID.randomUUID();
+            logger.info("Starting ObjectStoreSyncer for request " + this.exchangeId + " as subprocess with id " + subExchangeId);
+
             FetchObjectStoreExchangeHandler fetchObjectStoreExchangeHandler = new FetchObjectStoreExchangeHandler(
                     this.client,
                     this.clientManager,
-                    this.exchangeId
+                    subExchangeId
             );
 
+            this.client.getObjectDataReplyHandler().addResponseCallbackHandler(subExchangeId, fetchObjectStoreExchangeHandler);
+
             Thread fetchObjectStoreExchangeHandlerThread = new Thread(fetchObjectStoreExchangeHandler);
-            fetchObjectStoreExchangeHandlerThread.setName("FetchObjectStoreExchangeHandler-" +this.exchangeId);
+            fetchObjectStoreExchangeHandlerThread.setName("FetchObjectStoreExchangeHandler-" +subExchangeId);
             fetchObjectStoreExchangeHandlerThread.start();
 
             try {
@@ -62,6 +103,8 @@ public class ObjectStoreSyncer implements Runnable {
             } catch (InterruptedException e) {
                 logger.error("Got interrupted while waiting for FetchObjectStoreExchangeHandler. Message: " + e.getMessage());
             }
+
+            this.client.getObjectDataReplyHandler().removeResponseCallbackHandler(subExchangeId);
 
             if (!fetchObjectStoreExchangeHandler.isCompleted()) {
                 logger.error("FetchObjectStoreExchangeHandler should be completed after waiting. Aborting syncing of object store");
@@ -95,13 +138,14 @@ public class ObjectStoreSyncer implements Runnable {
             byte[] zippedObjectStore = Zip.zipObjectStore(this.objectStore);
 
             // delete all removed files
+            logger.info("Removing all (" + deletedPaths.size() + ") deleted files");
             for (Map.Entry<String, ClientDevice> entry : deletedPaths.entrySet()) {
                 logger.debug("Removing deleted path " + entry.getKey());
                 this.storageAdapter.delete(new LocalPathElement(entry.getKey()));
             }
 
             // fetch all missing files
-            logger.info("Fetching all missing " + updatedPaths.size() + " files");
+            logger.info("Fetching all (" + updatedPaths.size() + ") missing files");
 
             for (Map.Entry<String, ClientDevice> entry : updatedPaths.entrySet()) {
                 UUID exchangeId = UUID.randomUUID();
@@ -127,9 +171,11 @@ public class ObjectStoreSyncer implements Runnable {
 
                 try {
                     fileDemandExchangeHandler.await();
-                } catch (Exception e) {
+                } catch (InterruptedException e) {
                     logger.error("Got interrupted while waiting for fileDemandExchangeHandler " + exchangeId + " to complete. Message: " + e.getMessage());
                 }
+
+                this.client.getObjectDataReplyHandler().removeResponseCallbackHandler(subExchangeId);
 
                 if (! fileDemandExchangeHandler.isCompleted()) {
                     logger.error("FileDemandExchangeHandler " + exchangeId + " should be completed after wait.");
@@ -139,16 +185,16 @@ public class ObjectStoreSyncer implements Runnable {
             logger.info("Notifying other clients about object store merge results");
 
             SyncResultExchangeHandler syncResultExchangeHandler = new SyncResultExchangeHandler(
-                    this.exchangeId,
+                    subExchangeId,
                     this.clientManager,
                     this.client,
                     zippedObjectStore
             );
 
-            this.client.getObjectDataReplyHandler().addResponseCallbackHandler(this.exchangeId, syncResultExchangeHandler);
+            this.client.getObjectDataReplyHandler().addResponseCallbackHandler(subExchangeId, syncResultExchangeHandler);
 
             Thread syncResultsExchangeHandlerThread = new Thread(syncResultExchangeHandler);
-            syncResultsExchangeHandlerThread.setName("SyncResultExchangeHandler-" + this.exchangeId);
+            syncResultsExchangeHandlerThread.setName("SyncResultExchangeHandler-" + subExchangeId);
             syncResultsExchangeHandlerThread.start();
 
             logger.info("Awaiting for the other clients to complete fetching missing or outdated files...");
@@ -163,7 +209,7 @@ public class ObjectStoreSyncer implements Runnable {
                 logger.error("Got interrupted while waiting for syncing of merged object store is complete on the other clients. Message: " + e.getMessage(), e);
             }
 
-            this.client.getObjectDataReplyHandler().removeResponseCallbackHandler(this.exchangeId);
+            this.client.getObjectDataReplyHandler().removeResponseCallbackHandler(subExchangeId);
 
             if (! syncResultExchangeHandler.isCompleted()) {
                 logger.error("SyncResultExchangeHandler should be completed after awaiting. Never starting file aggregators again until next sync...");
@@ -175,13 +221,14 @@ public class ObjectStoreSyncer implements Runnable {
             // start a sync complete exchange handler
             SyncCompleteExchangeHandler syncCompleteExchangeHandler = new SyncCompleteExchangeHandler(
                     this.client,
-                    this.exchangeId
+                    this.clientManager,
+                    subExchangeId
             );
 
-            this.client.getObjectDataReplyHandler().addResponseCallbackHandler(this.exchangeId, syncCompleteExchangeHandler);
+            this.client.getObjectDataReplyHandler().addResponseCallbackHandler(subExchangeId, syncCompleteExchangeHandler);
 
             Thread syncCompleteExchangeHandlerThread = new Thread(syncCompleteExchangeHandler);
-            syncCompleteExchangeHandlerThread.setName("SyncCompleteExchangeHandler-" + this.exchangeId);
+            syncCompleteExchangeHandlerThread.setName("SyncCompleteExchangeHandler-" + subExchangeId);
             syncCompleteExchangeHandlerThread.start();
 
             try {
@@ -190,7 +237,7 @@ public class ObjectStoreSyncer implements Runnable {
                 logger.error("Got interrupted while waiting for the other clients to start their event aggregators. Message: " + e.getMessage(), e);
             }
 
-            this.client.getObjectDataReplyHandler().removeResponseCallbackHandler(this.exchangeId);
+            this.client.getObjectDataReplyHandler().removeResponseCallbackHandler(subExchangeId);
 
             if (! syncCompleteExchangeHandler.isCompleted()) {
                 logger.error("SyncCompleteExchangeHandler should be completed after awaiting. There might be clients which started their event aggregation again, but some didn't. Expect inconsistent results until next sync.");

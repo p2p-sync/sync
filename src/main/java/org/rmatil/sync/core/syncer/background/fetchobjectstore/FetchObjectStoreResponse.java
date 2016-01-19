@@ -6,8 +6,15 @@ import org.rmatil.sync.network.core.model.ClientLocation;
 
 import java.util.UUID;
 
+/**
+ * A response to the corresponding {@link FetchObjectStoreRequest}.
+ * Contains the zipped object store.
+ */
 public class FetchObjectStoreResponse extends AResponse {
 
+    /**
+     * The zipped object store
+     */
     protected byte[] objectStore;
 
     /**
@@ -21,6 +28,11 @@ public class FetchObjectStoreResponse extends AResponse {
         this.objectStore = objectStore;
     }
 
+    /**
+     * The zipped object store
+     *
+     * @return The zipped object store
+     */
     public byte[] getObjectStore() {
         return objectStore;
     }

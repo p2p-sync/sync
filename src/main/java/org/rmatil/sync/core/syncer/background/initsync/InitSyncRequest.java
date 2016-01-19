@@ -7,8 +7,16 @@ import org.rmatil.sync.network.core.model.ClientLocation;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * Initializes a sync of the object stores.
+ *
+ * @see InitSyncExchangeHandler
+ */
 public class InitSyncRequest extends ARequest {
 
+    /**
+     * The elected master which will start the object store sync
+     */
     protected ClientDevice electedMaster;
 
     /**
@@ -21,6 +29,11 @@ public class InitSyncRequest extends ARequest {
         this.electedMaster = electedMaster;
     }
 
+    /**
+     * Returns the elected master which will start to sync the object stores
+     *
+     * @return The elected master
+     */
     public ClientDevice getElectedMaster() {
         return electedMaster;
     }

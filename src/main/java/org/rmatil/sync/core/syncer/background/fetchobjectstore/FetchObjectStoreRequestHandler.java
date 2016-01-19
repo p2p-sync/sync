@@ -1,30 +1,18 @@
 package org.rmatil.sync.core.syncer.background.fetchobjectstore;
 
 import net.engio.mbassy.bus.MBassador;
+import org.rmatil.sync.core.Zip;
 import org.rmatil.sync.core.eventbus.IBusEvent;
-import org.rmatil.sync.core.init.client.IExtendedLocalStateRequestCallback;
 import org.rmatil.sync.core.init.client.ILocalStateRequestCallback;
 import org.rmatil.sync.core.syncer.background.masterelection.MasterElectionRequest;
-import org.rmatil.sync.core.syncer.background.syncobjectstore.SyncObjectStoreRequest;
-import org.rmatil.sync.core.syncer.background.syncobjectstore.SyncObjectStoreResponse;
-import org.rmatil.sync.event.aggregator.api.IEventAggregator;
 import org.rmatil.sync.network.api.IClient;
 import org.rmatil.sync.network.api.IRequest;
 import org.rmatil.sync.network.core.model.ClientDevice;
 import org.rmatil.sync.network.core.model.ClientLocation;
-import org.rmatil.sync.persistence.api.IPathElement;
 import org.rmatil.sync.persistence.api.IStorageAdapter;
-import org.rmatil.sync.persistence.core.local.LocalPathElement;
-import org.rmatil.sync.persistence.exceptions.InputOutputException;
 import org.rmatil.sync.version.api.IObjectStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.util.List;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipOutputStream;
 
 public class FetchObjectStoreRequestHandler implements ILocalStateRequestCallback {
 
@@ -69,7 +57,7 @@ public class FetchObjectStoreRequestHandler implements ILocalStateRequestCallbac
     public void run() {
         try {
             // zip object store
-            byte[] zipFile = this.zipObjectStore();
+            byte[] zipFile = Zip.zipObjectStore(this.objectStore);
 
             // send zip
             FetchObjectStoreResponse syncObjectStoreResponse = new FetchObjectStoreResponse(
@@ -86,29 +74,5 @@ public class FetchObjectStoreRequestHandler implements ILocalStateRequestCallbac
         } catch (Exception e) {
             logger.error("Got exception in FetchObjectStoreRequestHandler. Message: " + e.getMessage(), e);
         }
-    }
-
-    public byte[] zipObjectStore()
-            throws IOException, InputOutputException {
-        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-        IStorageAdapter objectStorageAdapter = this.objectStore.getObjectManager().getStorageAdapater();
-
-        List<IPathElement> directoryContents = objectStorageAdapter.getDirectoryContents(new LocalPathElement("."));
-
-        try (ZipOutputStream zipOutputStream = new ZipOutputStream(byteArrayOutputStream)) {
-            for (IPathElement pathElement : directoryContents) {
-                ZipEntry zipEntry = new ZipEntry(pathElement.getPath());
-
-                zipOutputStream.putNextEntry(zipEntry);
-                zipOutputStream.write(objectStorageAdapter.read(pathElement));
-                zipOutputStream.closeEntry();
-            }
-        }
-
-        byteArrayOutputStream.flush();
-        byte[] zipFile = byteArrayOutputStream.toByteArray();
-        byteArrayOutputStream.close();
-
-        return zipFile;
     }
 }

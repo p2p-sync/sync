@@ -13,7 +13,8 @@ import org.rmatil.sync.core.init.eventaggregator.EventAggregatorInitializer;
 import org.rmatil.sync.core.init.objecstore.ObjectStoreInitializer;
 import org.rmatil.sync.core.messaging.fileexchange.delete.FileDeleteRequest;
 import org.rmatil.sync.core.messaging.fileexchange.delete.FileDeleteRequestHandler;
-import org.rmatil.sync.core.messaging.fileexchange.move.FileMoveExchangeHandler;
+import org.rmatil.sync.core.messaging.fileexchange.demand.FileDemandRequest;
+import org.rmatil.sync.core.messaging.fileexchange.demand.FileDemandRequestHandler;
 import org.rmatil.sync.core.messaging.fileexchange.move.FileMoveRequest;
 import org.rmatil.sync.core.messaging.fileexchange.move.FileMoveRequestHandler;
 import org.rmatil.sync.core.messaging.fileexchange.offer.FileOfferRequest;
@@ -21,10 +22,23 @@ import org.rmatil.sync.core.messaging.fileexchange.offer.FileOfferRequestHandler
 import org.rmatil.sync.core.messaging.fileexchange.push.FilePushRequest;
 import org.rmatil.sync.core.messaging.fileexchange.push.FilePushRequestHandler;
 import org.rmatil.sync.core.model.RemoteClientLocation;
+import org.rmatil.sync.core.syncer.background.BackgroundSyncer;
+import org.rmatil.sync.core.syncer.background.fetchobjectstore.FetchObjectStoreRequest;
+import org.rmatil.sync.core.syncer.background.fetchobjectstore.FetchObjectStoreRequestHandler;
+import org.rmatil.sync.core.syncer.background.initsync.InitSyncRequest;
+import org.rmatil.sync.core.syncer.background.initsync.InitSyncRequestHandler;
+import org.rmatil.sync.core.syncer.background.masterelection.MasterElectionRequest;
+import org.rmatil.sync.core.syncer.background.masterelection.MasterElectionRequestHandler;
+import org.rmatil.sync.core.syncer.background.synccomplete.SyncCompleteRequest;
+import org.rmatil.sync.core.syncer.background.synccomplete.SyncCompleteRequestHandler;
+import org.rmatil.sync.core.syncer.background.syncresult.SyncResultRequest;
+import org.rmatil.sync.core.syncer.background.syncresult.SyncResultRequestHandler;
 import org.rmatil.sync.core.syncer.file.FileSyncer;
 import org.rmatil.sync.core.syncer.file.SyncFileChangeListener;
+import org.rmatil.sync.event.aggregator.api.IEventAggregator;
 import org.rmatil.sync.event.aggregator.api.IEventListener;
 import org.rmatil.sync.network.api.IClient;
+import org.rmatil.sync.network.api.IClientManager;
 import org.rmatil.sync.network.api.IUser;
 import org.rmatil.sync.network.config.Config;
 import org.rmatil.sync.network.core.Client;
@@ -52,6 +66,8 @@ import java.util.concurrent.TimeUnit;
 public class Sync {
 
     protected Path rootPath;
+
+    protected static int clientCtr = 0;
 
     public Sync(Path rootPath) {
         this.rootPath = rootPath;
@@ -87,12 +103,26 @@ public class Sync {
 
         // Init client
         IClient client = new Client(null, user, null);
-        LocalStateObjectDataReplyHandler objectDataReplyHandler = new LocalStateObjectDataReplyHandler(localStorageAdapter, objectStore, client, globalEventBus);
+        LocalStateObjectDataReplyHandler objectDataReplyHandler = new LocalStateObjectDataReplyHandler(
+                localStorageAdapter,
+                objectStore,
+                client,
+                globalEventBus,
+                null,
+                null
+        );
+
         // specify protocol
         objectDataReplyHandler.addRequestCallbackHandler(FileOfferRequest.class, FileOfferRequestHandler.class);
         objectDataReplyHandler.addRequestCallbackHandler(FilePushRequest.class, FilePushRequestHandler.class);
         objectDataReplyHandler.addRequestCallbackHandler(FileDeleteRequest.class, FileDeleteRequestHandler.class);
         objectDataReplyHandler.addRequestCallbackHandler(FileMoveRequest.class, FileMoveRequestHandler.class);
+        objectDataReplyHandler.addRequestCallbackHandler(MasterElectionRequest.class, MasterElectionRequestHandler.class);
+        objectDataReplyHandler.addRequestCallbackHandler(InitSyncRequest.class, InitSyncRequestHandler.class);
+        objectDataReplyHandler.addRequestCallbackHandler(FetchObjectStoreRequest.class, FetchObjectStoreRequestHandler.class);
+        objectDataReplyHandler.addRequestCallbackHandler(SyncResultRequest.class, SyncResultRequestHandler.class);
+        objectDataReplyHandler.addRequestCallbackHandler(FileDemandRequest.class, FileDemandRequestHandler.class);
+        objectDataReplyHandler.addRequestCallbackHandler(SyncCompleteRequest.class, SyncCompleteRequestHandler.class);
 
         ClientInitializer clientInitializer = new ClientInitializer(objectDataReplyHandler, user, port, bootstrapLocation);
         client = clientInitializer.init();
@@ -103,17 +133,21 @@ public class Sync {
 
         DhtStorageAdapter dhtStorageAdapter = new DhtStorageAdapter(client.getPeerDht());
 
+        IClientManager clientManager = new ClientManager(
+                dhtStorageAdapter,
+                Config.IPv4.getLocationsContentKey(),
+                Config.IPv4.getPrivateKeyContentKey(),
+                Config.IPv4.getPublicKeyContentKey(),
+                Config.IPv4.getSaltContentKey(),
+                Config.IPv4.getDomainKey()
+        );
+
+        objectDataReplyHandler.setClientManager(clientManager);
+
         FileSyncer fileSyncer = new FileSyncer(
                 client.getUser(),
                 client,
-                new ClientManager(
-                        dhtStorageAdapter,
-                        Config.IPv4.getLocationsContentKey(),
-                        Config.IPv4.getPrivateKeyContentKey(),
-                        Config.IPv4.getPublicKeyContentKey(),
-                        Config.IPv4.getSaltContentKey(),
-                        Config.IPv4.getDomainKey()
-                ),
+                clientManager,
                 new LocalStorageAdapter(rootPath),
                 objectStore,
                 globalEventBus
@@ -135,8 +169,18 @@ public class Sync {
         List<Path> ignoredPaths = new ArrayList<>();
         ignoredPaths.add(this.rootPath.relativize(rootPath.resolve(Paths.get(".sync"))));
         EventAggregatorInitializer eventAggregatorInitializer = new EventAggregatorInitializer(this.rootPath, objectStore, eventListeners, ignoredPaths, 25000L);
-        eventAggregatorInitializer.init();
+        IEventAggregator eventAggregator = eventAggregatorInitializer.init();
         eventAggregatorInitializer.start();
+
+        objectDataReplyHandler.setEventAggregator(eventAggregator);
+
+        if (clientCtr < 1) {
+            BackgroundSyncer backgroundSyncer = new BackgroundSyncer(eventAggregator, client, clientManager);
+            ScheduledExecutorService executorService1 = Executors.newSingleThreadScheduledExecutor();
+            executorService1.scheduleAtFixedRate(backgroundSyncer, 30L, 600L, TimeUnit.SECONDS);
+        }
+
+        clientCtr++;
 
         // now set the peer address once we know it
         return new ClientDevice(userName, clientId, client.getPeerAddress());

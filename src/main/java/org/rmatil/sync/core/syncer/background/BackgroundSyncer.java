@@ -11,16 +11,33 @@ import org.slf4j.LoggerFactory;
 
 import java.util.UUID;
 
+/**
+ * {@inheritDoc}
+ */
 public class BackgroundSyncer implements IBackgroundSyncer {
 
     private static final Logger logger = LoggerFactory.getLogger(BackgroundSyncer.class);
 
+    /**
+     * The event aggregator to stop while reconciling
+     */
     protected IEventAggregator eventAggregator;
 
+    /**
+     * The client to use for sending requests
+     */
     protected IClient client;
 
+    /**
+     * The client manager to fetch all client locations
+     */
     protected IClientManager clientManager;
 
+    /**
+     * @param eventAggregator The event aggregator to stop while reconciling
+     * @param client          The client to use for sending requests
+     * @param clientManager   The client manager to fetch all client locations
+     */
     public BackgroundSyncer(IEventAggregator eventAggregator, IClient client, IClientManager clientManager) {
         this.eventAggregator = eventAggregator;
         this.client = client;
@@ -31,15 +48,16 @@ public class BackgroundSyncer implements IBackgroundSyncer {
     @Override
     public void run() {
         try {
-            this.eventAggregator.stop();
+            logger.info("Starting BackgroundSyncer");
 
             // TODO: check if any master election is already in progress
-
 
             UUID exchangeId = UUID.randomUUID();
             MasterElectionExchangeHandler masterElectionExchangeHandler = new MasterElectionExchangeHandler(this.client, this.clientManager, exchangeId);
 
             this.client.getObjectDataReplyHandler().addResponseCallbackHandler(exchangeId, masterElectionExchangeHandler);
+
+            logger.trace("Starting to elect master for request " + exchangeId);
 
             Thread masterElectorThread = new Thread(masterElectionExchangeHandler);
             masterElectorThread.setName("MasterElectionExchangeHandler-" + exchangeId);
@@ -67,32 +85,33 @@ public class BackgroundSyncer implements IBackgroundSyncer {
             InitSyncExchangeHandler initSyncExchangeHandler = new InitSyncExchangeHandler(
                     this.client,
                     this.clientManager,
+                    this.eventAggregator,
                     exchangeId,
                     electionResult.getElectedMaster()
             );
+
+            this.client.getObjectDataReplyHandler().addResponseCallbackHandler(exchangeId, initSyncExchangeHandler);
 
             Thread initSyncThread = new Thread(initSyncExchangeHandler);
             initSyncThread.setName("InitSyncExchangeHandler-" + exchangeId);
             initSyncThread.start();
 
             // await for init sync to complete
-            initSyncExchangeHandler.await();
+            try {
+                initSyncExchangeHandler.await();
+            } catch (InterruptedException e) {
+                logger.error("Got interrupted while waiting for init of sync to complete. Message: " + e.getMessage(), e);
+            }
+
+            this.client.getObjectDataReplyHandler().removeResponseCallbackHandler(exchangeId);
 
             if (! initSyncExchangeHandler.isCompleted()) {
                 logger.error("Init sync should be completed after awaiting. Aborting init sync process");
                 return;
             }
 
+            // event aggregator is started again in SyncCompleteRequestHandler
 
-
-            // TODO: wait for sync to complete on other side
-            // maybe by implementing a request listener interface -> restart event aggregation
-
-            // new handler, waiting for requests (SyncPingRequest)
-            // if ping is lost after N seconds, restart election
-
-
-            this.eventAggregator.start();
         } catch (Exception e) {
             logger.error("Got error in BackgroundSyncer. Message: " + e.getMessage(), e);
         }

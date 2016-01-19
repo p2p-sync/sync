@@ -15,16 +15,34 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
+/**
+ * Fetches all object stores as zip files from all other
+ * online clients.
+ */
 public class FetchObjectStoreExchangeHandler extends ANetworkHandler<FetchObjectStoreExchangeHandlerResult> {
 
     private static final Logger logger = LoggerFactory.getLogger(FetchObjectStoreExchangeHandler.class);
 
+    /**
+     * The client manager to get all client locations from
+     */
     protected IClientManager clientManager;
 
+    /**
+     * The exchange id used for the fetch
+     */
     protected UUID exchangeId;
 
+    /**
+     * A list of fetched object stores
+     */
     protected List<FetchObjectStoreResponse> responses;
 
+    /**
+     * @param client        The client to use for sending messages
+     * @param clientManager The client manager to get all other client locations
+     * @param exchangeId    The exchange id used for this exchange
+     */
     public FetchObjectStoreExchangeHandler(IClient client, IClientManager clientManager, UUID exchangeId) {
         super(client);
         this.clientManager = clientManager;
@@ -52,7 +70,7 @@ public class FetchObjectStoreExchangeHandler extends ANetworkHandler<FetchObject
             super.sendRequest(syncObjectStoreRequest);
 
         } catch (Exception e) {
-            logger.error("Got exception in SyncObjectStoreExchangeHandler. Message: " + e.getMessage(), e);
+            logger.error("Got exception in ObjectStoreSyncer. Message: " + e.getMessage(), e);
         }
     }
 

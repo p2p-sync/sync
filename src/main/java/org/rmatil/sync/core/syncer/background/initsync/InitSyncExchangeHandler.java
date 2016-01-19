@@ -1,6 +1,7 @@
 package org.rmatil.sync.core.syncer.background.initsync;
 
-import org.rmatil.sync.core.syncer.background.fetchobjectstore.FetchObjectStoreResponse;
+import org.rmatil.sync.core.syncer.background.BackgroundSyncer;
+import org.rmatil.sync.event.aggregator.api.IEventAggregator;
 import org.rmatil.sync.network.api.IClient;
 import org.rmatil.sync.network.api.IClientManager;
 import org.rmatil.sync.network.api.IResponse;
@@ -15,26 +16,59 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
+/**
+ * Initializes the actual reconciliation of the
+ * object stores. This stops the event aggregator
+ * on all clients, including the client which initiates
+ * sync.
+ *
+ * @see BackgroundSyncer
+ */
 public class InitSyncExchangeHandler extends ANetworkHandler<InitSyncExchangeHandlerResult> {
 
     private static final Logger logger = LoggerFactory.getLogger(InitSyncExchangeHandler.class);
 
+    /**
+     * The client manager to fetch all client locations from
+     */
     protected IClientManager clientManager;
 
-    protected UUID exchangeId;
-
+    /**
+     * The elected master
+     */
     protected ClientDevice electedMaster;
 
-    public InitSyncExchangeHandler(IClient client, IClientManager clientManager, UUID exchangeId, ClientDevice electedMaster) {
+    /**
+     * The event aggregator to stop
+     */
+    protected IEventAggregator eventAggregator;
+
+    /**
+     * The exchange id for the sync initialisation
+     */
+    protected UUID exchangeId;
+
+    /**
+     * @param client          The client to send messages
+     * @param clientManager   The client manager to fetch client locations from
+     * @param eventAggregator The event aggregator to stop
+     * @param exchangeId      The exchange id used for the initialisation
+     * @param electedMaster   The elected master
+     */
+    public InitSyncExchangeHandler(IClient client, IClientManager clientManager, IEventAggregator eventAggregator, UUID exchangeId, ClientDevice electedMaster) {
         super(client);
         this.clientManager = clientManager;
         this.exchangeId = exchangeId;
         this.electedMaster = electedMaster;
+        this.eventAggregator = eventAggregator;
     }
 
     @Override
     public void run() {
         try {
+            logger.info("Stopping event aggregator");
+            this.eventAggregator.stop();
+
             List<ClientLocation> clientLocations;
             try {
                 clientLocations = this.clientManager.getClientLocations(super.client.getUser());

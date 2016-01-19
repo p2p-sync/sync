@@ -7,8 +7,16 @@ import org.rmatil.sync.network.core.model.ClientLocation;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * A request to start a master election
+ *
+ * @see MasterElectionExchangeHandler
+ */
 public class MasterElectionRequest extends ARequest {
 
+    /**
+     * The timestamp of the start of the master election
+     */
     protected long timestamp;
 
     /**
@@ -22,6 +30,11 @@ public class MasterElectionRequest extends ARequest {
         this.timestamp = timestamp;
     }
 
+    /**
+     * Returns the timestamp of the master election start
+     *
+     * @return The timestamp of the start of the master election
+     */
     public long getTimestamp() {
         return timestamp;
     }

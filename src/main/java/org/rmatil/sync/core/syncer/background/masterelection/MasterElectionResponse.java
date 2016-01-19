@@ -6,6 +6,9 @@ import org.rmatil.sync.network.core.model.ClientLocation;
 
 import java.util.UUID;
 
+/**
+ * A response to the corresponding {@link MasterElectionRequest}.
+ */
 public class MasterElectionResponse extends AResponse {
 
     /**
@@ -29,7 +32,7 @@ public class MasterElectionResponse extends AResponse {
      *
      * @return True, if accepted, false otherwise
      */
-    public boolean isHasAccepted() {
+    public boolean hasAccepted() {
         return hasAccepted;
     }
 }

@@ -13,15 +13,41 @@ import org.rmatil.sync.version.api.IObjectStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * Answers to the corresponding {@link MasterElectionRequest}.
+ * Currently, only positive responses are sent back. This may
+ * change in the future.
+ *
+ * @see MasterElectionExchangeHandler
+ */
 public class MasterElectionRequestHandler implements ILocalStateRequestCallback {
 
     private static final Logger logger = LoggerFactory.getLogger(FileDeleteExchangeHandler.class);
 
-    protected IStorageAdapter       storageAdapter;
-    protected IObjectStore          objectStore;
-    protected IClient               client;
+    /**
+     * A storage adapter to access the synchronized folder
+     */
+    protected IStorageAdapter storageAdapter;
+
+    /**
+     * The object store of the synchronized folder
+     */
+    protected IObjectStore objectStore;
+
+    /**
+     * The client to send messages
+     */
+    protected IClient client;
+
+    /**
+     * The global event bus
+     */
+    protected MBassador<IBusEvent> globalEventBus;
+
+    /**
+     * The request for which to respond
+     */
     protected MasterElectionRequest request;
-    protected MBassador<IBusEvent>  globalEventBus;
 
     @Override
     public void setStorageAdapter(IStorageAdapter storageAdapter) {

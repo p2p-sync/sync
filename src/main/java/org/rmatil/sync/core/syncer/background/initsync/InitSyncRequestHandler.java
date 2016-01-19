@@ -3,7 +3,7 @@ package org.rmatil.sync.core.syncer.background.initsync;
 import net.engio.mbassy.bus.MBassador;
 import org.rmatil.sync.core.eventbus.IBusEvent;
 import org.rmatil.sync.core.init.client.IExtendedLocalStateRequestCallback;
-import org.rmatil.sync.core.syncer.background.syncobjectstore.SyncObjectStoreExchangeHandler;
+import org.rmatil.sync.core.syncer.background.syncobjectstore.ObjectStoreSyncer;
 import org.rmatil.sync.event.aggregator.api.IEventAggregator;
 import org.rmatil.sync.network.api.IClient;
 import org.rmatil.sync.network.api.IClientManager;
@@ -15,6 +15,14 @@ import org.rmatil.sync.version.api.IObjectStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * Handles incoming {@link InitSyncRequest}s and stops the event aggregation
+ * on the client. Furthermore, if the client which received the request,
+ * is the master client, then he will start to sync the object stores
+ * using a {@link ObjectStoreSyncer}.
+ *
+ * @see InitSyncExchangeHandler
+ */
 public class InitSyncRequestHandler implements IExtendedLocalStateRequestCallback {
 
     private static final Logger logger = LoggerFactory.getLogger(InitSyncRequestHandler.class);
@@ -34,8 +42,14 @@ public class InitSyncRequestHandler implements IExtendedLocalStateRequestCallbac
      */
     protected IClient client;
 
+    /**
+     * The client manager to get the client location froms
+     */
     protected IClientManager clientManager;
 
+    /**
+     * The event aggregator to stop
+     */
     protected IEventAggregator eventAggregator;
 
     /**
@@ -90,20 +104,24 @@ public class InitSyncRequestHandler implements IExtendedLocalStateRequestCallbac
     @Override
     public void run() {
         try {
+            logger.info("Stopping event aggregator");
+
             this.eventAggregator.stop();
 
             if (this.request.getElectedMaster().getPeerAddress().equals(this.client.getPeerAddress())) {
                 logger.info("Got notified that i am the master (" + this.client.getPeerAddress().inetAddress().getHostName() + ":" + this.client.getPeerAddress().tcpPort() + "). Starting ObjectStore Sync in a new thread");
 
-                SyncObjectStoreExchangeHandler syncObjectStoreExchangeHandler = new SyncObjectStoreExchangeHandler(
+                ObjectStoreSyncer objectStoreSyncer = new ObjectStoreSyncer(
                         this.client,
                         this.clientManager,
+                        this.objectStore,
+                        this.storageAdapter,
                         this.request.getExchangeId()
                 );
 
-                Thread syncObjectStoreExchangeHandlerThread = new Thread(syncObjectStoreExchangeHandler);
-                syncObjectStoreExchangeHandlerThread.setName("SyncObjectStoreExchangeHandler-" + this.request.getExchangeId());
-                syncObjectStoreExchangeHandlerThread.start();
+                Thread objectStoreSyncerThread = new Thread(objectStoreSyncer);
+                objectStoreSyncerThread.setName("ObjectStoreSyncer-" + this.request.getExchangeId());
+                objectStoreSyncerThread.start();
             }
 
             // now send back the corresponding response
