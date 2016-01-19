@@ -1,5 +1,6 @@
 package org.rmatil.sync.core.messaging.fileexchange.demand;
 
+import org.rmatil.sync.core.messaging.fileexchange.base.ARequest;
 import org.rmatil.sync.network.api.IRequest;
 import org.rmatil.sync.network.core.model.ClientDevice;
 import org.rmatil.sync.network.core.model.ClientLocation;
@@ -10,7 +11,7 @@ import java.util.UUID;
 /**
  * A request demanding particular parts of a file
  */
-public class FileDemandRequest implements IRequest {
+public class FileDemandRequest extends ARequest {
 
     /**
      * The relative path to the file which should be returned
@@ -20,27 +21,16 @@ public class FileDemandRequest implements IRequest {
     /**
      * The counter which indicates which chunk should be requested
      */
-    protected int chunkCounter;
+    protected long chunkCounter;
 
     /**
-     * The client device which is sending this request
-     */
-    protected ClientDevice clientDevice;
-
-    /**
-     * The identifier of the file exchange
-     */
-    protected UUID fileExchangeId;
-
-    /**
-     * @param fileExchangeId   The identifier of the file exchange
+     * @param exchangeId       The identifier of the file exchange
      * @param clientDevice     The client device which is requesting the file demand (i.e. this client)
      * @param relativeFilePath The relative path to the file which should be returned
      * @param chunkCounter     The chunk number which should returned in the corresponding response to this request
      */
-    public FileDemandRequest(UUID fileExchangeId, ClientDevice clientDevice,String relativeFilePath, int chunkCounter) {
-        this.fileExchangeId = fileExchangeId;
-        this.clientDevice = clientDevice;
+    public FileDemandRequest(UUID exchangeId, ClientDevice clientDevice, String relativeFilePath, List<ClientLocation> receiverAddresses, long chunkCounter) {
+        super(exchangeId, clientDevice, receiverAddresses);
         this.relativeFilePath = relativeFilePath;
         this.chunkCounter = chunkCounter;
     }
@@ -59,23 +49,7 @@ public class FileDemandRequest implements IRequest {
      *
      * @return The chunk number to return
      */
-    public int getChunkCounter() {
+    public long getChunkCounter() {
         return chunkCounter;
-    }
-
-
-    @Override
-    public List<ClientLocation> getReceiverAddresses() {
-        return null;
-    }
-
-    @Override
-    public UUID getExchangeId() {
-        return this.fileExchangeId;
-    }
-
-    @Override
-    public ClientDevice getClientDevice() {
-        return this.clientDevice;
     }
 }
