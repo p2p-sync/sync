@@ -104,8 +104,7 @@ public class InitSyncRequestHandler implements IExtendedLocalStateRequestCallbac
     @Override
     public void run() {
         try {
-            logger.info("Stopping event aggregator");
-
+            logger.info("Stopping event aggregator on client (" + this.client.getPeerAddress().inetAddress().getHostName() + ":" + this.client.getPeerAddress().tcpPort() + ")");
             this.eventAggregator.stop();
 
             if (this.request.getElectedMaster().getPeerAddress().equals(this.client.getPeerAddress())) {
@@ -116,6 +115,8 @@ public class InitSyncRequestHandler implements IExtendedLocalStateRequestCallbac
                         this.clientManager,
                         this.objectStore,
                         this.storageAdapter,
+                        this.eventAggregator,
+                        this.globalEventBus,
                         this.request.getExchangeId()
                 );
 

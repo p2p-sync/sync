@@ -1,7 +1,9 @@
 package org.rmatil.sync.core.syncer.background.syncobjectstore;
 
+import net.engio.mbassy.bus.MBassador;
 import org.rmatil.sync.core.StringLengthComparator;
 import org.rmatil.sync.core.Zip;
+import org.rmatil.sync.core.eventbus.IBusEvent;
 import org.rmatil.sync.core.messaging.fileexchange.demand.FileDemandExchangeHandler;
 import org.rmatil.sync.core.syncer.background.fetchobjectstore.FetchObjectStoreExchangeHandler;
 import org.rmatil.sync.core.syncer.background.fetchobjectstore.FetchObjectStoreExchangeHandlerResult;
@@ -9,8 +11,10 @@ import org.rmatil.sync.core.syncer.background.synccomplete.SyncCompleteExchangeH
 import org.rmatil.sync.core.syncer.background.synccomplete.SyncCompleteExchangeHandlerResult;
 import org.rmatil.sync.core.syncer.background.synccomplete.SyncCompleteRequest;
 import org.rmatil.sync.core.syncer.background.syncresult.SyncResultExchangeHandler;
+import org.rmatil.sync.event.aggregator.api.IEventAggregator;
 import org.rmatil.sync.network.api.IClient;
 import org.rmatil.sync.network.api.IClientManager;
+import org.rmatil.sync.network.core.ANetworkHandler;
 import org.rmatil.sync.network.core.model.ClientDevice;
 import org.rmatil.sync.network.core.model.ClientLocation;
 import org.rmatil.sync.persistence.api.IStorageAdapter;
@@ -67,17 +71,23 @@ public class ObjectStoreSyncer implements Runnable {
      */
     protected IStorageAdapter storageAdapter;
 
+    protected IEventAggregator eventAggregator;
+
+    protected MBassador<IBusEvent> globalEventBus;
+
     /**
      * The exchange id of the master election and init sync step
      */
     protected UUID exchangeId;
 
-    public ObjectStoreSyncer(IClient client, IClientManager clientManager, IObjectStore objectStore, IStorageAdapter storageAdapter, UUID exchangeId) {
+    public ObjectStoreSyncer(IClient client, IClientManager clientManager, IObjectStore objectStore, IStorageAdapter storageAdapter, IEventAggregator eventAggregator, MBassador<IBusEvent> globalEventBus, UUID exchangeId) {
         this.client = client;
         this.clientManager = clientManager;
         this.exchangeId = exchangeId;
         this.objectStore = objectStore;
         this.storageAdapter = storageAdapter;
+        this.eventAggregator = eventAggregator;
+        this.globalEventBus = globalEventBus;
     }
 
     @Override
@@ -132,6 +142,7 @@ public class ObjectStoreSyncer implements Runnable {
                 }
 
                 entry.getValue().getObjectManager().getStorageAdapater().delete(new LocalPathElement("./"));
+                this.objectStore.getObjectManager().getStorageAdapater().delete(new LocalPathElement(entry.getKey().getClientDeviceId().toString()));
             }
 
             logger.info("Zipping merged object store");
@@ -204,6 +215,10 @@ public class ObjectStoreSyncer implements Runnable {
                 // wait a maximum of 5000ms for each file
                 long timeToWait = updatedPaths.size() * 5000L;
 
+                if (0L == timeToWait) {
+                    timeToWait = ANetworkHandler.MAX_WAITING_TIME;
+                }
+
                 syncResultExchangeHandler.await(timeToWait, TimeUnit.MILLISECONDS);
             } catch (InterruptedException e) {
                 logger.error("Got interrupted while waiting for syncing of merged object store is complete on the other clients. Message: " + e.getMessage(), e);
@@ -222,6 +237,10 @@ public class ObjectStoreSyncer implements Runnable {
             SyncCompleteExchangeHandler syncCompleteExchangeHandler = new SyncCompleteExchangeHandler(
                     this.client,
                     this.clientManager,
+                    this.eventAggregator,
+                    this.objectStore,
+                    this.globalEventBus,
+                    this.storageAdapter,
                     subExchangeId
             );
 
