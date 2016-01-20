@@ -78,6 +78,11 @@ public class BackgroundSyncer implements IBackgroundSyncer {
 
             MasterElectionExchangeHandlerResult electionResult = masterElectionExchangeHandler.getResult();
 
+            if (null == electionResult.getElectedMaster()) {
+                logger.info("Another master is already working on a background sync. Stopping background sync");
+                return;
+            }
+
             logger.info("Elected client " + electionResult.getElectedMaster().getPeerAddress().inetAddress().getHostName() + ":" + electionResult.getElectedMaster().getPeerAddress().tcpPort() + " as master");
             logger.info("Stopping event aggregators on other clients");
 

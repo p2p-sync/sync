@@ -78,6 +78,12 @@ public class MasterElectionExchangeHandler extends ANetworkHandler<MasterElectio
                 logger.info("Detected that i have the highest peer id. Electing me as master (" + this.client.getPeerAddress().inetAddress().getHostName() + ":" + this.client.getPeerAddress().tcpPort() + ") without contacting other clients");
                 // we are the master
 
+                boolean hasAccepted = true;
+                if (this.client.getObjectDataReplyHandler().isMasterElected()) {
+                    logger.info("I am still working on a background task. Aborting this one...");
+                    hasAccepted = false;
+                }
+
                 // "fake" a response
                 this.electionResponses.add(new MasterElectionResponse(
                         exchangeId,
@@ -85,8 +91,8 @@ public class MasterElectionExchangeHandler extends ANetworkHandler<MasterElectio
                                 super.client.getClientDeviceId(),
                                 super.client.getPeerAddress()
                         ),
-                        electedMaster,
-                        true
+                        electedMaster, // that's me
+                        hasAccepted
                 ));
 
                 super.countDownLatch = new CountDownLatch(0);
@@ -132,8 +138,15 @@ public class MasterElectionExchangeHandler extends ANetworkHandler<MasterElectio
 
         // get all positive responses
         for (MasterElectionResponse response : this.electionResponses) {
-            if (response.hasAccepted) {
+            if (response.hasAccepted()) {
                 positiveResponses.add(response);
+            } else {
+                logger.info("Detected that a master is still working");
+                return new MasterElectionExchangeHandlerResult(
+                        null,
+                        true,
+                        response.getClientDevice()
+                );
             }
         }
 
@@ -144,7 +157,11 @@ public class MasterElectionExchangeHandler extends ANetworkHandler<MasterElectio
         MasterElectionResponse electedMaster = positiveResponses.get(Math.max(0, positiveResponses.size() - 1));
 
         if (null != electedMaster) {
-            return new MasterElectionExchangeHandlerResult(electedMaster.getClientDevice());
+            return new MasterElectionExchangeHandlerResult(
+                    electedMaster.getClientDevice(),
+                    false,
+                    null
+            );
         }
 
         // if no other client accepted the request, we elect ourself as master
@@ -153,7 +170,9 @@ public class MasterElectionExchangeHandler extends ANetworkHandler<MasterElectio
                         super.client.getUser().getUserName(),
                         super.client.getClientDeviceId(),
                         super.client.getPeerAddress()
-                )
+                ),
+                false,
+                null
         );
     }
 }

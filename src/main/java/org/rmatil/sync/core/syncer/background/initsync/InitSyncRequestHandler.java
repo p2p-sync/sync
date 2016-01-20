@@ -110,6 +110,10 @@ public class InitSyncRequestHandler implements IExtendedLocalStateRequestCallbac
             if (this.request.getElectedMaster().getPeerAddress().equals(this.client.getPeerAddress())) {
                 logger.info("Got notified that i am the master (" + this.client.getPeerAddress().inetAddress().getHostName() + ":" + this.client.getPeerAddress().tcpPort() + "). Starting ObjectStore Sync in a new thread");
 
+                // set flag to true, to indicate that a master is elected and he is working
+                logger.debug("Setting master is in progress flag to true");
+                this.client.getObjectDataReplyHandler().setMasterElected(true);
+
                 ObjectStoreSyncer objectStoreSyncer = new ObjectStoreSyncer(
                         this.client,
                         this.clientManager,

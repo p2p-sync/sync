@@ -67,8 +67,6 @@ public class Sync {
 
     protected Path rootPath;
 
-    protected static int clientCtr = 0;
-
     public Sync(Path rootPath) {
         this.rootPath = rootPath;
     }
@@ -174,13 +172,9 @@ public class Sync {
 
         objectDataReplyHandler.setEventAggregator(eventAggregator);
 
-        if (clientCtr < 1) {
-            BackgroundSyncer backgroundSyncer = new BackgroundSyncer(eventAggregator, client, clientManager);
-            ScheduledExecutorService executorService1 = Executors.newSingleThreadScheduledExecutor();
-            executorService1.scheduleAtFixedRate(backgroundSyncer, 30L, 600L, TimeUnit.SECONDS);
-        }
-
-        clientCtr++;
+        BackgroundSyncer backgroundSyncer = new BackgroundSyncer(eventAggregator, client, clientManager);
+        ScheduledExecutorService executorService1 = Executors.newSingleThreadScheduledExecutor();
+        executorService1.scheduleAtFixedRate(backgroundSyncer, 30L, 600L, TimeUnit.SECONDS);
 
         // now set the peer address once we know it
         return new ClientDevice(userName, clientId, client.getPeerAddress());

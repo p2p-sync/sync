@@ -266,6 +266,10 @@ public class ObjectStoreSyncer implements Runnable {
             logger.info("All event aggregators should be running again now");
             SyncCompleteExchangeHandlerResult completeExchangeHandlerResult = syncCompleteExchangeHandler.getResult();
 
+            // un-flag the master is in progress indicator
+            logger.debug("Setting master is in progress flag to false");
+            this.client.getObjectDataReplyHandler().setMasterElected(false);
+
         } catch (Exception e) {
             logger.error("Got exception in ObjectStoreSyncer. Message: " + e.getMessage(), e);
         }
