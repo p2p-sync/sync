@@ -2,6 +2,7 @@ package org.rmatil.sync.core.syncer.background.syncresult;
 
 import net.engio.mbassy.bus.MBassador;
 import org.rmatil.sync.core.eventbus.IBusEvent;
+import org.rmatil.sync.core.syncer.background.BackgroundSyncer;
 import org.rmatil.sync.core.syncer.background.syncobjectstore.ObjectStoreSyncer;
 import org.rmatil.sync.network.api.IClient;
 import org.rmatil.sync.network.api.IClientManager;
@@ -23,6 +24,8 @@ import java.util.concurrent.TimeUnit;
 /**
  * Sends the merged object store from {@link ObjectStoreSyncer} to all other clients
  * and forces them to update their object stores as well.
+ *
+ * @see BackgroundSyncer
  */
 public class SyncResultExchangeHandler extends ANetworkHandler<SyncResultExchangeHandlerResult> {
 

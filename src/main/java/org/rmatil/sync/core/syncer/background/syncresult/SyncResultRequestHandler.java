@@ -6,6 +6,7 @@ import org.rmatil.sync.core.Zip;
 import org.rmatil.sync.core.eventbus.IBusEvent;
 import org.rmatil.sync.core.init.client.IExtendedLocalStateRequestCallback;
 import org.rmatil.sync.core.messaging.fileexchange.demand.FileDemandExchangeHandler;
+import org.rmatil.sync.core.syncer.background.BackgroundSyncer;
 import org.rmatil.sync.event.aggregator.api.IEventAggregator;
 import org.rmatil.sync.network.api.IClient;
 import org.rmatil.sync.network.api.IClientManager;
@@ -25,17 +26,50 @@ import org.slf4j.LoggerFactory;
 
 import java.util.*;
 
+/**
+ * Reconciles the local object store and the monitored folder with
+ * the global state.
+ *
+ * @see SyncResultExchangeHandler
+ */
 public class SyncResultRequestHandler implements IExtendedLocalStateRequestCallback {
 
     private static final Logger logger = LoggerFactory.getLogger(SyncResultRequestHandler.class);
 
+    /**
+     * The storage adapter to access the synchronised folder
+     */
     protected IStorageAdapter      storageAdapter;
+
+    /**
+     * The object store of the synchronised folder
+     */
     protected IObjectStore         objectStore;
+
+    /**
+     * The client to send messages
+     */
     protected IClient              client;
+
+    /**
+     * The client manager to fetch locations of other clients
+     */
     protected IClientManager clientManager;
+
+    /**
+     * The event aggregator to restart after merging
+     */
     protected IEventAggregator eventAggregator;
-    protected SyncResultRequest    request;
+
+    /**
+     * The global event bus to send notifications
+     */
     protected MBassador<IBusEvent> globalEventBus;
+
+    /**
+     * The request which causes this handler to run
+     */
+    protected SyncResultRequest    request;
 
     @Override
     public void setStorageAdapter(IStorageAdapter storageAdapter) {

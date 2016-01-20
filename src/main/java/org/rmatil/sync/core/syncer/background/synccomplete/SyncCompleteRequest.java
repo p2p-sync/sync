@@ -7,6 +7,10 @@ import org.rmatil.sync.network.core.model.ClientLocation;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * A request to indicate that the sync of the object store has been
+ * completed on all clients
+ */
 public class SyncCompleteRequest extends ARequest {
 
     /**

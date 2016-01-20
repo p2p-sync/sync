@@ -35,6 +35,8 @@ import java.util.Set;
  * Handles incoming {@link SyncCompleteRequest}s.
  * Starts the event aggregator again and calculates any differences
  * made in the mean time to the synchronized folder.
+ *
+ * @see SyncCompleteExchangeHandler
  */
 public class SyncCompleteRequestHandler implements IExtendedLocalStateRequestCallback {
 

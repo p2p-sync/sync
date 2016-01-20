@@ -6,6 +6,9 @@ import org.rmatil.sync.network.core.model.ClientLocation;
 
 import java.util.UUID;
 
+/**
+ * The response to the corresponding {@link SyncCompleteRequest}
+ */
 public class SyncCompleteResponse extends AResponse {
 
     /**
