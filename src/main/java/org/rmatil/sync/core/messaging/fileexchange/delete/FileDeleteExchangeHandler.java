@@ -52,6 +52,7 @@ public class FileDeleteExchangeHandler extends ANetworkHandler<FileDeleteExchang
         this.storageAdapter = storageAdapter;
         this.clientManager = clientManager;
         this.globalEventBus = globalEventBus;
+        this.objectStore = objectStore;
         this.deleteEvent = deleteEvent;
     }
 
@@ -94,7 +95,7 @@ public class FileDeleteExchangeHandler extends ANetworkHandler<FileDeleteExchang
             super.sendRequest(fileDeleteRequest);
 
         } catch (Exception e) {
-            logger.error("Failed to execute FileDeleteExchange. Message: " + e.getMessage());
+            logger.error("Failed to execute FileDeleteExchange. Message: " + e.getMessage(), e);
         }
 
     }
