@@ -60,7 +60,7 @@ public class MasterElectionExchangeHandler extends ANetworkHandler<MasterElectio
     @Override
     public void run() {
         try {
-            logger.info("Starting to define for the master client");
+            logger.info("Starting to find the master client");
 
             List<ClientLocation> clientLocations;
             try {
@@ -95,10 +95,8 @@ public class MasterElectionExchangeHandler extends ANetworkHandler<MasterElectio
                         hasAccepted
                 ));
 
-                super.countDownLatch = new CountDownLatch(0);
-                super.waitForSentCountDownLatch.countDown();
-
-                return;
+                // still send messages to other clients to check whether
+                // they are working as master on something
             }
 
             // send the election request to all clients
