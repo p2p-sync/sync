@@ -21,6 +21,8 @@ import org.rmatil.sync.persistence.api.IStorageAdapter;
 import org.rmatil.sync.persistence.core.local.LocalPathElement;
 import org.rmatil.sync.version.api.IObjectStore;
 import org.rmatil.sync.version.core.ObjectStore;
+import org.rmatil.sync.version.core.model.PathObject;
+import org.rmatil.sync.version.core.model.Version;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -161,6 +163,21 @@ public class ObjectStoreSyncer implements Runnable {
             for (Map.Entry<String, ClientDevice> entry : updatedPaths.entrySet()) {
                 UUID exchangeId = UUID.randomUUID();
                 logger.debug("Starting to fetch file " + entry.getKey() + " with exchangeId " + exchangeId);
+
+                // before updating, check the actual content hash on disk
+                // to prevent data loss during sync
+                PathObject mergedPathObject = this.objectStore.getObjectManager().getObjectForPath(entry.getKey());
+                Version lastVersion = mergedPathObject.getVersions().get(Math.max(0, mergedPathObject.getVersions().size() - 1));
+                this.objectStore.syncFile(this.storageAdapter.getRootDir().resolve(mergedPathObject.getAbsolutePath()).toFile());
+                PathObject modifiedPathObject = this.objectStore.getObjectManager().getObjectForPath(entry.getKey());
+                Version modifiedLastVersion = modifiedPathObject.getVersions().get(Math.max(0, modifiedPathObject.getVersions().size() - 1));
+
+                if (! modifiedLastVersion.equals(lastVersion)) {
+                    // we just changed the file on this client while syncing...
+                    // therefore we use this state and do not request an outdated state from another client
+                    logger.info("Detected file change while merging object store... Using our state");
+                    continue;
+                }
 
                 FileDemandExchangeHandler fileDemandExchangeHandler = new FileDemandExchangeHandler(
                         this.storageAdapter,
