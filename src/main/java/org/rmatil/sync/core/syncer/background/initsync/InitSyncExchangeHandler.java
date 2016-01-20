@@ -66,7 +66,7 @@ public class InitSyncExchangeHandler extends ANetworkHandler<InitSyncExchangeHan
     @Override
     public void run() {
         try {
-            logger.info("Stopping event aggregator");
+            logger.info("Stopping event aggregator on client (" + this.client.getPeerAddress().inetAddress().getHostName() + ":" + this.client.getPeerAddress().tcpPort() + ")");
             this.eventAggregator.stop();
 
             List<ClientLocation> clientLocations;
