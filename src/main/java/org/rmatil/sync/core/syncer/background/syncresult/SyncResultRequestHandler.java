@@ -10,6 +10,8 @@ import org.rmatil.sync.event.aggregator.api.IEventAggregator;
 import org.rmatil.sync.network.api.IClient;
 import org.rmatil.sync.network.api.IClientManager;
 import org.rmatil.sync.network.api.IRequest;
+import org.rmatil.sync.network.api.IResponse;
+import org.rmatil.sync.network.core.model.ClientDevice;
 import org.rmatil.sync.network.core.model.ClientLocation;
 import org.rmatil.sync.persistence.api.IStorageAdapter;
 import org.rmatil.sync.persistence.api.StorageType;
@@ -79,11 +81,11 @@ public class SyncResultRequestHandler implements IExtendedLocalStateRequestCallb
             byte[] zippedObjectStore = this.request.getZippedObjectStore();
 
             IStorageAdapter objectStoreStorageAdapter = this.objectStore.getObjectManager().getStorageAdapater();
-            if (objectStoreStorageAdapter.exists(StorageType.DIRECTORY, new LocalPathElement("mergeResultObjectStore"))) {
-                objectStoreStorageAdapter.delete(new LocalPathElement("mergeResultObjectStore"));
+            if (objectStoreStorageAdapter.exists(StorageType.DIRECTORY, new LocalPathElement("slaveMergeResultObjectStore"))) {
+                objectStoreStorageAdapter.delete(new LocalPathElement("slaveMergeResultObjectStore"));
             }
 
-            IObjectStore receivedObjectStore = Zip.unzipObjectStore(this.objectStore, "mergeResultObjectStore", zippedObjectStore);
+            IObjectStore receivedObjectStore = Zip.unzipObjectStore(this.objectStore, "slaveMergeResultObjectStore", zippedObjectStore);
 
             if (null == receivedObjectStore) {
                 logger.error("Could not unzip merged object store. Aborting removing/fetching files...");
@@ -97,8 +99,11 @@ public class SyncResultRequestHandler implements IExtendedLocalStateRequestCallb
             updatedPaths.addAll(outdatedOrDeletedPaths.get(ObjectStore.MergedObjectType.CHANGED));
             deletedPaths.addAll(outdatedOrDeletedPaths.get(ObjectStore.MergedObjectType.DELETED));
 
+            // remove object store again
             receivedObjectStore.getObjectManager().getStorageAdapater().delete(new LocalPathElement("./"));
+            objectStoreStorageAdapter.delete(new LocalPathElement("slaveMergeResultObjectStore"));
 
+            logger.info("Removing all deleted " + deletedPaths.size() + " files");
             for (String entry : deletedPaths) {
                 logger.info("Removing " + entry + " from disk after merging object store");
                 this.storageAdapter.delete(new LocalPathElement(entry));
@@ -140,8 +145,30 @@ public class SyncResultRequestHandler implements IExtendedLocalStateRequestCallb
                 }
             }
 
+            IResponse syncResultRespone = new SyncResultResponse(
+                    this.request.getExchangeId(),
+                    new ClientDevice(this.client.getUser().getUserName(), this.client.getClientDeviceId(), this.client.getPeerAddress()),
+                    new ClientLocation(this.request.getClientDevice().getClientDeviceId(), this.request.getClientDevice().getPeerAddress())
+            );
+
+            this.sendResponse(syncResultRespone);
+
         } catch (Exception e) {
             logger.error("Got exception in SyncResultRequestHandler. Message: " + e.getMessage(), e);
         }
+    }
+
+
+    /**
+     * Sends the given response back to the client
+     *
+     * @param iResponse The response to send back
+     */
+    public void sendResponse(IResponse iResponse) {
+        if (null == this.client) {
+            throw new IllegalStateException("A client instance is required to send a response back");
+        }
+
+        this.client.sendDirect(iResponse.getReceiverAddress().getPeerAddress(), iResponse);
     }
 }
