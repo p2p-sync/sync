@@ -151,6 +151,7 @@ public class LocalStateObjectDataReplyHandler extends ObjectDataReplyHandler {
                                         ((IRequest) request).getClientDevice().getPeerAddress()
                                 ),
                                 false,
+                                false,
                                 false
                         )
                 );
@@ -174,7 +175,7 @@ public class LocalStateObjectDataReplyHandler extends ObjectDataReplyHandler {
                     requestCallback.setClientManager(this.clientManager);
 
                     Thread thread = new Thread(requestCallback);
-                    thread.setName("RequestCallback for request " + ((IRequest) request).getExchangeId());
+                    thread.setName("RequestCallback-" + ((IRequest) request).getExchangeId());
                     thread.start();
 
                     return null;
@@ -190,7 +191,7 @@ public class LocalStateObjectDataReplyHandler extends ObjectDataReplyHandler {
                     requestCallback.setRequest((IRequest) request);
 
                     Thread thread = new Thread(requestCallback);
-                    thread.setName("RequestCallback for request " + ((IRequest) request).getExchangeId());
+                    thread.setName("RequestCallback-" + ((IRequest) request).getExchangeId());
                     thread.start();
 
                     return null;

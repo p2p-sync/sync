@@ -2,9 +2,11 @@ package org.rmatil.sync.core.messaging.fileexchange.push;
 
 import org.rmatil.sync.core.init.client.ILocalStateResponseCallback;
 import org.rmatil.sync.core.messaging.fileexchange.offer.FileOfferExchangeHandler;
-import org.rmatil.sync.network.api.*;
+import org.rmatil.sync.network.api.IClient;
+import org.rmatil.sync.network.api.IClientManager;
+import org.rmatil.sync.network.api.IRequest;
+import org.rmatil.sync.network.api.IResponse;
 import org.rmatil.sync.network.core.ANetworkHandler;
-import org.rmatil.sync.network.core.ClientManager;
 import org.rmatil.sync.network.core.model.ClientDevice;
 import org.rmatil.sync.network.core.model.ClientLocation;
 import org.rmatil.sync.network.core.model.Data;
@@ -68,29 +70,24 @@ public class FilePushExchangeHandler extends ANetworkHandler<FilePushExchangeHan
      */
     protected CountDownLatch chunkCountDownLatch;
 
-    public FilePushExchangeHandler(UUID exchangeId, ClientDevice clientDevice, IStorageAdapter storageAdapter, IClientManager clientManager, IClient client, String relativeFilePath) {
+    protected List<ClientLocation> receivers;
+
+    public FilePushExchangeHandler(UUID exchangeId, ClientDevice clientDevice, IStorageAdapter storageAdapter, IClientManager clientManager, IClient client, List<ClientLocation> receivers, String relativeFilePath) {
         super(client);
         this.clientDevice = clientDevice;
         this.exchangeId = exchangeId;
         this.storageAdapter = storageAdapter;
         this.clientManager = clientManager;
+        this.receivers = receivers;
         this.relativeFilePath = relativeFilePath;
     }
 
     @Override
     public void run() {
         try {
-            List<ClientLocation> clientLocations;
-            try {
-                clientLocations = this.clientManager.getClientLocations(super.client.getUser());
-            } catch (InputOutputException e) {
-                logger.error("Could not fetch client locations from user " + super.client.getUser().getUserName() + ". Message: " + e.getMessage());
-                return;
-            }
-
             // check whether the own client is also in the list (should be usually, but you never know...)
-            int clientCounter = clientLocations.size();
-            for (ClientLocation location : clientLocations) {
+            int clientCounter = this.receivers.size();
+            for (ClientLocation location : this.receivers) {
                 if (location.getPeerAddress().equals(this.client.getPeerAddress())) {
                     clientCounter--;
                     break;
@@ -99,7 +96,7 @@ public class FilePushExchangeHandler extends ANetworkHandler<FilePushExchangeHan
 
             this.chunkCountDownLatch = new CountDownLatch(clientCounter);
 
-            for (ClientLocation location : clientLocations) {
+            for (ClientLocation location : this.receivers) {
                 UUID uuid = UUID.randomUUID();
                 logger.info("Sending first chunk as subRequest of " + this.exchangeId + " with id " + uuid + " to client " + location.getPeerAddress().inetAddress().getHostName() + ":" + location.getPeerAddress().tcpPort());
                 // add callback handler for sub request
@@ -169,8 +166,8 @@ public class FilePushExchangeHandler extends ANetworkHandler<FilePushExchangeHan
      * Send a chunk to another client
      *
      * @param chunkCounter The chunk counter
-     * @param exchangeId The exchange id for the request
-     * @param receiver The receiver which should get the chunk
+     * @param exchangeId   The exchange id for the request
+     * @param receiver     The receiver which should get the chunk
      */
     protected void sendChunk(long chunkCounter, UUID exchangeId, ClientLocation receiver) {
         IPathElement pathElement = new LocalPathElement(this.relativeFilePath);

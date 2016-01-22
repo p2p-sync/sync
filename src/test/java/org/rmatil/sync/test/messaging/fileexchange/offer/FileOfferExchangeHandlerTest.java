@@ -186,8 +186,10 @@ public class FileOfferExchangeHandlerTest extends BaseNetworkHandlerTest {
 
         FileOfferExchangeHandlerResult result = dirOfferExchangeHandler.getResult();
 
-        assertTrue("Client2 should have accepted offer", result.hasOfferAccepted());
-        assertFalse("Client2 should not have detected a conflict", result.hasConflictDetected());
+        assertEquals("Only one client should have responded", 1, result.getFileOfferResponses().size());
+        assertTrue("Client2 should have accepted offer", result.getFileOfferResponses().get(0).hasAcceptedOffer());
+        assertFalse("Client2 should not have detected a conflict", result.getFileOfferResponses().get(0).hasConflict());
+        assertFalse("Client2 should be in need of the following up request", result.getFileOfferResponses().get(0).isRequestObsolete());
     }
 
     @Test
@@ -214,8 +216,10 @@ public class FileOfferExchangeHandlerTest extends BaseNetworkHandlerTest {
 
         FileOfferExchangeHandlerResult result = fileOfferExchangeHandler.getResult();
 
-        assertTrue("Client2 should have accepted offer", result.hasOfferAccepted());
-        assertFalse("Client2 should not have detected a conflict", result.hasConflictDetected());
+        assertEquals("Only one client should have responded", 1, result.getFileOfferResponses().size());
+        assertTrue("Client2 should have accepted offer", result.getFileOfferResponses().get(0).hasAcceptedOffer());
+        assertFalse("Client2 should not have detected a conflict", result.getFileOfferResponses().get(0).hasConflict());
+        assertFalse("Client2 should be in need of the following up request", result.getFileOfferResponses().get(0).isRequestObsolete());
     }
 
     @Test
@@ -246,8 +250,10 @@ public class FileOfferExchangeHandlerTest extends BaseNetworkHandlerTest {
 
         FileOfferExchangeHandlerResult result = conflictFileOfferExchangeHandler.getResult();
 
-        assertTrue("Client2 should have accepted offer", result.hasOfferAccepted());
-        assertTrue("Client2 should have detected a conflict", result.hasConflictDetected());
+        assertEquals("Only one client should have responded", 1, result.getFileOfferResponses().size());
+        assertTrue("Client2 should have accepted offer", result.getFileOfferResponses().get(0).hasAcceptedOffer());
+        assertTrue("Client2 should have detected a conflict", result.getFileOfferResponses().get(0).hasConflict());
+        assertFalse("Client2 should be in need of the following up request", result.getFileOfferResponses().get(0).isRequestObsolete());
     }
 
     @Test
@@ -286,8 +292,10 @@ public class FileOfferExchangeHandlerTest extends BaseNetworkHandlerTest {
 
         FileOfferExchangeHandlerResult result = deleteDirOfferExchangeHandler.getResult();
 
-        assertTrue("Client2 should have accepted offer", result.hasOfferAccepted());
-        assertFalse("Client2 should not have detected a conflict", result.hasConflictDetected());
+        assertEquals("Only one client should have responded", 1, result.getFileOfferResponses().size());
+        assertTrue("Client2 should have accepted offer", result.getFileOfferResponses().get(0).hasAcceptedOffer());
+        assertFalse("Client2 should not have detected a conflict", result.getFileOfferResponses().get(0).hasConflict());
+        assertFalse("Client2 should be in need of the following up request", result.getFileOfferResponses().get(0).isRequestObsolete());
     }
 
     @Test
@@ -326,7 +334,9 @@ public class FileOfferExchangeHandlerTest extends BaseNetworkHandlerTest {
 
         FileOfferExchangeHandlerResult result = deleteFileOfferExchangeHandler.getResult();
 
-        assertTrue("Client2 should have accepted offer", result.hasOfferAccepted());
-        assertFalse("Client2 should not have detected a conflict", result.hasConflictDetected());
+        assertEquals("Only one client should have responded", 1, result.getFileOfferResponses().size());
+        assertTrue("Client2 should have accepted offer", result.getFileOfferResponses().get(0).hasAcceptedOffer());
+        assertFalse("Client2 should not have detected a conflict", result.getFileOfferResponses().get(0).hasConflict());
+        assertFalse("Client2 should be in need of the following up request", result.getFileOfferResponses().get(0).isRequestObsolete());
     }
 }

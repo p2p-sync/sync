@@ -205,26 +205,16 @@ public class FileOfferExchangeHandler extends ANetworkHandler<FileOfferExchangeH
 
     @Override
     public FileOfferExchangeHandlerResult getResult() {
-        boolean hasConflict = false;
-        boolean hasAccepted = true;
-
+        ArrayList<FileOfferResponse> fileOfferResponses = new ArrayList<>();
         for (IResponse response : this.respondedClients) {
             if (! (response instanceof FileOfferResponse)) {
                 logger.warn("Received unknown response from client " + response.getClientDevice().getClientDeviceId() + " (" + response.getClientDevice().getPeerAddress().inetAddress().getHostAddress() + ":" + response.getClientDevice().getPeerAddress().tcpPort() + ")");
                 continue;
             }
 
-            if (! ((FileOfferResponse) response).hasAcceptedOffer()) {
-                logger.info("Client " + response.getClientDevice().getClientDeviceId() + " (" + response.getClientDevice().getPeerAddress().inetAddress().getHostAddress() + ":" + response.getClientDevice().getPeerAddress().tcpPort() + ")" + " denied offer " + response.getExchangeId());
-                hasAccepted = false;
-            }
-
-            if (((FileOfferResponse) response).hasConflict()) {
-                logger.info("Client " + response.getClientDevice().getClientDeviceId() + " (" + response.getClientDevice().getPeerAddress().inetAddress().getHostAddress() + ":" + response.getClientDevice().getPeerAddress().tcpPort() + ")" + " detected conflict for offer " + response.getExchangeId());
-                hasConflict = true;
-            }
+            fileOfferResponses.add((FileOfferResponse) response);
         }
 
-        return new FileOfferExchangeHandlerResult(hasAccepted, hasConflict);
+        return new FileOfferExchangeHandlerResult(fileOfferResponses);
     }
 }

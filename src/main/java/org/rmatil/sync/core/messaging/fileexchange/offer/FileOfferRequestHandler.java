@@ -29,7 +29,6 @@ import org.slf4j.LoggerFactory;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
-import java.util.Map;
 
 /**
  * Handles an incoming {@link FileOfferRequest} by checking whether a file on the same
@@ -40,6 +39,14 @@ import java.util.Map;
 public class FileOfferRequestHandler implements ILocalStateRequestCallback {
 
     private static final Logger logger = LoggerFactory.getLogger(FileOfferRequestHandler.class);
+
+    protected enum CONFLICT_TYPE {
+        CONFLICT,
+
+        NO_CONFLICT_REQUEST_OBSOLETE,
+
+        NO_CONFLICT_REQUEST_REQUIRED
+    }
 
     protected IStorageAdapter      storageAdapter;
     protected IObjectStore         objectStore;
@@ -83,6 +90,7 @@ public class FileOfferRequestHandler implements ILocalStateRequestCallback {
 
             boolean hasAccepted = false;
             boolean hasConflict = false;
+            boolean isRequestObsolete = true;
 
             switch (this.request.getEvent().getEventName()) {
                 case DeleteEvent.EVENT_NAME:
@@ -91,14 +99,17 @@ public class FileOfferRequestHandler implements ILocalStateRequestCallback {
                         if (this.request.getEvent().isFile() && this.storageAdapter.exists(StorageType.FILE, pathElement)) {
                             hasAccepted = true;
                             hasConflict = false;
+                            isRequestObsolete = false;
                         } else if (this.storageAdapter.exists(StorageType.DIRECTORY, pathElement)) {
                             hasAccepted = true;
                             hasConflict = false;
+                            isRequestObsolete = false;
                         }
                     } catch (InputOutputException e) {
                         logger.error("Could not check whether the path " + this.request.getEvent().getPath() + " exists or not. Message: " + e.getMessage() + ". Sending back an unaccepted offer");
                         hasAccepted = false;
                         hasConflict = false;
+                        isRequestObsolete = false;
                     }
                     break;
                 case MoveEvent.EVENT_NAME:
@@ -110,29 +121,38 @@ public class FileOfferRequestHandler implements ILocalStateRequestCallback {
                     try {
                         if (this.request.getEvent().isFile() && this.storageAdapter.exists(StorageType.FILE, pathElement)) {
                             // compare versions
-                            if (this.hasVersionConflict(pathElement)) {
+                            CONFLICT_TYPE hasVersionConflict = this.hasVersionConflict(pathElement);
+                            if (CONFLICT_TYPE.CONFLICT == hasVersionConflict) {
                                 hasAccepted = true;
                                 hasConflict = true;
+                                isRequestObsolete = false;
 
                                 this.createConflictFile(pathElement);
+                            } else if (CONFLICT_TYPE.NO_CONFLICT_REQUEST_REQUIRED == hasVersionConflict) {
+                                hasAccepted = true;
+                                hasConflict = false;
+                                isRequestObsolete = false;
                             } else {
                                 hasAccepted = true;
                                 hasConflict = false;
+                                isRequestObsolete = true;
                             }
                         } else {
                             // we accept any offer if it is a directory, whether it exists or not
                             hasAccepted = true;
                             hasConflict = false;
+                            isRequestObsolete = false;
                         }
                     } catch (InputOutputException e) {
                         logger.error("Could not check whether the file " + this.request.getEvent().getPath() + " exists or not. Message: " + e.getMessage() + ". Sending back a conflict file");
                         hasAccepted = false;
                         hasConflict = false;
+                        isRequestObsolete = false;
                     }
                     break;
             }
 
-            this.sendResponse(this.createResponse(hasAccepted, hasConflict));
+            this.sendResponse(this.createResponse(hasAccepted, hasConflict, isRequestObsolete));
         } catch (Exception e) {
             logger.error("Failed to handle file offer request " + this.request.getExchangeId() + ". Message: " + e.getMessage(), e);
         }
@@ -159,7 +179,7 @@ public class FileOfferRequestHandler implements ILocalStateRequestCallback {
      *
      * @return The FileOfferResponse representing the result of this client
      */
-    protected FileOfferResponse createResponse(boolean hasAccepted, boolean hasConflict) {
+    protected FileOfferResponse createResponse(boolean hasAccepted, boolean hasConflict, boolean isRequestObsolete) {
         ClientDevice sendingClient = new ClientDevice(this.client.getUser().getUserName(), this.client.getClientDeviceId(), this.client.getPeerAddress());
         // the sender becomes the receiver
         ClientLocation receiver = new ClientLocation(this.request.getClientDevice().getClientDeviceId(), this.request.getClientDevice().getPeerAddress());
@@ -169,7 +189,8 @@ public class FileOfferRequestHandler implements ILocalStateRequestCallback {
                 sendingClient,
                 receiver,
                 hasAccepted,
-                hasConflict
+                hasConflict,
+                isRequestObsolete
         );
     }
 
@@ -180,7 +201,7 @@ public class FileOfferRequestHandler implements ILocalStateRequestCallback {
      *
      * @return True, if a conflict has been detected, false otherwise
      */
-    protected boolean hasVersionConflict(LocalPathElement pathElement) {
+    protected CONFLICT_TYPE hasVersionConflict(LocalPathElement pathElement) {
         String lastLocalFileVersionHash = null;
         String eventHash = null;
         // could be null, if the file contains only the first version
@@ -194,7 +215,7 @@ public class FileOfferRequestHandler implements ILocalStateRequestCallback {
                     pathObject = this.objectStore.getObjectManager().getObjectForPath(pathElement.getPath());
                 } catch (InputOutputException e) {
                     logger.error("Failed to check file versions of file " + pathElement.getPath() + ". Message: " + e.getMessage() + ". Indicating that a conflict happened");
-                    return true;
+                    return CONFLICT_TYPE.CONFLICT;
                 }
 
                 // compare local and remote file versions
@@ -205,11 +226,11 @@ public class FileOfferRequestHandler implements ILocalStateRequestCallback {
                 eventHash = this.request.getEvent().getHash();
             } else if (this.storageAdapter.exists(StorageType.DIRECTORY, pathElement)) {
                 // we do not care, if we get a modify event for a directory only
-                return false;
+                return CONFLICT_TYPE.NO_CONFLICT_REQUEST_REQUIRED;
             }
         } catch (InputOutputException e) {
             logger.error("Failed to check if file " + pathElement.getPath() + " exists. Message: " + e.getMessage() + ". Indicating that a conflict happened");
-            return true;
+            return CONFLICT_TYPE.CONFLICT;
         }
 
         if ((null != eventHash && null == lastLocalFileVersionHash) || // if both versions are null then we have no conflict
@@ -229,11 +250,16 @@ public class FileOfferRequestHandler implements ILocalStateRequestCallback {
                     + ((lastLocalFileVersionHash == null) ? "null" : lastLocalFileVersionHash)
             );
 
-            return true;
+            return CONFLICT_TYPE.CONFLICT;
         }
 
         // no conflict happened
-        return false;
+        if ((null == eventHash && null == lastLocalFileVersionHash) || (null != eventHash && eventHash.equals(lastLocalFileVersionHash))) {
+            // we do not need a further request, if we already have the same hash as offered
+            return CONFLICT_TYPE.NO_CONFLICT_REQUEST_OBSOLETE;
+        }
+
+        return CONFLICT_TYPE.NO_CONFLICT_REQUEST_REQUIRED;
     }
 
     /**

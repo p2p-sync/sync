@@ -12,7 +12,6 @@ import org.rmatil.sync.network.core.model.ClientDevice;
 import org.rmatil.sync.network.core.model.ClientLocation;
 import org.rmatil.sync.persistence.api.IStorageAdapter;
 import org.rmatil.sync.persistence.core.local.LocalPathElement;
-import org.rmatil.sync.persistence.exceptions.InputOutputException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,13 +39,16 @@ public class FileMoveExchangeHandler extends ANetworkHandler<FileMoveExchangeHan
 
     protected CountDownLatch moveCountDownLatch;
 
-    public FileMoveExchangeHandler(UUID exchangeId, ClientDevice clientDevice, IStorageAdapter storageAdapter, IClientManager clientManager, IClient client, MBassador<IBusEvent> globalEventBus, MoveEvent moveEvent) {
+    protected List<ClientLocation> receivers;
+
+    public FileMoveExchangeHandler(UUID exchangeId, ClientDevice clientDevice, IStorageAdapter storageAdapter, IClientManager clientManager, IClient client, MBassador<IBusEvent> globalEventBus, List<ClientLocation> receivers, MoveEvent moveEvent) {
         super(client);
         this.exchangeId = exchangeId;
         this.clientDevice = clientDevice;
         this.storageAdapter = storageAdapter;
         this.clientManager = clientManager;
         this.globalEventBus = globalEventBus;
+        this.receivers = receivers;
         this.moveEvent = moveEvent;
     }
 
@@ -55,17 +57,9 @@ public class FileMoveExchangeHandler extends ANetworkHandler<FileMoveExchangeHan
         try {
             boolean isFile = this.storageAdapter.isFile(new LocalPathElement(this.moveEvent.getNewPath().toString()));
 
-            List<ClientLocation> clientLocations;
-            try {
-                clientLocations = this.clientManager.getClientLocations(super.client.getUser());
-            } catch (InputOutputException e) {
-                logger.error("Could not fetch client locations from user " + super.client.getUser().getUserName() + ". Message: " + e.getMessage());
-                return;
-            }
-
             // check whether the own client is also in the list (should be usually, but you never know...)
-            int clientCounter = clientLocations.size();
-            for (ClientLocation location : clientLocations) {
+            int clientCounter = this.receivers.size();
+            for (ClientLocation location : this.receivers) {
                 if (location.getPeerAddress().equals(this.client.getPeerAddress())) {
                     clientCounter--;
                     break;
@@ -74,7 +68,7 @@ public class FileMoveExchangeHandler extends ANetworkHandler<FileMoveExchangeHan
 
             this.moveCountDownLatch = new CountDownLatch(clientCounter);
 
-            for (ClientLocation location : clientLocations) {
+            for (ClientLocation location : this.receivers) {
                 UUID uuid = UUID.randomUUID();
                 logger.info("Sending move request as subRequest of " + this.exchangeId + " with id " + uuid + " to client " + location.getPeerAddress().inetAddress().getHostName() + ":" + location.getPeerAddress().tcpPort());
                 // add callback handler for subrequest

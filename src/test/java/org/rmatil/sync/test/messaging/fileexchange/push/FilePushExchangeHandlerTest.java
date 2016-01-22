@@ -48,6 +48,7 @@ public class FilePushExchangeHandlerTest extends BaseNetworkHandlerTest {
                 STORAGE_ADAPTER_1,
                 CLIENT_MANAGER_1,
                 CLIENT_1,
+                CLIENT_LOCATIONS,
                 TEST_FILE_1.toString()
         );
 
@@ -84,6 +85,7 @@ public class FilePushExchangeHandlerTest extends BaseNetworkHandlerTest {
                 STORAGE_ADAPTER_1,
                 CLIENT_MANAGER_1,
                 CLIENT_1,
+                CLIENT_LOCATIONS,
                 TEST_DIR_2.toString()
         );
 
