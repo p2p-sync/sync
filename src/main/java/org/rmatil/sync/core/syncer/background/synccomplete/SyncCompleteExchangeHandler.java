@@ -3,7 +3,7 @@ package org.rmatil.sync.core.syncer.background.synccomplete;
 import net.engio.mbassy.bus.MBassador;
 import org.rmatil.sync.core.eventbus.CreateBusEvent;
 import org.rmatil.sync.core.eventbus.IBusEvent;
-import org.rmatil.sync.core.syncer.background.BackgroundSyncer;
+import org.rmatil.sync.core.syncer.background.BlockingBackgroundSyncer;
 import org.rmatil.sync.event.aggregator.api.IEventAggregator;
 import org.rmatil.sync.event.aggregator.core.events.DeleteEvent;
 import org.rmatil.sync.event.aggregator.core.events.ModifyEvent;
@@ -37,7 +37,7 @@ import java.util.concurrent.TimeUnit;
  * restart their event aggregators and propagate any changes
  * made in the mean time to all clients.
  *
- * @see BackgroundSyncer
+ * @see BlockingBackgroundSyncer
  */
 public class SyncCompleteExchangeHandler extends ANetworkHandler<SyncCompleteExchangeHandlerResult> {
 

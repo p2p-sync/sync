@@ -14,9 +14,9 @@ import java.util.UUID;
 /**
  * {@inheritDoc}
  */
-public class BackgroundSyncer implements IBackgroundSyncer {
+public class BlockingBackgroundSyncer implements IBackgroundSyncer {
 
-    private static final Logger logger = LoggerFactory.getLogger(BackgroundSyncer.class);
+    private static final Logger logger = LoggerFactory.getLogger(BlockingBackgroundSyncer.class);
 
     /**
      * The event aggregator to stop while reconciling
@@ -38,7 +38,7 @@ public class BackgroundSyncer implements IBackgroundSyncer {
      * @param client          The client to use for sending requests
      * @param clientManager   The client manager to fetch all client locations
      */
-    public BackgroundSyncer(IEventAggregator eventAggregator, IClient client, IClientManager clientManager) {
+    public BlockingBackgroundSyncer(IEventAggregator eventAggregator, IClient client, IClientManager clientManager) {
         this.eventAggregator = eventAggregator;
         this.client = client;
         this.clientManager = clientManager;
@@ -48,7 +48,7 @@ public class BackgroundSyncer implements IBackgroundSyncer {
     @Override
     public void run() {
         try {
-            logger.info("Starting BackgroundSyncer");
+            logger.info("Starting BlockingBackgroundSyncer");
 
             // TODO: check if any master election is already in progress
 
@@ -118,7 +118,7 @@ public class BackgroundSyncer implements IBackgroundSyncer {
             // event aggregator is started again in SyncCompleteRequestHandler
 
         } catch (Exception e) {
-            logger.error("Got error in BackgroundSyncer. Message: " + e.getMessage(), e);
+            logger.error("Got error in BlockingBackgroundSyncer. Message: " + e.getMessage(), e);
         }
     }
 }

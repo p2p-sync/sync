@@ -1,6 +1,6 @@
 package org.rmatil.sync.core.syncer.background.masterelection;
 
-import org.rmatil.sync.core.syncer.background.BackgroundSyncer;
+import org.rmatil.sync.core.syncer.background.BlockingBackgroundSyncer;
 import org.rmatil.sync.network.api.IClient;
 import org.rmatil.sync.network.api.IClientManager;
 import org.rmatil.sync.network.api.IResponse;
@@ -14,7 +14,6 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -25,7 +24,7 @@ import java.util.concurrent.TimeUnit;
  * If no client accepts the request, then the client having started this exchange
  * will become the master client.
  *
- * @see BackgroundSyncer
+ * @see BlockingBackgroundSyncer
  */
 public class MasterElectionExchangeHandler extends ANetworkHandler<MasterElectionExchangeHandlerResult> {
 

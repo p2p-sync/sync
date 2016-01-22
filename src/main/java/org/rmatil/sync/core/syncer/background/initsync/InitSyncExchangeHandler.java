@@ -1,6 +1,6 @@
 package org.rmatil.sync.core.syncer.background.initsync;
 
-import org.rmatil.sync.core.syncer.background.BackgroundSyncer;
+import org.rmatil.sync.core.syncer.background.BlockingBackgroundSyncer;
 import org.rmatil.sync.event.aggregator.api.IEventAggregator;
 import org.rmatil.sync.network.api.IClient;
 import org.rmatil.sync.network.api.IClientManager;
@@ -22,7 +22,7 @@ import java.util.concurrent.TimeUnit;
  * on all clients, including the client which initiates
  * sync.
  *
- * @see BackgroundSyncer
+ * @see BlockingBackgroundSyncer
  */
 public class InitSyncExchangeHandler extends ANetworkHandler<InitSyncExchangeHandlerResult> {
 
