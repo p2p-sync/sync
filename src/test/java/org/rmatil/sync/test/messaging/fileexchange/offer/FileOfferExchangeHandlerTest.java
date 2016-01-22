@@ -241,6 +241,7 @@ public class FileOfferExchangeHandlerTest extends BaseNetworkHandlerTest {
         conflictFileOfferExchangeHandlerThread.setName("TEST-ConflictFileOfferExchangeHandler");
         conflictFileOfferExchangeHandlerThread.start();
 
+        
         // wait for completion
         conflictFileOfferExchangeHandler.await();
 
