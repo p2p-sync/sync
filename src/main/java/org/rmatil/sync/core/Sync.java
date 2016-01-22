@@ -129,16 +129,7 @@ public class Sync {
         // TODO: fix cycle with wrapper around client
         objectDataReplyHandler.setClient(client);
 
-        DhtStorageAdapter dhtStorageAdapter = new DhtStorageAdapter(client.getPeerDht());
-
-        IClientManager clientManager = new ClientManager(
-                dhtStorageAdapter,
-                Config.IPv4.getLocationsContentKey(),
-                Config.IPv4.getPrivateKeyContentKey(),
-                Config.IPv4.getPublicKeyContentKey(),
-                Config.IPv4.getSaltContentKey(),
-                Config.IPv4.getDomainKey()
-        );
+        IClientManager clientManager = clientInitializer.getClientManager();
 
         objectDataReplyHandler.setClientManager(clientManager);
 
@@ -174,7 +165,7 @@ public class Sync {
 
         BackgroundSyncer backgroundSyncer = new BackgroundSyncer(eventAggregator, client, clientManager);
         ScheduledExecutorService executorService1 = Executors.newSingleThreadScheduledExecutor();
-        executorService1.scheduleAtFixedRate(backgroundSyncer, 30L, 600L, TimeUnit.SECONDS);
+        executorService1.scheduleAtFixedRate(backgroundSyncer, 600L, 600L, TimeUnit.SECONDS);
 
         // now set the peer address once we know it
         return new ClientDevice(userName, clientId, client.getPeerAddress());

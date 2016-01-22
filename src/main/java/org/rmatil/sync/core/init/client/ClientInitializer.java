@@ -28,7 +28,7 @@ public class ClientInitializer implements IInitializer<IClient> {
     protected ClientManager     clientManager;
     protected Config            networkConfig;
 
-    protected RemoteClientLocation bootstrapLocation;
+    protected RemoteClientLocation   bootstrapLocation;
     protected ObjectDataReplyHandler objectDataReplyHandler;
 
     public ClientInitializer(ObjectDataReplyHandler objectDataReplyHandler, IUser user, int port, RemoteClientLocation bootstrapLocation) {
@@ -77,7 +77,7 @@ public class ClientInitializer implements IInitializer<IClient> {
         // we can init the dht storage adapter only after
         // the peerDHT is started (i.e. built), otherwise we will
         // get a NullPointerException on the private/public key for protection
-        this.dhtStorageAdapter = new DhtStorageAdapter(this.client.getPeerDht());
+        this.dhtStorageAdapter = new DhtStorageAdapter(this.client.getPeerDht(), 5000L);
         this.clientManager = new ClientManager(
                 this.dhtStorageAdapter,
                 networkConfig.getLocationsContentKey(),
@@ -109,5 +109,24 @@ public class ClientInitializer implements IInitializer<IClient> {
         }
 
         this.client.shutdown();
+    }
+
+
+    /**
+     * <p color="red">Only defined after starting is done</p>
+     *
+     * @return The client manager
+     */
+    public ClientManager getClientManager() {
+        return clientManager;
+    }
+
+    /**
+     * <p color="red">Only defined after starting is done</p>
+     *
+     * @return The dht storage adapter
+     */
+    public DhtStorageAdapter getDhtStorageAdapter() {
+        return dhtStorageAdapter;
     }
 }
