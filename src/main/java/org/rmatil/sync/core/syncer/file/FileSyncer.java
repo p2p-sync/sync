@@ -89,6 +89,7 @@ public class FileSyncer implements ISyncer {
     public void sync(IEvent event)
             throws SyncFailedException {
 
+        long start = System.currentTimeMillis();
         synchronized (this.eventsToIgnore) {
             for (IEvent eventToCheck : this.eventsToIgnore) {
                 // weak ignoring events
@@ -236,6 +237,7 @@ public class FileSyncer implements ISyncer {
 
         Object exchangeHandlerResult = exchangeHandler.getResult();
         logger.info("Result of file push " + fileExchangeId + " is " + exchangeHandlerResult.toString());
+        logger.trace("Sync duration for request " + fileExchangeId + " was: " + (System.currentTimeMillis() - start) + "ms");
     }
 
     /**
