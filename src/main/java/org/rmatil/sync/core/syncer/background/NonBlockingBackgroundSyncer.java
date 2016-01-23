@@ -34,22 +34,66 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
 
+/**
+ * Starts a synchronization process only on the client running this instance.
+ * All other clients will not be affected by the synchronization, removing the need
+ * of master election as is done in {@link BlockingBackgroundSyncer}.
+ *
+ * The procedure of syncing is as following:
+ *
+ * <ol>
+ *     <li>Stop the event aggregation to safely update the object store manually</li>
+ *     <li>Fetch the object stores from all clients</li>
+ *     <li>Merge them on this client</li>
+ *     <li>Download all missing or outdated files from the appropriate client</li>
+ *     <li>Restart the event aggregation</li>
+ *     <li>Sync merged object store with actual changes on disk</li>
+ * </ol>
+ *
+ * {@inheritDoc}
+ */
 public class NonBlockingBackgroundSyncer implements IBackgroundSyncer {
 
     private static final Logger logger = LoggerFactory.getLogger(NonBlockingBackgroundSyncer.class);
 
+    /**
+     * The event aggregator of the client to stop
+     */
     protected IEventAggregator eventAggregator;
 
+    /**
+     * The client to use to exchange messages
+     */
     protected IClient client;
 
+    /**
+     * The client manager to fetch client locations from
+     */
     protected IClientManager clientManager;
 
+    /**
+     * The object store of the synchronised folder
+     */
     protected IObjectStore objectStore;
 
+    /**
+     * The storage adapter to access the synchronised folder
+     */
     protected IStorageAdapter storageAdapter;
 
+    /**
+     * The global event bus
+     */
     protected MBassador<IBusEvent> globalEventBus;
 
+    /**
+     * @param eventAggregator The event aggregator to pause
+     * @param client The client to exchange messages
+     * @param clientManager The client manager to fetch client locations from
+     * @param objectStore The object store for the synchronised folder
+     * @param storageAdapter The storage adapter of the synchronised folder
+     * @param globalEventBus The global event bus to push events to
+     */
     public NonBlockingBackgroundSyncer(IEventAggregator eventAggregator, IClient client, IClientManager clientManager, IObjectStore objectStore, IStorageAdapter storageAdapter, MBassador<IBusEvent> globalEventBus) {
         this.eventAggregator = eventAggregator;
         this.client = client;
