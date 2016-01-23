@@ -72,6 +72,8 @@ public class NonBlockingBackgroundSyncer implements IBackgroundSyncer {
                     exchangeId
             );
 
+            this.client.getObjectDataReplyHandler().addResponseCallbackHandler(exchangeId, fetchObjectStoreExchangeHandler);
+
             Thread fetchObjectStoreExchangeHandlerThread = new Thread(fetchObjectStoreExchangeHandler);
             fetchObjectStoreExchangeHandlerThread.setName("FetchObjectStoreExchangeHandler-" + exchangeId);
             fetchObjectStoreExchangeHandlerThread.start();
@@ -83,6 +85,8 @@ public class NonBlockingBackgroundSyncer implements IBackgroundSyncer {
             } catch (InterruptedException e) {
                 logger.error("Got interrupted while waiting for fetching all object stores");
             }
+
+            this.client.getObjectDataReplyHandler().removeResponseCallbackHandler(exchangeId);
 
             if (! fetchObjectStoreExchangeHandler.isCompleted()) {
                 logger.error("FetchObjectStoreExchangeHandler should be completed after awaiting. Since we do not know about the other clients object store, we abort background sync for exchange " + exchangeId);
