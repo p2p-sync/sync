@@ -3,6 +3,8 @@ package org.rmatil.sync.test.syncer.background;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.rmatil.sync.commons.hashing.Hash;
+import org.rmatil.sync.commons.hashing.HashingAlgorithm;
 import org.rmatil.sync.commons.path.Naming;
 import org.rmatil.sync.core.eventbus.CreateBusEvent;
 import org.rmatil.sync.core.eventbus.IgnoreBusEvent;
@@ -23,25 +25,23 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
-import static org.hamcrest.CoreMatchers.hasItem;
 import static org.hamcrest.CoreMatchers.instanceOf;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 public class NonBlockingBackgroundSyncerTest extends BaseNetworkHandlerTest {
 
     private static final Logger logger = LoggerFactory.getLogger(NonBlockingBackgroundSyncer.class);
 
     protected static final Path CONFLICTING_FILE = Paths.get("conflictFile.txt");
-    protected static final Path DELETED_FILE = Paths.get("deletedFile.txt");
-    protected static final Path MISSING_FILE = Paths.get("missingFile.txt");
+    protected static final Path DELETED_FILE     = Paths.get("deletedFile.txt");
+    protected static final Path MISSING_FILE     = Paths.get("missingFile.txt");
+    protected static final Path OUTDATED_PATH    = Paths.get("outdatedFile.txt");
 
     protected static final Handler EVENT_HANDLER = new Handler();
 
@@ -49,6 +49,7 @@ public class NonBlockingBackgroundSyncerTest extends BaseNetworkHandlerTest {
      * A handler for global bus events
      */
     static class Handler {
+
         public Queue<IEvent> createEvents = new ConcurrentLinkedQueue<>();
         public Queue<IEvent> ignoreEvents = new ConcurrentLinkedQueue<>();
 
@@ -85,12 +86,21 @@ public class NonBlockingBackgroundSyncerTest extends BaseNetworkHandlerTest {
         LocalPathElement missingFile = new LocalPathElement(MISSING_FILE.toString());
         STORAGE_ADAPTER_2.persist(StorageType.FILE, missingFile, "Some missing file".getBytes());
 
+        // create the file which is outdated on client1
+        LocalPathElement outdatedFile = new LocalPathElement(OUTDATED_PATH.toString());
+        STORAGE_ADAPTER_1.persist(StorageType.FILE, outdatedFile, "Some outdated content".getBytes());
+        STORAGE_ADAPTER_2.persist(StorageType.FILE, outdatedFile, "Some outdated content".getBytes());
+
         OBJECT_STORE_1.sync(ROOT_TEST_DIR1.toFile());
         OBJECT_STORE_2.sync(ROOT_TEST_DIR2.toFile());
 
         // remove file on storage adapter 2
         OBJECT_STORE_2.onRemoveFile(DELETED_FILE.toString());
         STORAGE_ADAPTER_2.delete(deletedFile);
+
+        // update outdated path on client2 so that client1 will have to re-download it
+        STORAGE_ADAPTER_2.persist(StorageType.FILE, outdatedFile, "Some updated content".getBytes());
+        OBJECT_STORE_2.onModifyFile(outdatedFile.getPath(), Hash.hash(HashingAlgorithm.SHA_256, "Some updated content".getBytes()));
 
         // register request handlers
         CLIENT_2.getObjectDataReplyHandler().addRequestCallbackHandler(FileDemandRequest.class, FileDemandRequestHandler.class);
@@ -102,7 +112,7 @@ public class NonBlockingBackgroundSyncerTest extends BaseNetworkHandlerTest {
 
     @Test
     public void test()
-            throws InputOutputException, InterruptedException {
+            throws InputOutputException, InterruptedException, IOException {
         NonBlockingBackgroundSyncer nonBlockingBackgroundSyncer = new NonBlockingBackgroundSyncer(
                 EVENT_AGGREGATOR_1,
                 CLIENT_1,
@@ -162,10 +172,14 @@ public class NonBlockingBackgroundSyncerTest extends BaseNetworkHandlerTest {
         LocalPathElement deletedFile = new LocalPathElement(DELETED_FILE.toString());
         assertFalse("Deleted file should not exist anymore on client1", STORAGE_ADAPTER_1.exists(StorageType.FILE, deletedFile));
 
-
         // check that missing file was fetched
         LocalPathElement missingFile = new LocalPathElement(MISSING_FILE.toString());
         assertTrue("Missing file should be fetched on client1", STORAGE_ADAPTER_1.exists(StorageType.FILE, missingFile));
+
+        // check that the outdated file was fetched
+        String updatedContent = new String(Files.readAllBytes(STORAGE_ADAPTER_1.getRootDir().resolve(OUTDATED_PATH)));
+
+        assertEquals("Content should be the same", "Some updated content", updatedContent);
     }
 
 }
