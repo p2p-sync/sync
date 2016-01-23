@@ -23,6 +23,6 @@ public class StringLengthComparator implements Comparator<String> {
             return 1;
         }
 
-        return 0;
+        return o1.compareTo(o2);
     }
 }
