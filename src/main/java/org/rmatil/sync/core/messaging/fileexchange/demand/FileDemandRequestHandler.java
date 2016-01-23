@@ -120,7 +120,7 @@ public class FileDemandRequestHandler implements ILocalStateRequestCallback {
                     new ClientDevice(this.client.getUser().getUserName(), this.client.getClientDeviceId(), this.client.getPeerAddress()),
                     this.request.getRelativeFilePath(),
                     fileMetaInfo.isFile(),
-                    this.request.getChunkCounter() + 1,
+                    this.request.getChunkCounter(),
                     CHUNK_SIZE,
                     totalNrOfChunks,
                     fileMetaInfo.getTotalFileSize(),
