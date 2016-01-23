@@ -4,9 +4,7 @@ import net.engio.mbassy.bus.MBassador;
 import org.rmatil.sync.core.eventbus.IBusEvent;
 import org.rmatil.sync.core.eventbus.IgnoreBusEvent;
 import org.rmatil.sync.core.init.client.ILocalStateResponseCallback;
-import org.rmatil.sync.core.messaging.fileexchange.move.FileMoveRequest;
 import org.rmatil.sync.event.aggregator.core.events.DeleteEvent;
-import org.rmatil.sync.event.aggregator.core.events.MoveEvent;
 import org.rmatil.sync.network.api.IClient;
 import org.rmatil.sync.network.api.IClientManager;
 import org.rmatil.sync.network.api.IResponse;
@@ -14,8 +12,6 @@ import org.rmatil.sync.network.core.ANetworkHandler;
 import org.rmatil.sync.network.core.model.ClientDevice;
 import org.rmatil.sync.network.core.model.ClientLocation;
 import org.rmatil.sync.persistence.api.IStorageAdapter;
-import org.rmatil.sync.persistence.core.local.LocalPathElement;
-import org.rmatil.sync.persistence.exceptions.InputOutputException;
 import org.rmatil.sync.version.api.IObjectStore;
 import org.rmatil.sync.version.core.model.PathObject;
 import org.slf4j.Logger;
@@ -45,7 +41,9 @@ public class FileDeleteExchangeHandler extends ANetworkHandler<FileDeleteExchang
 
     protected MBassador<IBusEvent> globalEventBus;
 
-    public FileDeleteExchangeHandler(UUID exchangeId, ClientDevice clientDevice, IStorageAdapter storageAdapter, IClientManager clientManager, IClient client, IObjectStore objectStore, MBassador<IBusEvent> globalEventBus, DeleteEvent deleteEvent) {
+    protected List<ClientLocation> receivers;
+
+    public FileDeleteExchangeHandler(UUID exchangeId, ClientDevice clientDevice, IStorageAdapter storageAdapter, IClientManager clientManager, IClient client, IObjectStore objectStore, MBassador<IBusEvent> globalEventBus, List<ClientLocation> receivers, DeleteEvent deleteEvent) {
         super(client);
         this.exchangeId = exchangeId;
         this.clientDevice = clientDevice;
@@ -53,20 +51,13 @@ public class FileDeleteExchangeHandler extends ANetworkHandler<FileDeleteExchang
         this.clientManager = clientManager;
         this.globalEventBus = globalEventBus;
         this.objectStore = objectStore;
+        this.receivers = receivers;
         this.deleteEvent = deleteEvent;
     }
 
     @Override
     public void run() {
         try {
-            List<ClientLocation> clientLocations;
-            try {
-                clientLocations = this.clientManager.getClientLocations(super.client.getUser());
-            } catch (InputOutputException e) {
-                logger.error("Could not fetch client locations from user " + super.client.getUser().getUserName() + ". Message: " + e.getMessage());
-                return;
-            }
-
             List<PathObject> deletedPaths = this.objectStore.getObjectManager().getChildren(this.deleteEvent.getPath().toString());
 
             // ignore delete events from children
@@ -88,7 +79,7 @@ public class FileDeleteExchangeHandler extends ANetworkHandler<FileDeleteExchang
             FileDeleteRequest fileDeleteRequest = new FileDeleteRequest(
                     this.exchangeId,
                     this.clientDevice,
-                    clientLocations,
+                    this.receivers,
                     this.deleteEvent.getPath().toString()
             );
 

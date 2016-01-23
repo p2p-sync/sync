@@ -2,7 +2,7 @@ package org.rmatil.sync.core.syncer.file;
 
 import net.engio.mbassy.bus.MBassador;
 import net.engio.mbassy.listener.Handler;
-import org.rmatil.sync.commons.path.Naming;
+import org.rmatil.sync.core.ConflictHandler;
 import org.rmatil.sync.core.eventbus.CreateBusEvent;
 import org.rmatil.sync.core.eventbus.IBusEvent;
 import org.rmatil.sync.core.eventbus.IgnoreBusEvent;
@@ -11,27 +11,26 @@ import org.rmatil.sync.core.messaging.fileexchange.delete.FileDeleteExchangeHand
 import org.rmatil.sync.core.messaging.fileexchange.move.FileMoveExchangeHandler;
 import org.rmatil.sync.core.messaging.fileexchange.offer.FileOfferExchangeHandler;
 import org.rmatil.sync.core.messaging.fileexchange.offer.FileOfferExchangeHandlerResult;
+import org.rmatil.sync.core.messaging.fileexchange.offer.FileOfferResponse;
 import org.rmatil.sync.core.messaging.fileexchange.push.FilePushExchangeHandler;
 import org.rmatil.sync.core.syncer.ISyncer;
-import org.rmatil.sync.event.aggregator.core.events.*;
+import org.rmatil.sync.event.aggregator.core.events.DeleteEvent;
+import org.rmatil.sync.event.aggregator.core.events.IEvent;
+import org.rmatil.sync.event.aggregator.core.events.ModifyEvent;
+import org.rmatil.sync.event.aggregator.core.events.MoveEvent;
 import org.rmatil.sync.network.api.IClient;
 import org.rmatil.sync.network.api.IClientManager;
 import org.rmatil.sync.network.api.IUser;
 import org.rmatil.sync.network.core.ANetworkHandler;
 import org.rmatil.sync.network.core.model.ClientDevice;
-import org.rmatil.sync.persistence.api.IFileMetaInfo;
+import org.rmatil.sync.network.core.model.ClientLocation;
 import org.rmatil.sync.persistence.api.IStorageAdapter;
-import org.rmatil.sync.persistence.api.StorageType;
 import org.rmatil.sync.persistence.core.local.LocalPathElement;
 import org.rmatil.sync.persistence.exceptions.InputOutputException;
 import org.rmatil.sync.version.api.IObjectStore;
-import org.rmatil.sync.version.core.model.PathObject;
-import org.rmatil.sync.version.core.model.Version;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -136,7 +135,7 @@ public class FileSyncer implements ISyncer {
 
         this.client.getObjectDataReplyHandler().addResponseCallbackHandler(fileExchangeId, fileOfferExchangeHandler);
         Thread fileOfferExchangeHandlerThread = new Thread(fileOfferExchangeHandler);
-        fileOfferExchangeHandlerThread.setName("FileOfferExchangeHandler for request " + fileExchangeId);
+        fileOfferExchangeHandlerThread.setName("FileOfferExchangeHandler-" + fileExchangeId);
         fileOfferExchangeHandlerThread.start();
 
         logger.debug("Waiting for offer exchange " + fileExchangeId + " to complete... (Max. " + FileOfferExchangeHandler.MAX_WAITING_TIME + "ms)");
@@ -154,22 +153,54 @@ public class FileSyncer implements ISyncer {
         }
 
         FileOfferExchangeHandlerResult result = fileOfferExchangeHandler.getResult();
-        logger.info("Result of file offering " + fileExchangeId + " is " + result.toString());
 
-        if (result.hasConflictDetected()) {
-            this.createConflictFile(new LocalPathElement(event.getPath().toString()));
-            return;
-        } else if (! result.hasOfferAccepted()) {
-            logger.info("Rescheduling event " + event.getEventName() + " for file " + event.getPath().toString());
+        boolean hasConflictDetected = false;
+        boolean hasOfferAccepted = true;
+        List<ClientLocation> acceptedAndInNeedClients = new ArrayList<>();
 
-            this.globalEventBus.publish(new CreateBusEvent(
-                    event
-            ));
+        for (FileOfferResponse response : result.getFileOfferResponses()) {
+            if (response.hasConflict()) {
+                hasConflictDetected = true;
+                // no need to check other responses too, we need a conflict file anyway
+                break;
+            }
 
+            if (! response.hasAcceptedOffer()) {
+                hasOfferAccepted = false;
+                // we need to reschedule for all clients
+                break;
+            }
+
+            if (! response.isRequestObsolete()) {
+                // we need to send the request to this client
+                acceptedAndInNeedClients.add(new ClientLocation(
+                        response.getClientDevice().getClientDeviceId(),
+                        response.getClientDevice().getPeerAddress()
+                ));
+            }
+        }
+
+        if (hasConflictDetected) {
+            // all clients will have to again check for the conflict file
+            ConflictHandler.createConflictFile(
+                    this.globalEventBus,
+                    this.clientDevice.getClientDeviceId().toString(),
+                    this.objectStore,
+                    this.storageAdapter,
+                    new LocalPathElement(event.getPath().toString())
+            );
             return;
         }
 
-        // Now we can start to send the file
+        if (! hasOfferAccepted) {
+            logger.info("Rescheduling event " + event.getEventName() + " for file " + event.getPath().toString());
+            this.globalEventBus.publish(new CreateBusEvent(
+                    event
+            ));
+            return;
+        }
+
+        // Now we can start to send the event to all clients which need it
 
         ANetworkHandler exchangeHandler;
         Thread exchangeHandlerThread;
@@ -183,12 +214,13 @@ public class FileSyncer implements ISyncer {
                     this.client,
                     this.objectStore,
                     this.globalEventBus,
+                    acceptedAndInNeedClients,
                     (DeleteEvent) event
             );
             logger.debug("Starting fileDelete handler for exchangeId " + fileExchangeId);
 
             exchangeHandlerThread = new Thread(exchangeHandler);
-            exchangeHandlerThread.setName("FileDeleteExchangeHandler for request " + fileExchangeId);
+            exchangeHandlerThread.setName("FileDeleteExchangeHandler-" + fileExchangeId);
         } else if (event instanceof MoveEvent) {
             exchangeHandler = new FileMoveExchangeHandler(
                     fileExchangeId,
@@ -197,12 +229,13 @@ public class FileSyncer implements ISyncer {
                     this.clientManager,
                     this.client,
                     this.globalEventBus,
+                    acceptedAndInNeedClients,
                     (MoveEvent) event
             );
 
             logger.debug("Starting fileMove handler for exchangeId " + fileExchangeId);
             exchangeHandlerThread = new Thread(exchangeHandler);
-            exchangeHandlerThread.setName("MoveEventExchangeHandler for request " + fileExchangeId);
+            exchangeHandlerThread.setName("MoveEventExchangeHandler-" + fileExchangeId);
         } else {
             exchangeHandler = new FilePushExchangeHandler(
                     fileExchangeId,
@@ -210,18 +243,19 @@ public class FileSyncer implements ISyncer {
                     this.storageAdapter,
                     this.clientManager,
                     this.client,
+                    acceptedAndInNeedClients,
                     event.getPath().toString()
             );
 
             logger.debug("Starting filePush handler for exchangeId " + fileExchangeId);
             exchangeHandlerThread = new Thread(exchangeHandler);
-            exchangeHandlerThread.setName("FilePushExchangeHandler for request " + fileExchangeId);
+            exchangeHandlerThread.setName("FilePushExchangeHandler-" + fileExchangeId);
         }
 
         this.client.getObjectDataReplyHandler().addResponseCallbackHandler(fileExchangeId, exchangeHandler);
         exchangeHandlerThread.start();
 
-        logger.debug("Waiting for push exchange " + fileExchangeId + " to complete...");
+        logger.debug("Waiting for exchange " + fileExchangeId + " to complete...");
         try {
             exchangeHandler.await();
         } catch (InterruptedException e) {
@@ -236,62 +270,7 @@ public class FileSyncer implements ISyncer {
         }
 
         Object exchangeHandlerResult = exchangeHandler.getResult();
-        logger.info("Result of file push " + fileExchangeId + " is " + exchangeHandlerResult.toString());
+        logger.info("Result of exchange " + fileExchangeId + " is " + exchangeHandlerResult.toString());
         logger.trace("Sync duration for request " + fileExchangeId + " was: " + (System.currentTimeMillis() - start) + "ms");
-    }
-
-    /**
-     * Creates a conflict file for the given path element.
-     * The conflict file is then synchronized by processing the
-     * whole file offering & file push protocol again.
-     *
-     * @param pathElement The path element for which to create a conflict file
-     */
-    protected void createConflictFile(LocalPathElement pathElement) {
-        PathObject pathObject;
-        try {
-            pathObject = this.objectStore.getObjectManager().getObjectForPath(pathElement.getPath());
-        } catch (InputOutputException e) {
-            logger.error("Failed to check file versions of file " + pathElement.getPath() + ". Message: " + e.getMessage() + ". Indicating that a conflict happened");
-            return;
-        }
-
-        // compare local and remote file versions
-        List<Version> localFileVersions = pathObject.getVersions();
-        Version lastLocalFileVersion = localFileVersions.size() > 0 ? localFileVersions.get(localFileVersions.size() - 1) : null;
-        String lastLocalFileVersionHash = (null != lastLocalFileVersion) ? lastLocalFileVersion.getHash() : null;
-
-        Path conflictFilePath;
-        try {
-            IFileMetaInfo fileMetaInfo = this.storageAdapter.getMetaInformation(pathElement);
-            conflictFilePath = Paths.get(Naming.getConflictFileName(pathElement.getPath(), true, fileMetaInfo.getFileExtension(), this.clientDevice.getClientDeviceId().toString()));
-            this.globalEventBus.publish(new IgnoreBusEvent(
-                    new MoveEvent(
-                            Paths.get(pathElement.getPath()),
-                            conflictFilePath,
-                            conflictFilePath.getFileName().toString(),
-                            lastLocalFileVersionHash,
-                            System.currentTimeMillis()
-                    )
-            ));
-            this.globalEventBus.publish(new CreateBusEvent(
-                    new CreateEvent(
-                            conflictFilePath,
-                            conflictFilePath.getFileName().toString(),
-                            lastLocalFileVersionHash,
-                            System.currentTimeMillis()
-                    )
-            ));
-
-        } catch (InputOutputException e) {
-            logger.error("Can not read meta information for file " + pathElement.getPath() + ". Moving the conflict file failed");
-            return;
-        }
-
-        try {
-            this.storageAdapter.move(StorageType.FILE, pathElement, new LocalPathElement(conflictFilePath.toString()));
-        } catch (InputOutputException e) {
-            logger.error("Can not move conflict file " + pathElement.getPath() + " to " + conflictFilePath.toString() + ". Message: " + e.getMessage());
-        }
     }
 }

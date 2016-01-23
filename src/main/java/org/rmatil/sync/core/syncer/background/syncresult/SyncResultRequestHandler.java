@@ -6,7 +6,6 @@ import org.rmatil.sync.core.Zip;
 import org.rmatil.sync.core.eventbus.IBusEvent;
 import org.rmatil.sync.core.init.client.IExtendedLocalStateRequestCallback;
 import org.rmatil.sync.core.messaging.fileexchange.demand.FileDemandExchangeHandler;
-import org.rmatil.sync.core.syncer.background.BackgroundSyncer;
 import org.rmatil.sync.event.aggregator.api.IEventAggregator;
 import org.rmatil.sync.network.api.IClient;
 import org.rmatil.sync.network.api.IClientManager;

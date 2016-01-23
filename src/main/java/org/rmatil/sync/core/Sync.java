@@ -22,7 +22,8 @@ import org.rmatil.sync.core.messaging.fileexchange.offer.FileOfferRequestHandler
 import org.rmatil.sync.core.messaging.fileexchange.push.FilePushRequest;
 import org.rmatil.sync.core.messaging.fileexchange.push.FilePushRequestHandler;
 import org.rmatil.sync.core.model.RemoteClientLocation;
-import org.rmatil.sync.core.syncer.background.BackgroundSyncer;
+import org.rmatil.sync.core.syncer.background.IBackgroundSyncer;
+import org.rmatil.sync.core.syncer.background.NonBlockingBackgroundSyncer;
 import org.rmatil.sync.core.syncer.background.fetchobjectstore.FetchObjectStoreRequest;
 import org.rmatil.sync.core.syncer.background.fetchobjectstore.FetchObjectStoreRequestHandler;
 import org.rmatil.sync.core.syncer.background.initsync.InitSyncRequest;
@@ -40,12 +41,9 @@ import org.rmatil.sync.event.aggregator.api.IEventListener;
 import org.rmatil.sync.network.api.IClient;
 import org.rmatil.sync.network.api.IClientManager;
 import org.rmatil.sync.network.api.IUser;
-import org.rmatil.sync.network.config.Config;
 import org.rmatil.sync.network.core.Client;
-import org.rmatil.sync.network.core.ClientManager;
 import org.rmatil.sync.network.core.model.ClientDevice;
 import org.rmatil.sync.network.core.model.User;
-import org.rmatil.sync.persistence.core.dht.DhtStorageAdapter;
 import org.rmatil.sync.persistence.core.local.LocalStorageAdapter;
 import org.rmatil.sync.version.api.IObjectStore;
 
@@ -64,6 +62,8 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 public class Sync {
+
+    protected static int backgroundSyncerCounter = 0;
 
     protected Path rootPath;
 
@@ -163,9 +163,21 @@ public class Sync {
 
         objectDataReplyHandler.setEventAggregator(eventAggregator);
 
-        BackgroundSyncer backgroundSyncer = new BackgroundSyncer(eventAggregator, client, clientManager);
-        ScheduledExecutorService executorService1 = Executors.newSingleThreadScheduledExecutor();
-        executorService1.scheduleAtFixedRate(backgroundSyncer, 600L, 600L, TimeUnit.SECONDS);
+//        BlockingBackgroundSyncer blockingBackgroundSyncer = new BlockingBackgroundSyncer(eventAggregator, client, clientManager);
+        IBackgroundSyncer backgroundSyncer = new NonBlockingBackgroundSyncer(
+                eventAggregator,
+                client,
+                clientManager,
+                objectStore,
+                localStorageAdapter,
+                globalEventBus
+        );
+        if (backgroundSyncerCounter < 1) {
+            ScheduledExecutorService executorService1 = Executors.newSingleThreadScheduledExecutor();
+            executorService1.scheduleAtFixedRate(backgroundSyncer, 20L, 600L, TimeUnit.SECONDS);
+
+            backgroundSyncerCounter++;
+        }
 
         // now set the peer address once we know it
         return new ClientDevice(userName, clientId, client.getPeerAddress());

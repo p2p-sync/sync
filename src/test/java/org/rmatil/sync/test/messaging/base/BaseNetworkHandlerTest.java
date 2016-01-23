@@ -32,10 +32,12 @@ import org.rmatil.sync.network.api.IUser;
 import org.rmatil.sync.network.core.Client;
 import org.rmatil.sync.network.core.ClientManager;
 import org.rmatil.sync.network.core.model.ClientDevice;
+import org.rmatil.sync.network.core.model.ClientLocation;
 import org.rmatil.sync.network.core.model.User;
 import org.rmatil.sync.persistence.api.IStorageAdapter;
 import org.rmatil.sync.persistence.core.dht.DhtStorageAdapter;
 import org.rmatil.sync.persistence.core.local.LocalStorageAdapter;
+import org.rmatil.sync.persistence.exceptions.InputOutputException;
 import org.rmatil.sync.test.config.Config;
 import org.rmatil.sync.version.api.IObjectStore;
 
@@ -100,9 +102,11 @@ public abstract class BaseNetworkHandlerTest {
     protected static IClientManager CLIENT_MANAGER_1;
     protected static IClientManager CLIENT_MANAGER_2;
 
+    protected static List<ClientLocation> CLIENT_LOCATIONS;
+
     @BeforeClass
     public static void setUp()
-            throws IOException {
+            throws IOException, InputOutputException {
 
         createTestDirs();
         createObjectStoreDirs();
@@ -142,6 +146,8 @@ public abstract class BaseNetworkHandlerTest {
 
         CLIENT_DEVICE_1 = new ClientDevice(USERNAME, CLIENT_ID_1, CLIENT_1.getPeerAddress());
         CLIENT_DEVICE_2 = new ClientDevice(USERNAME, CLIENT_ID_2, CLIENT_2.getPeerAddress());
+
+        CLIENT_LOCATIONS = CLIENT_MANAGER_2.getClientLocations(USER);
     }
 
     @AfterClass
