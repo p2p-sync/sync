@@ -32,17 +32,11 @@ public class FileOfferExchangeHandlerTest extends BaseNetworkHandlerTest {
     protected static Path TEST_FILE_5 = Paths.get("fileToDelete.txt");
     protected static Path TARGET_DIR  = Paths.get("targetDir");
 
-    protected static UUID exchangeId = UUID.randomUUID();
     protected static MoveEvent                moveDirEvent;
     protected static MoveEvent                moveFileEvent;
     protected static MoveEvent                moveConflictFileEvent;
     protected static DeleteEvent              deleteDirEvent;
     protected static DeleteEvent              deleteFileEvent;
-    protected static FileOfferExchangeHandler dirOfferExchangeHandler;
-    protected static FileOfferExchangeHandler fileOfferExchangeHandler;
-    protected static FileOfferExchangeHandler conflictFileOfferExchangeHandler;
-    protected static FileOfferExchangeHandler deleteDirOfferExchangeHandler;
-    protected static FileOfferExchangeHandler deleteFileOfferExchangeHandler;
 
     @BeforeClass
     public static void setUpChild()
@@ -127,39 +121,6 @@ public class FileOfferExchangeHandlerTest extends BaseNetworkHandlerTest {
                 fileObject.getVersions().get(Math.max(fileObject.getVersions().size() - 1, 0)).getHash(),
                 System.currentTimeMillis()
         );
-
-        dirOfferExchangeHandler = new FileOfferExchangeHandler(
-                exchangeId,
-                CLIENT_DEVICE_1,
-                CLIENT_MANAGER_1,
-                CLIENT_1,
-                OBJECT_STORE_1,
-                STORAGE_ADAPTER_1,
-                GLOBAL_EVENT_BUS_1,
-                moveDirEvent
-        );
-
-        fileOfferExchangeHandler = new FileOfferExchangeHandler(
-                exchangeId,
-                CLIENT_DEVICE_1,
-                CLIENT_MANAGER_1,
-                CLIENT_1,
-                OBJECT_STORE_1,
-                STORAGE_ADAPTER_1,
-                GLOBAL_EVENT_BUS_1,
-                moveFileEvent
-        );
-
-        conflictFileOfferExchangeHandler = new FileOfferExchangeHandler(
-                exchangeId,
-                CLIENT_DEVICE_1,
-                CLIENT_MANAGER_1,
-                CLIENT_1,
-                OBJECT_STORE_1,
-                STORAGE_ADAPTER_1,
-                GLOBAL_EVENT_BUS_1,
-                moveConflictFileEvent
-        );
     }
 
     @Test
@@ -170,6 +131,20 @@ public class FileOfferExchangeHandlerTest extends BaseNetworkHandlerTest {
         STORAGE_ADAPTER_1.move(StorageType.DIRECTORY, new LocalPathElement(TEST_DIR_1.toString()), new LocalPathElement(TARGET_DIR.resolve(TEST_DIR_1).toString()));
         // force recreation of object store
         OBJECT_STORE_1.sync(ROOT_TEST_DIR1.toFile());
+
+        UUID exchangeId = UUID.randomUUID();
+
+        FileOfferExchangeHandler dirOfferExchangeHandler = new FileOfferExchangeHandler(
+                exchangeId,
+                CLIENT_DEVICE_1,
+                CLIENT_MANAGER_1,
+                CLIENT_1,
+                OBJECT_STORE_1,
+                STORAGE_ADAPTER_1,
+                GLOBAL_EVENT_BUS_1,
+                moveDirEvent
+        );
+
 
         CLIENT_1.getObjectDataReplyHandler().addResponseCallbackHandler(exchangeId, dirOfferExchangeHandler);
 
@@ -200,6 +175,19 @@ public class FileOfferExchangeHandlerTest extends BaseNetworkHandlerTest {
         STORAGE_ADAPTER_1.move(StorageType.FILE, new LocalPathElement(TEST_FILE_2.toString()), new LocalPathElement(TARGET_DIR.resolve(TEST_FILE_2.getFileName().toString()).toString()));
         // force recreation of object store
         OBJECT_STORE_1.sync(ROOT_TEST_DIR1.toFile());
+
+        UUID exchangeId = UUID.randomUUID();
+
+        FileOfferExchangeHandler fileOfferExchangeHandler = new FileOfferExchangeHandler(
+                exchangeId,
+                CLIENT_DEVICE_1,
+                CLIENT_MANAGER_1,
+                CLIENT_1,
+                OBJECT_STORE_1,
+                STORAGE_ADAPTER_1,
+                GLOBAL_EVENT_BUS_1,
+                moveFileEvent
+        );
 
         CLIENT_1.getObjectDataReplyHandler().addResponseCallbackHandler(exchangeId, fileOfferExchangeHandler);
 
@@ -235,13 +223,26 @@ public class FileOfferExchangeHandlerTest extends BaseNetworkHandlerTest {
         STORAGE_ADAPTER_2.move(StorageType.FILE, new LocalPathElement(TEST_FILE_3.toString()), new LocalPathElement(TARGET_DIR.resolve(TEST_FILE_3.getFileName().toString()).toString()));
         OBJECT_STORE_2.sync(ROOT_TEST_DIR2.toFile());
 
+        UUID exchangeId = UUID.randomUUID();
+
+        FileOfferExchangeHandler conflictFileOfferExchangeHandler = new FileOfferExchangeHandler(
+                exchangeId,
+                CLIENT_DEVICE_1,
+                CLIENT_MANAGER_1,
+                CLIENT_1,
+                OBJECT_STORE_1,
+                STORAGE_ADAPTER_1,
+                GLOBAL_EVENT_BUS_1,
+                moveConflictFileEvent
+        );
+
         CLIENT_1.getObjectDataReplyHandler().addResponseCallbackHandler(exchangeId, conflictFileOfferExchangeHandler);
 
         Thread conflictFileOfferExchangeHandlerThread = new Thread(conflictFileOfferExchangeHandler);
         conflictFileOfferExchangeHandlerThread.setName("TEST-ConflictFileOfferExchangeHandler");
         conflictFileOfferExchangeHandlerThread.start();
 
-        
+
         // wait for completion
         conflictFileOfferExchangeHandler.await();
 
@@ -267,7 +268,9 @@ public class FileOfferExchangeHandlerTest extends BaseNetworkHandlerTest {
                 System.currentTimeMillis()
         );
 
-        deleteDirOfferExchangeHandler = new FileOfferExchangeHandler(
+        UUID exchangeId = UUID.randomUUID();
+
+        FileOfferExchangeHandler deleteDirOfferExchangeHandler = new FileOfferExchangeHandler(
                 exchangeId,
                 CLIENT_DEVICE_1,
                 CLIENT_MANAGER_1,
@@ -309,7 +312,9 @@ public class FileOfferExchangeHandlerTest extends BaseNetworkHandlerTest {
                 System.currentTimeMillis()
         );
 
-        deleteFileOfferExchangeHandler = new FileOfferExchangeHandler(
+        UUID exchangeId = UUID.randomUUID();
+
+        FileOfferExchangeHandler deleteFileOfferExchangeHandler = new FileOfferExchangeHandler(
                 exchangeId,
                 CLIENT_DEVICE_1,
                 CLIENT_MANAGER_1,
