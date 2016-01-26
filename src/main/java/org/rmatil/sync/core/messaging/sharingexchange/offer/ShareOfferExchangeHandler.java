@@ -7,7 +7,6 @@ import org.rmatil.sync.network.core.ANetworkHandler;
 import org.rmatil.sync.network.core.model.ClientDevice;
 import org.rmatil.sync.network.core.model.ClientLocation;
 import org.rmatil.sync.persistence.exceptions.InputOutputException;
-import org.rmatil.sync.version.api.AccessType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -42,7 +41,7 @@ public class ShareOfferExchangeHandler extends ANetworkHandler<ShareOfferExchang
     @Override
     public void run() {
         try {
-            logger.info("Starting ShareOfferExchange " + this.exchangeId + " and proposing unique fileId "  + this.negotiatedExchangeId);
+            logger.info("Starting ShareOfferExchange " + this.exchangeId + " and proposing unique fileId " + this.negotiatedExchangeId);
 
             // Fetch client locations from the DHT
             List<ClientLocation> clientLocations;

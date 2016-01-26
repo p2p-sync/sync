@@ -3,7 +3,6 @@ package org.rmatil.sync.core.messaging.sharingexchange.offer;
 import net.engio.mbassy.bus.MBassador;
 import org.rmatil.sync.core.eventbus.IBusEvent;
 import org.rmatil.sync.core.init.client.ILocalStateRequestCallback;
-import org.rmatil.sync.core.messaging.fileexchange.offer.FileOfferRequest;
 import org.rmatil.sync.network.api.IClient;
 import org.rmatil.sync.network.api.IRequest;
 import org.rmatil.sync.network.core.model.ClientDevice;
@@ -11,11 +10,8 @@ import org.rmatil.sync.network.core.model.ClientLocation;
 import org.rmatil.sync.persistence.api.IStorageAdapter;
 import org.rmatil.sync.version.api.IObjectStore;
 import org.rmatil.sync.version.core.model.PathObject;
-import org.rmatil.sync.version.core.model.Sharer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.Set;
 
 public class ShareOfferRequestHandler implements ILocalStateRequestCallback {
 
@@ -24,7 +20,7 @@ public class ShareOfferRequestHandler implements ILocalStateRequestCallback {
     protected IStorageAdapter      storageAdapter;
     protected IObjectStore         objectStore;
     protected IClient              client;
-    protected ShareOfferRequest     request;
+    protected ShareOfferRequest    request;
     protected MBassador<IBusEvent> globalEventBus;
 
     @Override
@@ -59,7 +55,7 @@ public class ShareOfferRequestHandler implements ILocalStateRequestCallback {
     @Override
     public void run() {
         try {
-            PathObject pathObject = this.objectStore.getObjectManager().getObjectForPath(this.request.getPath());
+            PathObject pathObject = this.objectStore.getObjectManager().getObjectForPath(this.request.getRelativePathToSharedFolder());
 
             if (null == pathObject.getFileId() || this.request.getFileId().equals(pathObject.getFileId())) {
                 // we accept the offer response
