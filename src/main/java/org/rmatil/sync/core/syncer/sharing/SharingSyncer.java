@@ -36,6 +36,8 @@ public class SharingSyncer implements ISharingSyncer {
 
         // share event
 
+        // TODO: share events recursively from parent to children (only if folder)
+
         // TODO: create UUID (propose) and negotiate sharing with all own clients
         ShareOfferExchangeHandler shareOfferExchangeHandler = new ShareOfferExchangeHandler(
                 this.client,

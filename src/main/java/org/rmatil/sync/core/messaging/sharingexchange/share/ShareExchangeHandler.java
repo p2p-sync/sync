@@ -121,6 +121,7 @@ public class ShareExchangeHandler extends ANetworkHandler<ShareExchangeHandlerRe
                 ),
                 sharer,
                 this.fileId,
+                this.accessType,
                 this.relativeFilePath,
                 fileMetaInfo.isFile(),
                 chunkCounter,

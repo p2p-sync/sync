@@ -55,7 +55,7 @@ public class ShareOfferRequestHandler implements ILocalStateRequestCallback {
     @Override
     public void run() {
         try {
-            PathObject pathObject = this.objectStore.getObjectManager().getObjectForPath(this.request.getRelativePathToSharedFolder());
+            PathObject pathObject = this.objectStore.getObjectManager().getObjectForPath(this.request.getPath());
 
             if (null == pathObject.getFileId() || this.request.getFileId().equals(pathObject.getFileId())) {
                 // we accept the offer response
