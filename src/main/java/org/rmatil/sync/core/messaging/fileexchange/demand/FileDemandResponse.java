@@ -1,7 +1,7 @@
 package org.rmatil.sync.core.messaging.fileexchange.demand;
 
 
-import org.rmatil.sync.core.messaging.fileexchange.base.AResponse;
+import org.rmatil.sync.core.messaging.base.AResponse;
 import org.rmatil.sync.network.core.model.ClientDevice;
 import org.rmatil.sync.network.core.model.ClientLocation;
 import org.rmatil.sync.network.core.model.Data;

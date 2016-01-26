@@ -1,12 +1,13 @@
-package org.rmatil.sync.core.messaging.fileexchange.base;
+package org.rmatil.sync.core.messaging.base;
 
-import org.rmatil.sync.network.api.IResponse;
+import org.rmatil.sync.network.api.IRequest;
 import org.rmatil.sync.network.core.model.ClientDevice;
 import org.rmatil.sync.network.core.model.ClientLocation;
 
+import java.util.List;
 import java.util.UUID;
 
-public class AResponse implements IResponse {
+public abstract class ARequest implements IRequest {
 
     /**
      * The id of the exchange to which this request belongs
@@ -21,19 +22,23 @@ public class AResponse implements IResponse {
     /**
      * All addresses which should receive this request
      */
-    protected ClientLocation receiverAddress;
+    protected List<ClientLocation> receiverAddresses;
 
     /**
      * @param exchangeId The id of the exchange to which this request belongs
      * @param clientDevice The client device which sends this request
-     * @param receiverAddress The client which had sent the corresponding request to this response
+     * @param receiverAddresses All client locations which should receive this requeust
      */
-    public AResponse(UUID exchangeId, ClientDevice clientDevice, ClientLocation receiverAddress) {
+    public ARequest(UUID exchangeId, ClientDevice clientDevice, List<ClientLocation> receiverAddresses) {
         this.exchangeId = exchangeId;
         this.clientDevice = clientDevice;
-        this.receiverAddress = receiverAddress;
+        this.receiverAddresses = receiverAddresses;
     }
 
+    @Override
+    public List<ClientLocation> getReceiverAddresses() {
+        return this.receiverAddresses;
+    }
 
     @Override
     public UUID getExchangeId() {
@@ -43,10 +48,5 @@ public class AResponse implements IResponse {
     @Override
     public ClientDevice getClientDevice() {
         return this.clientDevice;
-    }
-
-    @Override
-    public ClientLocation getReceiverAddress() {
-        return this.receiverAddress;
     }
 }

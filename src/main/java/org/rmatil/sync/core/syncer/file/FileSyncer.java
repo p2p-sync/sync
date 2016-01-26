@@ -13,7 +13,7 @@ import org.rmatil.sync.core.messaging.fileexchange.offer.FileOfferExchangeHandle
 import org.rmatil.sync.core.messaging.fileexchange.offer.FileOfferExchangeHandlerResult;
 import org.rmatil.sync.core.messaging.fileexchange.offer.FileOfferResponse;
 import org.rmatil.sync.core.messaging.fileexchange.push.FilePushExchangeHandler;
-import org.rmatil.sync.core.syncer.ISyncer;
+import org.rmatil.sync.core.api.IFileSyncer;
 import org.rmatil.sync.event.aggregator.core.events.DeleteEvent;
 import org.rmatil.sync.event.aggregator.core.events.IEvent;
 import org.rmatil.sync.event.aggregator.core.events.ModifyEvent;
@@ -42,7 +42,7 @@ import java.util.concurrent.Executors;
  * Initializes the file offering protocol for each local file event which
  * has been passed to the syncer
  */
-public class FileSyncer implements ISyncer {
+public class FileSyncer implements IFileSyncer {
 
     protected static final Logger logger = LoggerFactory.getLogger(FileSyncer.class);
 

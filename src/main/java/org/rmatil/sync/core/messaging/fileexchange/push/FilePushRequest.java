@@ -1,6 +1,6 @@
 package org.rmatil.sync.core.messaging.fileexchange.push;
 
-import org.rmatil.sync.core.messaging.fileexchange.base.ARequest;
+import org.rmatil.sync.core.messaging.base.ARequest;
 import org.rmatil.sync.network.core.model.ClientDevice;
 import org.rmatil.sync.network.core.model.ClientLocation;
 import org.rmatil.sync.network.core.model.Data;
