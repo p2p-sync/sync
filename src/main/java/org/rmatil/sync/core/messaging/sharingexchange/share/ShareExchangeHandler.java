@@ -18,6 +18,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 public class ShareExchangeHandler extends ANetworkHandler<ShareExchangeHandlerResult> {
 
@@ -49,6 +51,13 @@ public class ShareExchangeHandler extends ANetworkHandler<ShareExchangeHandlerRe
 
     protected String relativeFilePath;
 
+    /**
+     * A count down latch to check if all clients have received all chunks.
+     * We have to use this one instead of {@link ANetworkHandler#countDownLatch} since
+     * we are sending file chunks as subrequests one by one
+     */
+    protected CountDownLatch chunkCountDownLatch;
+
     public ShareExchangeHandler(IClient client, IClientManager clientManager, ClientLocation receiverAddress, IStorageAdapter storageAdapter, String relativeFilePath, AccessType accessType, UUID fileId, boolean isFile, UUID exchangeId) {
         super(client);
         this.clientManager = clientManager;
@@ -66,6 +75,8 @@ public class ShareExchangeHandler extends ANetworkHandler<ShareExchangeHandlerRe
         try {
             logger.info("Sharing file " + this.fileId + " with client on " + this.receiverAddress.getPeerAddress().inetAddress().getHostName() + ":" + this.receiverAddress.getPeerAddress().tcpPort());
 
+            this.chunkCountDownLatch = new CountDownLatch(1);
+
             this.sendChunk(0, this.exchangeId, receiverAddress);
 
         } catch (Exception e) {
@@ -75,12 +86,47 @@ public class ShareExchangeHandler extends ANetworkHandler<ShareExchangeHandlerRe
 
     @Override
     public void onResponse(IResponse response) {
+        if (response instanceof ShareResponse) {
+            if (- 1 < ((ShareResponse) response).getChunkCounter()) {
+                this.sendChunk(((ShareResponse) response).getChunkCounter(), response.getExchangeId(), new ClientLocation(response.getClientDevice().getClientDeviceId(), response.getClientDevice().getPeerAddress()));
+            } else {
+                // exchange is finished
+                super.client.getObjectDataReplyHandler().removeResponseCallbackHandler(response.getExchangeId());
 
+                try {
+                    super.waitForSentCountDownLatch.await(MAX_WAITING_TIME, TimeUnit.MILLISECONDS);
+                } catch (InterruptedException e) {
+                    logger.error("Got interrupted while waiting that all requests have been sent to all clients");
+                }
+
+                super.countDownLatch.countDown();
+                this.chunkCountDownLatch.countDown();
+            }
+        }
+    }
+
+    @Override
+    public void await()
+            throws InterruptedException {
+        super.await();
+        this.chunkCountDownLatch.await(MAX_FILE_WWAITNG_TIME, TimeUnit.MILLISECONDS);
+    }
+
+    @Override
+    public void await(long timeout, TimeUnit timeUnit)
+            throws InterruptedException {
+        super.await();
+        this.chunkCountDownLatch.await(MAX_FILE_WWAITNG_TIME, TimeUnit.MILLISECONDS);
+    }
+
+    @Override
+    public boolean isCompleted() {
+        return null != this.chunkCountDownLatch && 0L == this.chunkCountDownLatch.getCount();
     }
 
     @Override
     public ShareExchangeHandlerResult getResult() {
-        return null;
+        return new ShareExchangeHandlerResult();
     }
 
     protected void sendChunk(long chunkCounter, UUID exchangeId, ClientLocation sharer) {
