@@ -1,5 +1,8 @@
 package org.rmatil.sync.core.init.objecstore;
 
+import net.engio.mbassy.listener.Handler;
+import org.rmatil.sync.core.eventbus.IBusEvent;
+import org.rmatil.sync.core.eventbus.IgnoreBusEvent;
 import org.rmatil.sync.event.aggregator.api.IEventListener;
 import org.rmatil.sync.event.aggregator.core.events.*;
 import org.rmatil.sync.persistence.exceptions.InputOutputException;
@@ -8,6 +11,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class ObjectStoreFileChangeListener implements IEventListener {
 
@@ -15,15 +20,37 @@ public class ObjectStoreFileChangeListener implements IEventListener {
 
     protected IObjectStore objectStore;
 
+    protected final Queue<IEvent> ignoredEvents;
+
     public ObjectStoreFileChangeListener(IObjectStore objectStore) {
         this.objectStore = objectStore;
+        this.ignoredEvents = new ConcurrentLinkedQueue<>();
+    }
 
+    @Handler
+    public void handleBusEvent(IgnoreBusEvent ignoreBusEvent) {
+        logger.debug("Got notified from event bus: " + ignoreBusEvent.getEvent().getEventName() + " for file " + ignoreBusEvent.getEvent().getPath().toString());
+        this.ignoredEvents.add(ignoreBusEvent.getEvent());
     }
 
     public void onChange(List<IEvent> list) {
         logger.trace("Got notified about " + list.size() + " new events");
 
         for (IEvent event : list) {
+
+            synchronized (this.ignoredEvents) {
+                for (IEvent eventToCheck : this.ignoredEvents) {
+                    // weak ignoring events
+                    if (eventToCheck.getEventName().equals(event.getEventName()) &&
+                            eventToCheck.getPath().toString().equals(event.getPath().toString())) {
+
+                        logger.info("Ignoring changing objectStore for event " + event.getEventName() + " for path " + event.getPath().toString());
+                        this.ignoredEvents.remove(event);
+                        return;
+                    }
+                }
+            }
+
             switch (event.getEventName()) {
                 case ModifyEvent.EVENT_NAME:
                     logger.trace("ModifyEvent for file " + event.getPath().toString());
