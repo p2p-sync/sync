@@ -5,7 +5,7 @@ import org.rmatil.sync.version.api.AccessType;
 
 import java.nio.file.Path;
 
-public class FileShareEvent implements IShareEvent {
+public class ShareEvent implements IShareEvent {
 
     protected Path relativePath;
 
@@ -13,7 +13,7 @@ public class FileShareEvent implements IShareEvent {
 
     protected String usernameToShareWith;
 
-    public FileShareEvent(Path relativePath, AccessType accessType, String usernameToShareWith) {
+    public ShareEvent(Path relativePath, AccessType accessType, String usernameToShareWith) {
         this.relativePath = relativePath;
         this.accessType = accessType;
         this.usernameToShareWith = usernameToShareWith;
