@@ -243,6 +243,7 @@ public class FileSyncer implements IFileSyncer {
                     this.storageAdapter,
                     this.clientManager,
                     this.client,
+                    this.objectStore,
                     acceptedAndInNeedClients,
                     event.getPath().toString()
             );

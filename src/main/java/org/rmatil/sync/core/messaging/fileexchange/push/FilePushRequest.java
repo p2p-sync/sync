@@ -4,8 +4,10 @@ import org.rmatil.sync.core.messaging.base.ARequest;
 import org.rmatil.sync.network.core.model.ClientDevice;
 import org.rmatil.sync.network.core.model.ClientLocation;
 import org.rmatil.sync.network.core.model.Data;
+import org.rmatil.sync.version.core.model.Sharer;
 
 import java.util.ArrayList;
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -52,9 +54,12 @@ public class FilePushRequest extends ARequest {
      */
     protected int chunkSize;
 
+    protected Set<Sharer> sharers;
+
     /**
      * @param exchangeId       The exchange id of the request
      * @param clientDevice     The client device which is sending this request
+     * @param sharers          The set of sharers stored on this client
      * @param relativeFilePath The relative path to the file which should be created
      * @param isFile           Whether the path represents a file or a directory
      * @param chunkCounter     The counter of the chunk contained in this request (starts at 0)
@@ -65,8 +70,9 @@ public class FilePushRequest extends ARequest {
      * @param data             The actual chunk data
      * @param receiverAddress  The receiver of this request
      */
-    public FilePushRequest(UUID exchangeId, ClientDevice clientDevice, String relativeFilePath, boolean isFile, long chunkCounter, int chunkSize, long totalNrOfChunks, long totalFileSize, Data data, ClientLocation receiverAddress) {
+    public FilePushRequest(UUID exchangeId, ClientDevice clientDevice, Set<Sharer> sharers, String relativeFilePath, boolean isFile, long chunkCounter, int chunkSize, long totalNrOfChunks, long totalFileSize, Data data, ClientLocation receiverAddress) {
         super(exchangeId, clientDevice, new ArrayList<>());
+        this.sharers = sharers;
         this.relativeFilePath = relativeFilePath;
         this.isFile = isFile;
         this.chunkCounter = chunkCounter;
@@ -76,6 +82,15 @@ public class FilePushRequest extends ARequest {
         this.data = data;
 
         super.receiverAddresses.add(receiverAddress);
+    }
+
+    /**
+     * Returns the list of sharers of the file
+     *
+     * @return The list of sharers
+     */
+    public Set<Sharer> getSharers() {
+        return sharers;
     }
 
     /**

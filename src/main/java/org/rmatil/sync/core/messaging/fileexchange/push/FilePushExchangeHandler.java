@@ -15,12 +15,12 @@ import org.rmatil.sync.persistence.api.IPathElement;
 import org.rmatil.sync.persistence.api.IStorageAdapter;
 import org.rmatil.sync.persistence.core.local.LocalPathElement;
 import org.rmatil.sync.persistence.exceptions.InputOutputException;
+import org.rmatil.sync.version.api.IObjectStore;
+import org.rmatil.sync.version.core.model.Sharer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
@@ -59,6 +59,11 @@ public class FilePushExchangeHandler extends ANetworkHandler<FilePushExchangeHan
     protected IClientManager clientManager;
 
     /**
+     * The object store to read the sharers from
+     */
+    protected IObjectStore objectStore;
+
+    /**
      * The relative path to the file/directory which should be pushed
      */
     protected String relativeFilePath;
@@ -72,12 +77,13 @@ public class FilePushExchangeHandler extends ANetworkHandler<FilePushExchangeHan
 
     protected List<ClientLocation> receivers;
 
-    public FilePushExchangeHandler(UUID exchangeId, ClientDevice clientDevice, IStorageAdapter storageAdapter, IClientManager clientManager, IClient client, List<ClientLocation> receivers, String relativeFilePath) {
+    public FilePushExchangeHandler(UUID exchangeId, ClientDevice clientDevice, IStorageAdapter storageAdapter, IClientManager clientManager, IClient client, IObjectStore objectStore, List<ClientLocation> receivers, String relativeFilePath) {
         super(client);
         this.clientDevice = clientDevice;
         this.exchangeId = exchangeId;
         this.storageAdapter = storageAdapter;
         this.clientManager = clientManager;
+        this.objectStore = objectStore;
         this.receivers = receivers;
         this.relativeFilePath = relativeFilePath;
     }
@@ -198,9 +204,18 @@ public class FilePushExchangeHandler extends ANetworkHandler<FilePushExchangeHan
             data = new Data(content, false);
         }
 
+        Set<Sharer> sharers = new HashSet<>();
+        try {
+            sharers = this.objectStore.getSharerManager().getSharer(this.relativeFilePath);
+        } catch (InputOutputException e) {
+            logger.error("Failed to read the sharers for file " + this.relativeFilePath + ". Sending an empty sharer set. Message: " + e.getMessage());
+        }
+
+
         IRequest request = new FilePushRequest(
                 exchangeId,
                 this.clientDevice,
+                sharers,
                 this.relativeFilePath,
                 fileMetaInfo.isFile(),
                 chunkCounter,

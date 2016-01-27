@@ -1,6 +1,7 @@
 package org.rmatil.sync.core.messaging.fileexchange.push;
 
 import net.engio.mbassy.bus.MBassador;
+import org.rmatil.sync.core.eventbus.AddSharerToObjectStoreBusEvent;
 import org.rmatil.sync.core.eventbus.IBusEvent;
 import org.rmatil.sync.core.eventbus.IgnoreBusEvent;
 import org.rmatil.sync.core.init.client.ILocalStateRequestCallback;
@@ -100,6 +101,11 @@ public class FilePushRequestHandler implements ILocalStateRequestCallback {
                                         "weIgnoreTheHash",
                                         System.currentTimeMillis()
                                 )
+                        ));
+
+                        this.globalEventBus.publish(new AddSharerToObjectStoreBusEvent(
+                                this.request.getRelativeFilePath(),
+                                this.request.getSharers()
                         ));
                     }
                 } catch (InputOutputException e) {

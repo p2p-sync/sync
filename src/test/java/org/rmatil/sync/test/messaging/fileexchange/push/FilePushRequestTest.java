@@ -6,6 +6,7 @@ import org.rmatil.sync.network.core.model.ClientDevice;
 import org.rmatil.sync.network.core.model.ClientLocation;
 import org.rmatil.sync.network.core.model.Data;
 
+import java.util.HashSet;
 import java.util.UUID;
 
 import static org.hamcrest.CoreMatchers.hasItem;
@@ -29,6 +30,7 @@ public class FilePushRequestTest {
         FilePushRequest filePushRequest = new FilePushRequest(
                 EXCHANGE_ID,
                 CLIENT_DEVICE,
+                new HashSet<>(),
                 RELATIVE_FILE_PATH,
                 IS_FILE,
                 CHUNK_COUNTER,

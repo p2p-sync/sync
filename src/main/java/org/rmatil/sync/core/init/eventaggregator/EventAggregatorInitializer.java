@@ -36,8 +36,6 @@ public class EventAggregatorInitializer implements IInitializer<IEventAggregator
 
     @Override
     public IEventAggregator init() {
-        IEventListener eventListener = new ObjectStoreFileChangeListener(objectStore);
-
         IModifier relativePathModifier = new RelativePathModifier(this.rootPath);
         IModifier addDirectoryContentModifier = new AddDirectoryContentModifier(this.rootPath, this.objectStore);
         IModifier ignorePathsModifier = new IgnorePathsModifier(ignoredPaths);
@@ -49,7 +47,6 @@ public class EventAggregatorInitializer implements IInitializer<IEventAggregator
 
         this.eventAggregator.setAggregationInterval(this.aggregationInterval);
 
-        this.eventAggregator.addListener(eventListener);
         for (IEventListener listener : this.eventListeners) {
             this.eventAggregator.addListener(listener);
         }

@@ -1,17 +1,19 @@
 package org.rmatil.sync.core.init.objecstore;
 
 import net.engio.mbassy.listener.Handler;
-import org.rmatil.sync.core.eventbus.IBusEvent;
+import org.rmatil.sync.core.eventbus.AddSharerToObjectStoreBusEvent;
 import org.rmatil.sync.core.eventbus.IgnoreBusEvent;
 import org.rmatil.sync.event.aggregator.api.IEventListener;
 import org.rmatil.sync.event.aggregator.core.events.*;
 import org.rmatil.sync.persistence.exceptions.InputOutputException;
 import org.rmatil.sync.version.api.IObjectStore;
+import org.rmatil.sync.version.core.model.PathObject;
+import org.rmatil.sync.version.core.model.Sharer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.List;
-import java.util.Queue;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class ObjectStoreFileChangeListener implements IEventListener {
@@ -22,15 +24,33 @@ public class ObjectStoreFileChangeListener implements IEventListener {
 
     protected final Queue<IEvent> ignoredEvents;
 
+    protected final Map<String, Set<Sharer>> sharerToAdd;
+
     public ObjectStoreFileChangeListener(IObjectStore objectStore) {
         this.objectStore = objectStore;
         this.ignoredEvents = new ConcurrentLinkedQueue<>();
+        this.sharerToAdd = new ConcurrentHashMap<>();
     }
 
     @Handler
     public void handleBusEvent(IgnoreBusEvent ignoreBusEvent) {
         logger.debug("Got notified from event bus: " + ignoreBusEvent.getEvent().getEventName() + " for file " + ignoreBusEvent.getEvent().getPath().toString());
         this.ignoredEvents.add(ignoreBusEvent.getEvent());
+    }
+
+    @Handler
+    public void handleSharerEvent(AddSharerToObjectStoreBusEvent addSharerEvent) {
+        logger.debug("Got notified from event bus: AddSharerToObjectStoreBusEvent for file " + addSharerEvent.getRelativeFilePath() + " receiving " + addSharerEvent.getSharers().size() + " sharers");
+
+        synchronized (this.sharerToAdd) {
+            if (null == this.sharerToAdd.get(addSharerEvent.getRelativeFilePath())) {
+                this.sharerToAdd.put(addSharerEvent.getRelativeFilePath(), new HashSet<>());
+            }
+
+            for (Sharer entry : addSharerEvent.getSharers()) {
+                this.sharerToAdd.get(addSharerEvent.getRelativeFilePath()).add(entry);
+            }
+        }
     }
 
     public void onChange(List<IEvent> list) {
@@ -87,6 +107,53 @@ public class ObjectStoreFileChangeListener implements IEventListener {
                 default:
                     logger.error("Failed to execute unknown event " + event.getClass().getName());
             }
+
+            // add sharers to the file, if there should be any
+            synchronized (this.sharerToAdd) {
+                Set<Sharer> sharers = this.sharerToAdd.get(event.getPath().toString());
+                if (null != sharers) {
+                    try {
+                        this.setSharers(event.getPath().toString(), sharers);
+                    } catch (InputOutputException e) {
+                        logger.error("Failed to write sharers for file " + event.getPath().toString());
+                    }
+                }
+            }
         }
+    }
+
+    /**
+     * Add sharers to the object store
+     *
+     * @param filePath The file path for which the sharers should be added
+     * @param sharers  The sharers for the file
+     *
+     * @throws InputOutputException If accessing the object manager fails
+     */
+    public void setSharers(String filePath, Set<Sharer> sharers)
+            throws InputOutputException {
+        PathObject pathObject = this.objectStore.getObjectManager().getObjectForPath(filePath);
+
+        if (null == pathObject) {
+            logger.error("Could not add the sharer and the file id to path " + filePath + ". Aborting on this client and relying on the next background sync");
+            return;
+        }
+
+        // generate the file id for the file
+        UUID fileId = UUID.nameUUIDFromBytes(
+                this.objectStore.getObjectManager().getHashForPath(filePath).getBytes()
+        );
+
+        pathObject.setFileId(fileId);
+
+        if (! sharers.isEmpty()) {
+            pathObject.setIsShared(true);
+        }
+
+        for (Sharer entry : sharers) {
+            pathObject.getSharers().add(entry);
+        }
+
+        this.objectStore.getObjectManager().writeObject(pathObject);
     }
 }

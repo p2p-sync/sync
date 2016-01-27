@@ -2,8 +2,12 @@ package org.rmatil.sync.core.messaging.sharingexchange.unshare;
 
 import net.engio.mbassy.bus.MBassador;
 import org.rmatil.sync.core.eventbus.IBusEvent;
+import org.rmatil.sync.core.init.client.IExtendedLocalStateRequestCallback;
 import org.rmatil.sync.core.init.client.ILocalStateRequestCallback;
+import org.rmatil.sync.core.messaging.sharingexchange.unshared.UnsharedExchangeHandler;
+import org.rmatil.sync.event.aggregator.api.IEventAggregator;
 import org.rmatil.sync.network.api.IClient;
+import org.rmatil.sync.network.api.IClientManager;
 import org.rmatil.sync.network.api.IRequest;
 import org.rmatil.sync.network.api.IResponse;
 import org.rmatil.sync.network.core.model.ClientDevice;
@@ -14,13 +18,17 @@ import org.rmatil.sync.version.core.model.PathObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class UnshareRequestHandler implements ILocalStateRequestCallback {
+import java.util.UUID;
+
+public class UnshareRequestHandler implements IExtendedLocalStateRequestCallback {
 
     private static final Logger logger = LoggerFactory.getLogger(UnshareRequestHandler.class);
 
     protected IStorageAdapter      storageAdapter;
     protected IObjectStore         objectStore;
     protected IClient              client;
+    protected IClientManager       clientManager;
+    protected IEventAggregator     eventAggregator;
     protected UnshareRequest       request;
     protected MBassador<IBusEvent> globalEventBus;
 
@@ -42,6 +50,16 @@ public class UnshareRequestHandler implements ILocalStateRequestCallback {
     @Override
     public void setClient(IClient iClient) {
         this.client = iClient;
+    }
+
+    @Override
+    public void setClientManager(IClientManager clientManager) {
+        this.clientManager = clientManager;
+    }
+
+    @Override
+    public void setEventAggregator(IEventAggregator eventAggregator) {
+        this.eventAggregator = eventAggregator;
     }
 
     @Override
@@ -69,6 +87,34 @@ public class UnshareRequestHandler implements ILocalStateRequestCallback {
             );
 
             this.sendResponse(true);
+
+            UUID exchangeId = UUID.randomUUID();
+            logger.info("Starting to send unshare request for file id " + this.request.getFileId() + " to own clients. Request " + exchangeId);
+            UnsharedExchangeHandler unsharedExchangeHandler = new UnsharedExchangeHandler(
+                    this.client,
+                    this.clientManager,
+                    this.request.getFileId(),
+                    exchangeId
+            );
+
+            this.client.getObjectDataReplyHandler().addResponseCallbackHandler(exchangeId, unsharedExchangeHandler);
+
+            Thread unsharedExchangeHandlerThread = new Thread(unsharedExchangeHandler);
+            unsharedExchangeHandlerThread.setName("UnsharedExchangeHandler-" + exchangeId);
+            unsharedExchangeHandlerThread.start();
+
+            try {
+                unsharedExchangeHandler.await();
+            } catch (InterruptedException e) {
+                logger.error("Got interrupted while waiting that own clients are unsharing file " + this.request.getFileId() + " for exchange " + exchangeId);
+            }
+
+            this.client.getObjectDataReplyHandler().removeResponseCallbackHandler(exchangeId);
+
+            if (! unsharedExchangeHandler.isCompleted()) {
+                logger.error("UnsharedExchangeHandler should be completed after awaiting. Own clients may be inconsistent for sharing until next sync. Exchange " + exchangeId);
+            }
+
 
         } catch (Exception e) {
             logger.error("Got exception in UnshareRequestHandler. Message: " + e.getMessage(), e);

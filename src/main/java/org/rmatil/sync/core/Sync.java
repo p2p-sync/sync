@@ -10,6 +10,7 @@ import org.rmatil.sync.core.exception.InitializationException;
 import org.rmatil.sync.core.init.client.ClientInitializer;
 import org.rmatil.sync.core.init.client.LocalStateObjectDataReplyHandler;
 import org.rmatil.sync.core.init.eventaggregator.EventAggregatorInitializer;
+import org.rmatil.sync.core.init.objecstore.ObjectStoreFileChangeListener;
 import org.rmatil.sync.core.init.objecstore.ObjectStoreInitializer;
 import org.rmatil.sync.core.messaging.fileexchange.delete.FileDeleteRequest;
 import org.rmatil.sync.core.messaging.fileexchange.delete.FileDeleteRequestHandler;
@@ -21,12 +22,14 @@ import org.rmatil.sync.core.messaging.fileexchange.offer.FileOfferRequest;
 import org.rmatil.sync.core.messaging.fileexchange.offer.FileOfferRequestHandler;
 import org.rmatil.sync.core.messaging.fileexchange.push.FilePushRequest;
 import org.rmatil.sync.core.messaging.fileexchange.push.FilePushRequestHandler;
-import org.rmatil.sync.core.messaging.sharingexchange.offer.ShareOfferRequest;
-import org.rmatil.sync.core.messaging.sharingexchange.offer.ShareOfferRequestHandler;
 import org.rmatil.sync.core.messaging.sharingexchange.share.ShareRequest;
 import org.rmatil.sync.core.messaging.sharingexchange.share.ShareRequestHandler;
 import org.rmatil.sync.core.messaging.sharingexchange.shared.SharedRequest;
 import org.rmatil.sync.core.messaging.sharingexchange.shared.SharedRequestHandler;
+import org.rmatil.sync.core.messaging.sharingexchange.unshare.UnshareRequest;
+import org.rmatil.sync.core.messaging.sharingexchange.unshare.UnshareRequestHandler;
+import org.rmatil.sync.core.messaging.sharingexchange.unshared.UnsharedRequest;
+import org.rmatil.sync.core.messaging.sharingexchange.unshared.UnsharedRequestHandler;
 import org.rmatil.sync.core.model.RemoteClientLocation;
 import org.rmatil.sync.core.syncer.background.IBackgroundSyncer;
 import org.rmatil.sync.core.syncer.background.NonBlockingBackgroundSyncer;
@@ -129,9 +132,10 @@ public class Sync {
         objectDataReplyHandler.addRequestCallbackHandler(SyncCompleteRequest.class, SyncCompleteRequestHandler.class);
 
         // file sharing
-        objectDataReplyHandler.addRequestCallbackHandler(ShareOfferRequest.class, ShareOfferRequestHandler.class);
         objectDataReplyHandler.addRequestCallbackHandler(ShareRequest.class, ShareRequestHandler.class);
         objectDataReplyHandler.addRequestCallbackHandler(SharedRequest.class, SharedRequestHandler.class);
+        objectDataReplyHandler.addRequestCallbackHandler(UnshareRequest.class, UnshareRequestHandler.class);
+        objectDataReplyHandler.addRequestCallbackHandler(UnsharedRequest.class, UnsharedRequestHandler.class);
 
 
         ClientInitializer clientInitializer = new ClientInitializer(objectDataReplyHandler, user, port, bootstrapLocation);
@@ -160,11 +164,14 @@ public class Sync {
         SyncFileChangeListener syncFileChangeListener = new SyncFileChangeListener(fileSyncer);
         ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor();
         executorService.scheduleAtFixedRate(syncFileChangeListener, 0, 10, TimeUnit.SECONDS);
-
         globalEventBus.subscribe(syncFileChangeListener);
+
+        IEventListener objectStoreFileChangeListener = new ObjectStoreFileChangeListener(objectStore);
+        globalEventBus.subscribe(objectStoreFileChangeListener);
 
         List<IEventListener> eventListeners = new ArrayList<>();
         eventListeners.add(syncFileChangeListener);
+        eventListeners.add(objectStoreFileChangeListener);
 
         // Init event aggregator
         List<Path> ignoredPaths = new ArrayList<>();
