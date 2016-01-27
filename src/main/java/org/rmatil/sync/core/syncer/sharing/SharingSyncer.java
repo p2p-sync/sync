@@ -4,8 +4,6 @@ import org.rmatil.sync.core.api.IShareEvent;
 import org.rmatil.sync.core.api.ISharingSyncer;
 import org.rmatil.sync.core.exception.SharingFailedException;
 import org.rmatil.sync.core.exception.SyncFailedException;
-import org.rmatil.sync.core.messaging.sharingexchange.offer.ShareOfferExchangeHandler;
-import org.rmatil.sync.core.messaging.sharingexchange.offer.ShareOfferExchangeHandlerResult;
 import org.rmatil.sync.core.messaging.sharingexchange.share.ShareExchangeHandler;
 import org.rmatil.sync.core.messaging.sharingexchange.shared.SharedExchangeHandler;
 import org.rmatil.sync.core.syncer.sharing.event.ShareEvent;
@@ -20,6 +18,7 @@ import org.rmatil.sync.persistence.api.IStorageAdapter;
 import org.rmatil.sync.persistence.api.StorageType;
 import org.rmatil.sync.persistence.core.local.LocalPathElement;
 import org.rmatil.sync.persistence.exceptions.InputOutputException;
+import org.rmatil.sync.version.api.AccessType;
 import org.rmatil.sync.version.api.IObjectStore;
 import org.rmatil.sync.version.core.model.PathObject;
 import org.rmatil.sync.version.core.model.Sharer;
@@ -72,42 +71,10 @@ public class SharingSyncer implements ISharingSyncer {
     public void syncShareEvent(ShareEvent sharingEvent) {
         UUID exchangeId = UUID.randomUUID();
 
-        // propose UUID and negotiate sharing with all own clients.
-        // client has to deny the offering if he already has a fileId for the given path -> send the id back
-        // if any client did not accept -> deny sharing by throwing an exception -> feedback to end-user CLI
-        ShareOfferExchangeHandler shareOfferExchangeHandler = new ShareOfferExchangeHandler(
-                this.client,
-                this.clientManager,
-                sharingEvent.getRelativePath().toString(),
-                exchangeId
+        // use pathHash as file id
+        UUID fileId = UUID.nameUUIDFromBytes(
+                this.objectStore.getObjectManager().getHashForPath(sharingEvent.getRelativePath().toString()).getBytes()
         );
-
-        Thread shareOfferExchangeHandlerThread = new Thread(shareOfferExchangeHandler);
-        shareOfferExchangeHandlerThread.setName("ShareOfferExchangeHandler-" + exchangeId);
-        shareOfferExchangeHandlerThread.start();
-
-        try {
-            shareOfferExchangeHandler.await();
-        } catch (InterruptedException e) {
-            logger.error("Got interrupted while waiting for sharing exchange " + exchangeId + " to complete. Message: " + e.getMessage());
-        }
-
-        if (! shareOfferExchangeHandler.isCompleted()) {
-            String msg = "ShareOfferExchangeHandler should be completed after awaiting. Aborting sync...";
-            logger.error("msg");
-            throw new SharingFailedException(msg);
-        }
-
-        ShareOfferExchangeHandlerResult offerResult = shareOfferExchangeHandler.getResult();
-
-        if (! offerResult.hasAccepted()) {
-            String msg = "Sharing " + exchangeId + " failed. Not all clients have accepted the share offer request. There might be other clients having already a negotiated file id for the file or they are sharing the file too";
-            logger.warn(msg);
-            throw new SharingFailedException(msg);
-        }
-
-        // ok, once we are here, all clients accept the sharing,
-        // a negotiated file id is now present
 
         boolean isFile = true;
         try {
@@ -122,7 +89,7 @@ public class SharingSyncer implements ISharingSyncer {
         SharedExchangeHandler sharedExchangeHandler = new SharedExchangeHandler(
                 this.client,
                 this.clientManager,
-                offerResult.getNegotiatedFileId(),
+                fileId,
                 sharingEvent.getUsernameToShareWith(),
                 sharingEvent.getAccessType(),
                 sharingEvent.getRelativePath().toString(),
@@ -164,10 +131,9 @@ public class SharingSyncer implements ISharingSyncer {
             throw new SharingFailedException(msg);
         }
 
-        Sharer sharer = new Sharer(sharingEvent.getUsernameToShareWith(), sharingEvent.getAccessType());
         String relativePathToSharedFolder;
         try {
-            relativePathToSharedFolder = this.getRelativePathToSharedFolder(sharingEvent.getRelativePath().toString(), sharer);
+            relativePathToSharedFolder = this.getRelativePathToSharedFolder(sharingEvent.getRelativePath().toString(), sharingEvent.getUsernameToShareWith(), sharingEvent.getAccessType());
         } catch (InputOutputException e) {
             logger.error("Can not determine the relative path to the shared folder. We continue with a shared file at the root of the shared directory. Message: " + e.getMessage(), e);
             relativePathToSharedFolder = "";
@@ -179,8 +145,8 @@ public class SharingSyncer implements ISharingSyncer {
                 this.storageAdapter,
                 sharingEvent.getRelativePath().toString(),
                 relativePathToSharedFolder,
-                sharer.getAccessType(),
-                offerResult.getNegotiatedFileId(),
+                sharingEvent.getAccessType(),
+                fileId,
                 isFile,
                 exchangeId
         );
@@ -215,13 +181,14 @@ public class SharingSyncer implements ISharingSyncer {
      * so that the file can be placed in the sharers directory at the correct path.
      *
      * @param relativeFilePath The relative path of the file in the synced folder
-     * @param sharer           The sharer to check for
+     * @param username         The sharer to check for
+     * @param accessType       The access type
      *
      * @return The relativized path
      *
      * @throws InputOutputException If reading the storage adapter / object store failed
      */
-    public String getRelativePathToSharedFolder(String relativeFilePath, Sharer sharer)
+    public String getRelativePathToSharedFolder(String relativeFilePath, String username, AccessType accessType)
             throws InputOutputException {
         // look up if there is any parent directory which is also shared with the given path.
         // if so, then we "add" the given file to that directory, resolving the path relatively to that one
@@ -238,9 +205,22 @@ public class SharingSyncer implements ISharingSyncer {
                 PathObject parentObject = this.objectStore.getObjectManager().getObjectForPath(subPathElement.getPath());
 
 
-                if (! parentObject.isShared() || parentObject.getSharers().contains(sharer)) {
-                    // parent is not shared with the given shared (or a different access type is present)
+                if (! parentObject.isShared()) {
+                    // parent is not shared at all (or a different access type is present)
                     break;
+                } else {
+                    // now check if there is a sharer present for the given username and access type
+                    boolean sharerIsPresent = false;
+                    for (Sharer sharer : parentObject.getSharers()) {
+                        if (sharer.getUsername().equals(username) && sharer.getAccessType().equals(accessType)) {
+                            // ok, we found him
+                            sharerIsPresent = true;
+                        }
+                    }
+
+                    if (! sharerIsPresent) {
+                        break;
+                    }
                 }
 
                 // there is a parent which is also shared with the given user

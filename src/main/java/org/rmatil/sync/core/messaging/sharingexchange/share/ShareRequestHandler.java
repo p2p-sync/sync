@@ -124,10 +124,13 @@ public class ShareRequestHandler implements ILocalStateRequestCallback {
                     PathObject pathObject = this.objectStore.getObjectManager().getObjectForPath(uniqueFilePath);
                     pathObject.setFileId(this.request.getFileId());
                     pathObject.setIsShared(true);
-                    pathObject.getSharers().add(new Sharer(
+
+                    this.objectStore.getSharerManager().addSharer(
                             this.request.getClientDevice().getUserName(),
-                            this.request.getAccessType()
-                    ));
+                            this.request.getAccessType(),
+                            uniqueFilePath
+                    );
+
                     this.objectStore.getObjectManager().writeObject(pathObject);
 
 
