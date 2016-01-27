@@ -123,15 +123,16 @@ public class ShareRequestHandler implements ILocalStateRequestCallback {
                     this.objectStore.onCreateFile(uniqueFilePath, null);
                     PathObject pathObject = this.objectStore.getObjectManager().getObjectForPath(uniqueFilePath);
                     pathObject.setFileId(this.request.getFileId());
-                    pathObject.setIsShared(true);
 
+                    // set file id
+                    this.objectStore.getObjectManager().writeObject(pathObject);
+
+                    // adds the sharer to the file
                     this.objectStore.getSharerManager().addSharer(
                             this.request.getClientDevice().getUserName(),
                             this.request.getAccessType(),
                             uniqueFilePath
                     );
-
-                    this.objectStore.getObjectManager().writeObject(pathObject);
 
 
                     // since we generated an unique filename, the file is guaranteed to not exist

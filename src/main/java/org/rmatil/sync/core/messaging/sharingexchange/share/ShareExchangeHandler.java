@@ -1,6 +1,5 @@
 package org.rmatil.sync.core.messaging.sharingexchange.share;
 
-import org.rmatil.sync.core.messaging.sharingexchange.offer.ShareOfferExchangeHandler;
 import org.rmatil.sync.network.api.IClient;
 import org.rmatil.sync.network.api.IRequest;
 import org.rmatil.sync.network.api.IResponse;
@@ -46,9 +45,7 @@ public class ShareExchangeHandler extends ANetworkHandler<ShareExchangeHandlerRe
     protected IStorageAdapter storageAdapter;
 
     /**
-     * The previously negotiated file id.
-     *
-     * {@link ShareOfferExchangeHandler}
+     * The file id.
      */
     protected UUID fileId;
 

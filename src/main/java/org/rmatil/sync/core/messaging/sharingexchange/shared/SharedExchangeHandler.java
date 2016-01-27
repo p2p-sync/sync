@@ -8,6 +8,9 @@ import org.rmatil.sync.network.core.model.ClientDevice;
 import org.rmatil.sync.network.core.model.ClientLocation;
 import org.rmatil.sync.persistence.exceptions.InputOutputException;
 import org.rmatil.sync.version.api.AccessType;
+import org.rmatil.sync.version.api.IObjectManager;
+import org.rmatil.sync.version.api.IObjectStore;
+import org.rmatil.sync.version.core.model.PathObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -21,6 +24,8 @@ public class SharedExchangeHandler extends ANetworkHandler<SharedExchangeHandler
     private static final Logger logger = LoggerFactory.getLogger(SharedExchangeHandler.class);
 
     protected IClientManager clientManager;
+
+    protected IObjectStore objectStore;
 
     protected UUID negotiatedFileId;
 
@@ -36,9 +41,10 @@ public class SharedExchangeHandler extends ANetworkHandler<SharedExchangeHandler
 
     protected List<SharedResponse> respondedClients;
 
-    public SharedExchangeHandler(IClient client, IClientManager clientManager, UUID negotiatedFileId, String sharer, AccessType accessType, String relativeFilePath, boolean isFile, UUID exchangeId) {
+    public SharedExchangeHandler(IClient client, IClientManager clientManager, IObjectStore objectStore, UUID negotiatedFileId, String sharer, AccessType accessType, String relativeFilePath, boolean isFile, UUID exchangeId) {
         super(client);
         this.clientManager = clientManager;
+        this.objectStore = objectStore;
         this.negotiatedFileId = negotiatedFileId;
         this.sharer = sharer;
         this.accessType = accessType;
@@ -76,6 +82,20 @@ public class SharedExchangeHandler extends ANetworkHandler<SharedExchangeHandler
             );
 
             super.sendRequest(request);
+
+            // now we also write the changes to our object store
+            PathObject pathObject = this.objectStore.getObjectManager().getObjectForPath(this.relativeFilePath);
+            pathObject.setFileId(this.negotiatedFileId);
+
+            // write file id
+            this.objectStore.getObjectManager().writeObject(pathObject);
+
+            // add sharer to the file
+            this.objectStore.getSharerManager().addSharer(
+                    this.sharer,
+                    this.accessType,
+                    this.relativeFilePath
+            );
 
         } catch (Exception e) {
             logger.error("Got exception in SharedExchangeHandler. Message: " + e.getMessage(), e);
