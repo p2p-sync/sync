@@ -27,21 +27,21 @@ public class ShareOfferExchangeHandler extends ANetworkHandler<ShareOfferExchang
 
     protected List<ShareOfferResponse> respondedClients;
 
-    protected UUID negotiatedExchangeId;
+    protected UUID proposedFileId;
 
     public ShareOfferExchangeHandler(IClient client, IClientManager clientManager, String pathToShare, UUID exchangeId) {
         super(client);
         this.clientManager = clientManager;
         this.pathToShare = pathToShare;
         this.exchangeId = exchangeId;
-        this.negotiatedExchangeId = UUID.randomUUID();
+        this.proposedFileId = UUID.randomUUID();
         this.respondedClients = new ArrayList<>();
     }
 
     @Override
     public void run() {
         try {
-            logger.info("Starting ShareOfferExchange " + this.exchangeId + " and proposing unique fileId " + this.negotiatedExchangeId);
+            logger.info("Starting ShareOfferExchange " + this.exchangeId + " and proposing unique fileId " + this.proposedFileId);
 
             // Fetch client locations from the DHT
             List<ClientLocation> clientLocations;
@@ -60,7 +60,7 @@ public class ShareOfferExchangeHandler extends ANetworkHandler<ShareOfferExchang
                             super.client.getPeerAddress()
                     ),
                     clientLocations,
-                    this.negotiatedExchangeId,
+                    this.proposedFileId,
                     this.pathToShare
             );
 
@@ -97,6 +97,6 @@ public class ShareOfferExchangeHandler extends ANetworkHandler<ShareOfferExchang
             }
         }
 
-        return new ShareOfferExchangeHandlerResult(true, this.negotiatedExchangeId);
+        return new ShareOfferExchangeHandlerResult(true, this.proposedFileId);
     }
 }
