@@ -1,5 +1,6 @@
 package org.rmatil.sync.core.messaging.sharingexchange.share;
 
+import org.rmatil.sync.core.messaging.sharingexchange.offer.ShareOfferExchangeHandler;
 import org.rmatil.sync.network.api.IClient;
 import org.rmatil.sync.network.api.IRequest;
 import org.rmatil.sync.network.api.IResponse;
@@ -27,28 +28,55 @@ public class ShareExchangeHandler extends ANetworkHandler<ShareExchangeHandlerRe
     /**
      * Wait a maximum of 2 minutes for a file exchange to complete
      */
-    protected static final long MAX_FILE_WWAITNG_TIME = 120000L;
+    protected static final long MAX_FILE_WAITING_TIME = 120000L;
 
     /**
      * The chunk size to use for the whole file exchange
      */
     protected static final int CHUNK_SIZE = 1024 * 1024; // 1MB
 
+    /**
+     * The client location to which this share should be sent
+     */
     protected ClientLocation receiverAddress;
 
+    /**
+     * The storage adapter to read the file chunks from
+     */
     protected IStorageAdapter storageAdapter;
 
+    /**
+     * The previously negotiated file id.
+     *
+     * {@link ShareOfferExchangeHandler}
+     */
     protected UUID fileId;
 
+    /**
+     * The access type which should be granted the other client for share
+     */
     protected AccessType accessType;
 
-    protected UUID exchangeId;
-
+    /**
+     * Whether the shared path is a file
+     */
     protected boolean isFile;
 
+    /**
+     * The relative path in the synced folder
+     * which should be shared
+     */
     protected String relativeFilePath;
 
+    /**
+     * The relative file path in the shared folder
+     */
     protected String relativeFilePathToSharedFolder;
+
+    /**
+     * The exchange id of this handler
+     */
+    protected UUID exchangeId;
 
     /**
      * A count down latch to check if all clients have received all chunks.
@@ -119,14 +147,14 @@ public class ShareExchangeHandler extends ANetworkHandler<ShareExchangeHandlerRe
     public void await()
             throws InterruptedException {
         super.await();
-        this.chunkCountDownLatch.await(MAX_FILE_WWAITNG_TIME, TimeUnit.MILLISECONDS);
+        this.chunkCountDownLatch.await(MAX_FILE_WAITING_TIME, TimeUnit.MILLISECONDS);
     }
 
     @Override
     public void await(long timeout, TimeUnit timeUnit)
             throws InterruptedException {
         super.await();
-        this.chunkCountDownLatch.await(MAX_FILE_WWAITNG_TIME, TimeUnit.MILLISECONDS);
+        this.chunkCountDownLatch.await(MAX_FILE_WAITING_TIME, TimeUnit.MILLISECONDS);
     }
 
     @Override
