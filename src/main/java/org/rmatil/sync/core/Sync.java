@@ -21,6 +21,12 @@ import org.rmatil.sync.core.messaging.fileexchange.offer.FileOfferRequest;
 import org.rmatil.sync.core.messaging.fileexchange.offer.FileOfferRequestHandler;
 import org.rmatil.sync.core.messaging.fileexchange.push.FilePushRequest;
 import org.rmatil.sync.core.messaging.fileexchange.push.FilePushRequestHandler;
+import org.rmatil.sync.core.messaging.sharingexchange.offer.ShareOfferRequest;
+import org.rmatil.sync.core.messaging.sharingexchange.offer.ShareOfferRequestHandler;
+import org.rmatil.sync.core.messaging.sharingexchange.share.ShareRequest;
+import org.rmatil.sync.core.messaging.sharingexchange.share.ShareRequestHandler;
+import org.rmatil.sync.core.messaging.sharingexchange.shared.SharedRequest;
+import org.rmatil.sync.core.messaging.sharingexchange.shared.SharedRequestHandler;
 import org.rmatil.sync.core.model.RemoteClientLocation;
 import org.rmatil.sync.core.syncer.background.IBackgroundSyncer;
 import org.rmatil.sync.core.syncer.background.NonBlockingBackgroundSyncer;
@@ -121,6 +127,12 @@ public class Sync {
         objectDataReplyHandler.addRequestCallbackHandler(SyncResultRequest.class, SyncResultRequestHandler.class);
         objectDataReplyHandler.addRequestCallbackHandler(FileDemandRequest.class, FileDemandRequestHandler.class);
         objectDataReplyHandler.addRequestCallbackHandler(SyncCompleteRequest.class, SyncCompleteRequestHandler.class);
+
+        // file sharing
+        objectDataReplyHandler.addRequestCallbackHandler(ShareOfferRequest.class, ShareOfferRequestHandler.class);
+        objectDataReplyHandler.addRequestCallbackHandler(ShareRequest.class, ShareRequestHandler.class);
+        objectDataReplyHandler.addRequestCallbackHandler(SharedRequest.class, SharedRequestHandler.class);
+
 
         ClientInitializer clientInitializer = new ClientInitializer(objectDataReplyHandler, user, port, bootstrapLocation);
         client = clientInitializer.init();
