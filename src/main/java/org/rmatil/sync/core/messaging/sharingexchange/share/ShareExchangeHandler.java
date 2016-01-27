@@ -1,7 +1,6 @@
 package org.rmatil.sync.core.messaging.sharingexchange.share;
 
 import org.rmatil.sync.network.api.IClient;
-import org.rmatil.sync.network.api.IClientManager;
 import org.rmatil.sync.network.api.IRequest;
 import org.rmatil.sync.network.api.IResponse;
 import org.rmatil.sync.network.core.ANetworkHandler;
@@ -35,8 +34,6 @@ public class ShareExchangeHandler extends ANetworkHandler<ShareExchangeHandlerRe
      */
     protected static final int CHUNK_SIZE = 1024 * 1024; // 1MB
 
-    protected IClientManager clientManager;
-
     protected ClientLocation receiverAddress;
 
     protected IStorageAdapter storageAdapter;
@@ -51,6 +48,8 @@ public class ShareExchangeHandler extends ANetworkHandler<ShareExchangeHandlerRe
 
     protected String relativeFilePath;
 
+    protected String relativeFilePathToSharedFolder;
+
     /**
      * A count down latch to check if all clients have received all chunks.
      * We have to use this one instead of {@link ANetworkHandler#countDownLatch} since
@@ -58,16 +57,27 @@ public class ShareExchangeHandler extends ANetworkHandler<ShareExchangeHandlerRe
      */
     protected CountDownLatch chunkCountDownLatch;
 
-    public ShareExchangeHandler(IClient client, IClientManager clientManager, ClientLocation receiverAddress, IStorageAdapter storageAdapter, String relativeFilePath, AccessType accessType, UUID fileId, boolean isFile, UUID exchangeId) {
+    /**
+     * @param client                         The client to send messages
+     * @param receiverAddress                The receiver address, i.e. the sharers location
+     * @param storageAdapter                 The storage adapter to read the chunks
+     * @param relativeFilePath               The relative file path on our disk
+     * @param relativeFilePathToSharedFolder The relative path to the folder / file which is actually shared (if it is the same, the relative path is "")
+     * @param accessType                     The access type which should be granted to the sharer
+     * @param fileId                         The file id which should be used as identifier of the file
+     * @param isFile                         Whether the path represents a file or directory
+     * @param exchangeId                     The exchangeId
+     */
+    public ShareExchangeHandler(IClient client, ClientLocation receiverAddress, IStorageAdapter storageAdapter, String relativeFilePath, String relativeFilePathToSharedFolder, AccessType accessType, UUID fileId, boolean isFile, UUID exchangeId) {
         super(client);
-        this.clientManager = clientManager;
-        this.storageAdapter = storageAdapter;
         this.receiverAddress = receiverAddress;
+        this.storageAdapter = storageAdapter;
         this.relativeFilePath = relativeFilePath;
+        this.relativeFilePathToSharedFolder = relativeFilePathToSharedFolder;
         this.accessType = accessType;
         this.fileId = fileId;
-        this.exchangeId = exchangeId;
         this.isFile = isFile;
+        this.exchangeId = exchangeId;
     }
 
     @Override
@@ -168,7 +178,7 @@ public class ShareExchangeHandler extends ANetworkHandler<ShareExchangeHandlerRe
                 sharer,
                 this.fileId,
                 this.accessType,
-                this.relativeFilePath,
+                this.relativeFilePathToSharedFolder,
                 fileMetaInfo.isFile(),
                 chunkCounter,
                 totalNrOfChunks,
