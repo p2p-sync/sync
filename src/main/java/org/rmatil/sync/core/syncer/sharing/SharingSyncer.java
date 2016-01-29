@@ -73,13 +73,18 @@ public class SharingSyncer implements ISharingSyncer {
      *
      * @param sharingEvent The sharing event to propagate
      */
-    public void syncShareEvent(ShareEvent sharingEvent) {
+    public void syncShareEvent(ShareEvent sharingEvent)
+            throws SharingFailedException {
         UUID exchangeId = UUID.randomUUID();
 
-        // use pathHash as file id
-        UUID fileId = UUID.nameUUIDFromBytes(
-                this.objectStore.getObjectManager().getHashForPath(sharingEvent.getRelativePath().toString()).getBytes()
-        );
+        UUID fileId;
+        try {
+            fileId = this.client.getIdentifierManager().getValue(sharingEvent.getRelativePath().toString());
+        } catch (InputOutputException e) {
+            String msg = "Could not find fileId for file " + sharingEvent.getRelativePath().toString() + ". Message: " + e.getMessage();
+            logger.error(msg);
+            throw new SharingFailedException(msg);
+        }
 
         boolean isFile = true;
         try {
@@ -90,16 +95,14 @@ public class SharingSyncer implements ISharingSyncer {
             throw new SharingFailedException(msg);
         }
 
-        // Now ask all own clients to add the fileId and the sharer to their object store
+        // Now ask all own clients to add the sharer to their object store
         SharedExchangeHandler sharedExchangeHandler = new SharedExchangeHandler(
                 this.client,
                 this.clientManager,
                 this.objectStore,
-                fileId,
                 sharingEvent.getUsernameToShareWith(),
                 sharingEvent.getAccessType(),
                 sharingEvent.getRelativePath().toString(),
-                isFile,
                 exchangeId
         );
 
@@ -125,7 +128,6 @@ public class SharingSyncer implements ISharingSyncer {
 
 
         // own clients did update their object store too, so we can now notify one client of the sharer
-
         ClientLocation sharerLocation = this.getClientLocationFromSharer(sharingEvent.getUsernameToShareWith());
 
         String relativePathToSharedFolder;
@@ -182,22 +184,23 @@ public class SharingSyncer implements ISharingSyncer {
             throws UnsharingFailedException {
         UUID exchangeId = UUID.randomUUID();
 
-        PathObject sharedObject = null;
+        UUID fileId;
         try {
-            sharedObject = this.objectStore.getObjectManager().getObjectForPath(unshareEvent.getRelativePath().toString());
+            fileId = this.client.getIdentifierManager().getValue(unshareEvent.getRelativePath().toString());
         } catch (InputOutputException e) {
-            logger.error("Can not unshare file " + unshareEvent.getRelativePath() + ". Message: " + e.getMessage(), e);
-            return;
+            String msg = "Could not fetch fileId for file " + unshareEvent.getRelativePath().toString() + ". Message: " + e.getMessage();
+            logger.error(msg, e);
+            throw new UnsharingFailedException(msg, e);
         }
-
-
-        UUID fileId = sharedObject.getFileId();
 
         // unshare on own clients
         UnsharedExchangeHandler unsharedExchangeHandler = new UnsharedExchangeHandler(
                 this.client,
                 this.clientManager,
+                this.objectStore,
+                unshareEvent.getRelativePath().toString(),
                 fileId,
+                unshareEvent.getUsernameToShareWith(),
                 exchangeId
         );
 

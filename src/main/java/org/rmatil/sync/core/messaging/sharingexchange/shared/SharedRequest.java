@@ -10,24 +10,17 @@ import java.util.UUID;
 
 public class SharedRequest extends ARequest {
 
-    protected UUID negotiatedFileId;
-
     protected String sharer;
 
     protected AccessType accessType;
 
     protected String relativePath;
 
-    public SharedRequest(UUID exchangeId, ClientDevice clientDevice, List<ClientLocation> receiverAddresses, UUID negotiatedFileId, String sharer, AccessType accessType, String relativePath) {
+    public SharedRequest(UUID exchangeId, ClientDevice clientDevice, List<ClientLocation> receiverAddresses, String sharer, AccessType accessType, String relativePath) {
         super(exchangeId, clientDevice, receiverAddresses);
-        this.negotiatedFileId = negotiatedFileId;
         this.sharer = sharer;
         this.accessType = accessType;
         this.relativePath = relativePath;
-    }
-
-    public UUID getNegotiatedFileId() {
-        return negotiatedFileId;
     }
 
     public String getSharer() {

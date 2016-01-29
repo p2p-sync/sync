@@ -1,5 +1,6 @@
 package org.rmatil.sync.core.messaging.sharingexchange.share;
 
+import org.rmatil.sync.core.messaging.fileexchange.offer.FileOfferResponse;
 import org.rmatil.sync.network.api.IClient;
 import org.rmatil.sync.network.api.IRequest;
 import org.rmatil.sync.network.api.IResponse;
@@ -121,22 +122,20 @@ public class ShareExchangeHandler extends ANetworkHandler<ShareExchangeHandlerRe
 
     @Override
     public void onResponse(IResponse response) {
-        if (response instanceof ShareResponse) {
-            if (- 1 < ((ShareResponse) response).getChunkCounter()) {
-                this.sendChunk(((ShareResponse) response).getChunkCounter(), response.getExchangeId(), new ClientLocation(response.getClientDevice().getClientDeviceId(), response.getClientDevice().getPeerAddress()));
-            } else {
-                // exchange is finished
-                super.client.getObjectDataReplyHandler().removeResponseCallbackHandler(response.getExchangeId());
+        if (! (response instanceof ShareResponse)) {
+            logger.error("Expected response to be instance of " + ShareResponse.class.getName() + " but got " + response.getClass().getName());
+            return;
+        }
 
-                try {
-                    super.waitForSentCountDownLatch.await(MAX_WAITING_TIME, TimeUnit.MILLISECONDS);
-                } catch (InterruptedException e) {
-                    logger.error("Got interrupted while waiting that all requests have been sent to all clients");
-                }
+        if (- 1 < ((ShareResponse) response).getChunkCounter()) {
+            this.sendChunk(((ShareResponse) response).getChunkCounter(), response.getExchangeId(), new ClientLocation(response.getClientDevice().getClientDeviceId(), response.getClientDevice().getPeerAddress()));
+        } else {
+            // exchange is finished
+            super.client.getObjectDataReplyHandler().removeResponseCallbackHandler(response.getExchangeId());
 
-                super.countDownLatch.countDown();
-                this.chunkCountDownLatch.countDown();
-            }
+            super.onResponse(response);
+
+            this.chunkCountDownLatch.countDown();
         }
     }
 

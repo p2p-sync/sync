@@ -2,7 +2,7 @@ package org.rmatil.sync.core.init.objecstore;
 
 import net.engio.mbassy.listener.Handler;
 import org.rmatil.sync.core.eventbus.AddSharerToObjectStoreBusEvent;
-import org.rmatil.sync.core.eventbus.IgnoreBusEvent;
+import org.rmatil.sync.core.eventbus.IgnoreObjectStoreUpdateBusEvent;
 import org.rmatil.sync.event.aggregator.api.IEventListener;
 import org.rmatil.sync.event.aggregator.core.events.*;
 import org.rmatil.sync.persistence.exceptions.InputOutputException;
@@ -33,7 +33,7 @@ public class ObjectStoreFileChangeListener implements IEventListener {
     }
 
     @Handler
-    public void handleBusEvent(IgnoreBusEvent ignoreBusEvent) {
+    public void handleBusEvent(IgnoreObjectStoreUpdateBusEvent ignoreBusEvent) {
         logger.debug("Got notified from event bus: " + ignoreBusEvent.getEvent().getEventName() + " for file " + ignoreBusEvent.getEvent().getPath().toString());
         this.ignoredEvents.add(ignoreBusEvent.getEvent());
     }
@@ -99,7 +99,7 @@ public class ObjectStoreFileChangeListener implements IEventListener {
                 case MoveEvent.EVENT_NAME:
                     logger.trace("MoveEvent for file " + event.getPath().toString());
                     try {
-                        objectStore.onMoveFile(((MoveEvent) event).getPath().toString(), ((MoveEvent) event).getNewPath().toString());
+                        objectStore.onMoveFile(event.getPath().toString(), ((MoveEvent) event).getNewPath().toString());
                     } catch (InputOutputException e) {
                         logger.error("Failed to execute MoveEvent. Message: " + e.getMessage());
                     }
@@ -115,7 +115,7 @@ public class ObjectStoreFileChangeListener implements IEventListener {
                     try {
                         this.setSharers(event.getPath().toString(), sharers);
                     } catch (InputOutputException e) {
-                        logger.error("Failed to write sharers for file " + event.getPath().toString());
+                        logger.error("Failed to write sharers for file " + event.getPath().toString() + ". Message: " + e.getMessage(), e);
                     }
                 }
             }
@@ -138,13 +138,6 @@ public class ObjectStoreFileChangeListener implements IEventListener {
             logger.error("Could not add the sharer and the file id to path " + filePath + ". Aborting on this client and relying on the next background sync");
             return;
         }
-
-        // generate the file id for the file
-        UUID fileId = UUID.nameUUIDFromBytes(
-                this.objectStore.getObjectManager().getHashForPath(filePath).getBytes()
-        );
-
-        pathObject.setFileId(fileId);
 
         if (! sharers.isEmpty()) {
             pathObject.setIsShared(true);

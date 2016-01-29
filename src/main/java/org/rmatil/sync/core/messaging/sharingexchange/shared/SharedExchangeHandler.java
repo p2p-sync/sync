@@ -27,29 +27,23 @@ public class SharedExchangeHandler extends ANetworkHandler<SharedExchangeHandler
 
     protected IObjectStore objectStore;
 
-    protected UUID negotiatedFileId;
-
     protected String sharer;
 
     protected AccessType accessType;
 
     protected String relativeFilePath;
 
-    protected boolean isFile;
+    protected List<SharedResponse> respondedClients;
 
     protected UUID exchangeId;
 
-    protected List<SharedResponse> respondedClients;
-
-    public SharedExchangeHandler(IClient client, IClientManager clientManager, IObjectStore objectStore, UUID negotiatedFileId, String sharer, AccessType accessType, String relativeFilePath, boolean isFile, UUID exchangeId) {
+    public SharedExchangeHandler(IClient client, IClientManager clientManager, IObjectStore objectStore, String sharer, AccessType accessType, String relativeFilePath, UUID exchangeId) {
         super(client);
         this.clientManager = clientManager;
         this.objectStore = objectStore;
-        this.negotiatedFileId = negotiatedFileId;
         this.sharer = sharer;
         this.accessType = accessType;
         this.relativeFilePath = relativeFilePath;
-        this.isFile = isFile;
         this.exchangeId = exchangeId;
         this.respondedClients = new ArrayList<>();
     }
@@ -75,20 +69,12 @@ public class SharedExchangeHandler extends ANetworkHandler<SharedExchangeHandler
                             super.client.getPeerAddress()
                     ),
                     clientLocations,
-                    this.negotiatedFileId,
                     this.sharer,
                     this.accessType,
                     this.relativeFilePath
             );
 
             super.sendRequest(request);
-
-            // now we also write the changes to our object store
-            PathObject pathObject = this.objectStore.getObjectManager().getObjectForPath(this.relativeFilePath);
-            pathObject.setFileId(this.negotiatedFileId);
-
-            // write file id
-            this.objectStore.getObjectManager().writeObject(pathObject);
 
             // add sharer to the file
             this.objectStore.getSharerManager().addSharer(
@@ -104,8 +90,6 @@ public class SharedExchangeHandler extends ANetworkHandler<SharedExchangeHandler
 
     @Override
     public void onResponse(IResponse response) {
-        logger.info("Received response for exchange " + response.getExchangeId() + " of client " + response.getClientDevice().getClientDeviceId() + " (" + response.getClientDevice().getPeerAddress().inetAddress().getHostName() + ":" + response.getClientDevice().getPeerAddress().tcpPort() + ")");
-
         if (! (response instanceof SharedResponse)) {
             logger.error("Expected response to be instance of " + SharedResponse.class.getName() + " but got " + response.getClass().getName());
             return;
@@ -113,13 +97,7 @@ public class SharedExchangeHandler extends ANetworkHandler<SharedExchangeHandler
 
         this.respondedClients.add((SharedResponse) response);
 
-        try {
-            super.waitForSentCountDownLatch.await(MAX_WAITING_TIME, TimeUnit.MILLISECONDS);
-        } catch (InterruptedException e) {
-            logger.error("Got interrupted while waiting that all requests have been sent to all clients");
-        }
-
-        super.countDownLatch.countDown();
+        super.onResponse(response);
     }
 
     @Override

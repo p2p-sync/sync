@@ -3,7 +3,6 @@ package org.rmatil.sync.core.messaging.sharingexchange.unshared;
 import net.engio.mbassy.bus.MBassador;
 import org.rmatil.sync.core.eventbus.IBusEvent;
 import org.rmatil.sync.core.init.client.ILocalStateRequestCallback;
-import org.rmatil.sync.core.messaging.sharingexchange.unshare.UnshareResponse;
 import org.rmatil.sync.network.api.IClient;
 import org.rmatil.sync.network.api.IRequest;
 import org.rmatil.sync.network.api.IResponse;
@@ -58,14 +57,16 @@ public class UnsharedRequestHandler implements ILocalStateRequestCallback {
     public void run() {
         try {
             // add file id from request to the attached file path
-            logger.info("Starting to unshare file for id " + this.request.getFileId());
+            logger.info("Starting to unshare file for id " + this.request.getFileId() + " with sharer " + this.request.getSharer());
 
-            PathObject sharedObject = this.objectStore.getObjectManager().getObjectForFileId(this.request.getFileId());
+            PathObject sharedObject = this.objectStore.getObjectManager().getObjectForPath(
+                    this.client.getIdentifierManager().getKey(this.request.getFileId())
+            );
 
-            logger.info("Found file on path " + sharedObject.getAbsolutePath() + " for file with id " + this.request.getFileId());
+            logger.trace("Found file on path " + sharedObject.getAbsolutePath() + " for file with id " + this.request.getFileId());
 
             this.objectStore.getSharerManager().removeSharer(
-                    this.request.getClientDevice().getUserName(),
+                    this.request.getSharer(),
                     sharedObject.getAbsolutePath()
             );
 

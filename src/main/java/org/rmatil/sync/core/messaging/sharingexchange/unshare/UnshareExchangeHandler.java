@@ -57,19 +57,6 @@ public class UnshareExchangeHandler extends ANetworkHandler<UnshareExchangeHandl
     }
 
     @Override
-    public void onResponse(IResponse response) {
-        logger.info("Received response for exchange " + response.getExchangeId() + " of client " + response.getClientDevice().getClientDeviceId() + " (" + response.getClientDevice().getPeerAddress().inetAddress().getHostName() + ":" + response.getClientDevice().getPeerAddress().tcpPort() + ")");
-
-        try {
-            super.waitForSentCountDownLatch.await(MAX_WAITING_TIME, TimeUnit.MILLISECONDS);
-        } catch (InterruptedException e) {
-            logger.error("Got interrupted while waiting that all requests have been sent to all clients");
-        }
-
-        super.countDownLatch.countDown();
-    }
-
-    @Override
     public UnshareExchangeHandlerResult getResult() {
         return new UnshareExchangeHandlerResult();
     }

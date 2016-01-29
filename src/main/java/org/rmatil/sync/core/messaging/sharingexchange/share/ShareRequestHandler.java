@@ -25,7 +25,6 @@ import org.rmatil.sync.persistence.exceptions.InputOutputException;
 import org.rmatil.sync.version.api.AccessType;
 import org.rmatil.sync.version.api.IObjectStore;
 import org.rmatil.sync.version.core.model.PathObject;
-import org.rmatil.sync.version.core.model.Sharer;
 import org.rmatil.sync.version.core.model.Version;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -81,8 +80,9 @@ public class ShareRequestHandler implements ILocalStateRequestCallback {
             // if the chunk counter is greater than 0
             // we only modify the existing file, so we generate an ignore modify event
             if (this.request.getChunkCounter() > 0) {
-                String hashOfFilePath = this.objectStore.getObjectManager().getIndex().getSharedPaths().get(this.request.getFileId());
-                PathObject pathObject = this.objectStore.getObjectManager().getObject(hashOfFilePath);
+                PathObject pathObject = this.objectStore.getObjectManager().getObject(
+                        this.client.getIdentifierManager().getKey(this.request.getFileId())
+                );
 
                 String relPathToSyncedFolder;
 
@@ -117,15 +117,11 @@ public class ShareRequestHandler implements ILocalStateRequestCallback {
 
                 pathElement = new LocalPathElement(uniqueFilePath);
 
-                try {
-                    // once we determined where we have to put the path, we can create the relation
-                    // between the fileId and the filepath in the object store
-                    this.objectStore.onCreateFile(uniqueFilePath, null);
-                    PathObject pathObject = this.objectStore.getObjectManager().getObjectForPath(uniqueFilePath);
-                    pathObject.setFileId(this.request.getFileId());
+                // add the fileId so that each client can fetch it from the original
+                this.client.getIdentifierManager().addIdentifier(uniqueFilePath, this.request.getFileId());
 
-                    // set file id
-                    this.objectStore.getObjectManager().writeObject(pathObject);
+                try {
+                    this.objectStore.onCreateFile(uniqueFilePath, null);
 
                     // adds the sharer to the file
                     this.objectStore.getSharerManager().addSharer(
@@ -274,7 +270,7 @@ public class ShareRequestHandler implements ILocalStateRequestCallback {
                 // tmpFileName := myFile (1)
                 tmpFileName = tmpFileName + " (" + ctr + ")";
                 // tmpfileName := myFile (1).rar.zip
-                tmpFileName = oldFileName.substring(firstIndexOfDot + 1, oldFileName.length());
+                tmpFileName = tmpFileName.concat(oldFileName.substring(firstIndexOfDot + 1, oldFileName.length()));
 
                 newFileName = tmpFileName;
             } else {

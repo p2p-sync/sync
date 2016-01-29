@@ -11,9 +11,16 @@ public class UnsharedRequest extends ARequest {
 
     protected UUID fileId;
 
-    public UnsharedRequest(UUID exchangeId, ClientDevice clientDevice, List<ClientLocation> receiverAddresses, UUID fileId) {
+    protected String sharer;
+
+    public UnsharedRequest(UUID exchangeId, ClientDevice clientDevice, List<ClientLocation> receiverAddresses, String sharer, UUID fileId) {
         super(exchangeId, clientDevice, receiverAddresses);
+        this.sharer = sharer;
         this.fileId = fileId;
+    }
+
+    public String getSharer() {
+        return sharer;
     }
 
     public UUID getFileId() {

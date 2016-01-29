@@ -1,20 +1,17 @@
 package org.rmatil.sync.core.messaging.sharingexchange.unshared;
 
-import org.rmatil.sync.core.messaging.sharingexchange.unshare.UnshareRequest;
 import org.rmatil.sync.network.api.IClient;
 import org.rmatil.sync.network.api.IClientManager;
-import org.rmatil.sync.network.api.IResponse;
 import org.rmatil.sync.network.core.ANetworkHandler;
 import org.rmatil.sync.network.core.model.ClientDevice;
 import org.rmatil.sync.network.core.model.ClientLocation;
 import org.rmatil.sync.persistence.exceptions.InputOutputException;
+import org.rmatil.sync.version.api.IObjectStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 
 public class UnsharedExchangeHandler extends ANetworkHandler<UnsharedExchangeHandlerResult> {
 
@@ -22,14 +19,23 @@ public class UnsharedExchangeHandler extends ANetworkHandler<UnsharedExchangeHan
 
     protected IClientManager clientManager;
 
+    protected IObjectStore objectStore;
+
+    protected String relativeFilePath;
+
     protected UUID fileId;
+
+    protected String sharer;
 
     protected UUID exchangeId;
 
-    public UnsharedExchangeHandler(IClient client, IClientManager clientManager, UUID fileId, UUID exchangeId) {
+    public UnsharedExchangeHandler(IClient client, IClientManager clientManager, IObjectStore objectStore, String relativeFilePath, UUID fileId, String sharer, UUID exchangeId) {
         super(client);
         this.clientManager = clientManager;
+        this.objectStore = objectStore;
+        this.relativeFilePath = relativeFilePath;
         this.fileId = fileId;
+        this.sharer = sharer;
         this.exchangeId = exchangeId;
     }
 
@@ -47,7 +53,6 @@ public class UnsharedExchangeHandler extends ANetworkHandler<UnsharedExchangeHan
                 return;
             }
 
-
             UnsharedRequest unsharedRequest = new UnsharedRequest(
                     this.exchangeId,
                     new ClientDevice(
@@ -56,27 +61,21 @@ public class UnsharedExchangeHandler extends ANetworkHandler<UnsharedExchangeHan
                             super.client.getPeerAddress()
                     ),
                     clientLocations,
+                    this.sharer,
                     this.fileId
             );
 
             super.sendRequest(unsharedRequest);
 
+            // remove sharer from the file
+            this.objectStore.getSharerManager().removeSharer(
+                    this.sharer,
+                    this.relativeFilePath
+            );
+
         } catch (Exception e) {
             logger.error("Got exception in UnsharedExchangeHandler. Message: " + e.getMessage(), e);
         }
-    }
-
-    @Override
-    public void onResponse(IResponse response) {
-        logger.info("Received response for exchange " + response.getExchangeId() + " of client " + response.getClientDevice().getClientDeviceId() + " (" + response.getClientDevice().getPeerAddress().inetAddress().getHostName() + ":" + response.getClientDevice().getPeerAddress().tcpPort() + ")");
-
-        try {
-            super.waitForSentCountDownLatch.await(MAX_WAITING_TIME, TimeUnit.MILLISECONDS);
-        } catch (InterruptedException e) {
-            logger.error("Got interrupted while waiting that all requests have been sent to all clients");
-        }
-
-        super.countDownLatch.countDown();
     }
 
     @Override
