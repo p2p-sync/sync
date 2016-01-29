@@ -266,7 +266,7 @@ public class FileSyncer implements IFileSyncer {
         this.client.getObjectDataReplyHandler().removeResponseCallbackHandler(fileExchangeId);
 
         if (! exchangeHandler.isCompleted()) {
-            logger.error("No result received from clients for request " + fileExchangeId + ". Aborting file push");
+            logger.error("No result received from clients for request " + fileExchangeId + ". Aborting file sync");
             return;
         }
 
