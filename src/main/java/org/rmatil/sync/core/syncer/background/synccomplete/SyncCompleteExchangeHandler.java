@@ -10,7 +10,6 @@ import org.rmatil.sync.event.aggregator.core.events.ModifyEvent;
 import org.rmatil.sync.network.api.IClient;
 import org.rmatil.sync.network.api.IClientManager;
 import org.rmatil.sync.network.api.IRequest;
-import org.rmatil.sync.network.api.IResponse;
 import org.rmatil.sync.network.core.ANetworkHandler;
 import org.rmatil.sync.network.core.model.ClientDevice;
 import org.rmatil.sync.network.core.model.ClientLocation;
@@ -30,7 +29,6 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
-import java.util.concurrent.TimeUnit;
 
 /**
  * Sends a notification to all clients causing them to
@@ -119,17 +117,6 @@ public class SyncCompleteExchangeHandler extends ANetworkHandler<SyncCompleteExc
     }
 
     @Override
-    public void onResponse(IResponse iResponse) {
-        try {
-            super.waitForSentCountDownLatch.await(MAX_WAITING_TIME, TimeUnit.MILLISECONDS);
-        } catch (InterruptedException e) {
-            logger.error("Got interrupted while waiting that all requests have been sent to all clients");
-        }
-
-        super.countDownLatch.countDown();
-    }
-
-    @Override
     public SyncCompleteExchangeHandlerResult getResult() {
         return new SyncCompleteExchangeHandlerResult();
     }
@@ -156,7 +143,7 @@ public class SyncCompleteExchangeHandler extends ANetworkHandler<SyncCompleteExc
             objectStoreStorageManager.delete(pathElement);
         }
 
-        objectStoreStorageManager.persist(StorageType.DIRECTORY,pathElement , null);
+        objectStoreStorageManager.persist(StorageType.DIRECTORY, pathElement, null);
 
         // create the temporary object store in the .sync folder
         Path rootPath = this.storageAdapter.getRootDir();

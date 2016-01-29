@@ -4,7 +4,6 @@ import org.rmatil.sync.core.syncer.background.BlockingBackgroundSyncer;
 import org.rmatil.sync.event.aggregator.api.IEventAggregator;
 import org.rmatil.sync.network.api.IClient;
 import org.rmatil.sync.network.api.IClientManager;
-import org.rmatil.sync.network.api.IResponse;
 import org.rmatil.sync.network.core.ANetworkHandler;
 import org.rmatil.sync.network.core.model.ClientDevice;
 import org.rmatil.sync.network.core.model.ClientLocation;
@@ -14,7 +13,6 @@ import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 
 /**
  * Initializes the actual reconciliation of the
@@ -90,20 +88,6 @@ public class InitSyncExchangeHandler extends ANetworkHandler<InitSyncExchangeHan
         } catch (Exception e) {
             logger.error("Got exception in InitSyncExchangeHandler. Message: " + e.getMessage(), e);
         }
-    }
-
-    @Override
-    public void onResponse(IResponse iResponse) {
-        // currently, we ignore the result of such a response
-        logger.info("Received response for exchange " + iResponse.getExchangeId() + " of client " + iResponse.getClientDevice().getClientDeviceId() + " (" + iResponse.getClientDevice().getPeerAddress().inetAddress().getHostAddress() + ":" + iResponse.getClientDevice().getPeerAddress().tcpPort() + ")");
-
-        try {
-            super.waitForSentCountDownLatch.await(MAX_WAITING_TIME, TimeUnit.MILLISECONDS);
-        } catch (InterruptedException e) {
-            logger.error("Got interrupted while waiting that all requests have been sent to all clients");
-        }
-
-        super.countDownLatch.countDown();
     }
 
     @Override

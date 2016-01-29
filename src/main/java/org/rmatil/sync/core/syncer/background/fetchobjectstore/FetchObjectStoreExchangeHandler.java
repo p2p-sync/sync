@@ -13,7 +13,6 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 
 /**
  * Fetches all object stores as zip files from all other
@@ -75,17 +74,14 @@ public class FetchObjectStoreExchangeHandler extends ANetworkHandler<FetchObject
     }
 
     @Override
-    public void onResponse(IResponse iResponse) {
-        logger.info("Received response for exchange " + iResponse.getExchangeId() + " of client " + iResponse.getClientDevice().getClientDeviceId() + " (" + iResponse.getClientDevice().getPeerAddress().inetAddress().getHostAddress() + ":" + iResponse.getClientDevice().getPeerAddress().tcpPort() + ")");
-
-        try {
-            super.waitForSentCountDownLatch.await(MAX_WAITING_TIME, TimeUnit.MILLISECONDS);
-        } catch (InterruptedException e) {
-            logger.error("Got interrupted while waiting that all requests have been sent to all clients");
+    public void onResponse(IResponse response) {
+        if (! (response instanceof FetchObjectStoreResponse)) {
+            logger.error("Expected response to be instance of " + FetchObjectStoreResponse.class.getName() + " but got " + response.getClass().getName());
+            return;
         }
 
-        this.responses.add((FetchObjectStoreResponse) iResponse);
-        super.countDownLatch.countDown();
+        this.responses.add((FetchObjectStoreResponse) response);
+        super.onResponse(response);
     }
 
     @Override

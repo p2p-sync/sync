@@ -3,6 +3,7 @@ package org.rmatil.sync.core.messaging.fileexchange.move;
 import net.engio.mbassy.bus.MBassador;
 import org.rmatil.sync.core.eventbus.IBusEvent;
 import org.rmatil.sync.core.init.client.ILocalStateResponseCallback;
+import org.rmatil.sync.core.messaging.sharingexchange.shared.SharedResponse;
 import org.rmatil.sync.event.aggregator.core.events.MoveEvent;
 import org.rmatil.sync.network.api.IClient;
 import org.rmatil.sync.network.api.IClientManager;
@@ -103,15 +104,14 @@ public class FileMoveExchangeHandler extends ANetworkHandler<FileMoveExchangeHan
     }
 
     @Override
-    public void onResponse(IResponse iResponse) {
-        // Currently, we do not handle a response of a move exchange
-        try {
-            super.waitForSentCountDownLatch.await(MAX_WAITING_TIME, TimeUnit.MILLISECONDS);
-        } catch (InterruptedException e) {
-            logger.error("Got interrupted while waiting that all requests have been sent to all clients");
+    public void onResponse(IResponse response) {
+        if (! (response instanceof FileMoveResponse)) {
+            logger.error("Expected response to be instance of " + FileMoveResponse.class.getName() + " but got " + response.getClass().getName());
+            return;
         }
 
-        super.countDownLatch.countDown();
+        super.onResponse(response);
+
         this.moveCountDownLatch.countDown();
     }
 
@@ -136,6 +136,6 @@ public class FileMoveExchangeHandler extends ANetworkHandler<FileMoveExchangeHan
 
     @Override
     public boolean isCompleted() {
-        return null != this.moveCountDownLatch && 0L == this.moveCountDownLatch.getCount();
+        return super.isCompleted() && null != this.moveCountDownLatch && 0L == this.moveCountDownLatch.getCount();
     }
 }

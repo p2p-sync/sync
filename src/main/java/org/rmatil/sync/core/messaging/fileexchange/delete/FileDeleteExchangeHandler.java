@@ -7,7 +7,6 @@ import org.rmatil.sync.core.init.client.ILocalStateResponseCallback;
 import org.rmatil.sync.event.aggregator.core.events.DeleteEvent;
 import org.rmatil.sync.network.api.IClient;
 import org.rmatil.sync.network.api.IClientManager;
-import org.rmatil.sync.network.api.IResponse;
 import org.rmatil.sync.network.core.ANetworkHandler;
 import org.rmatil.sync.network.core.model.ClientDevice;
 import org.rmatil.sync.network.core.model.ClientLocation;
@@ -22,7 +21,6 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 
 public class FileDeleteExchangeHandler extends ANetworkHandler<FileDeleteExchangeHandlerResult> implements ILocalStateResponseCallback {
 
@@ -102,18 +100,6 @@ public class FileDeleteExchangeHandler extends ANetworkHandler<FileDeleteExchang
         List<String> affectedFiles = new ArrayList<>();
         affectedFiles.add(this.deleteEvent.getPath().toString());
         return affectedFiles;
-    }
-
-    @Override
-    public void onResponse(IResponse iResponse) {
-        // Currently, we do not handle a response of a delete exchange
-        try {
-            super.waitForSentCountDownLatch.await(MAX_WAITING_TIME, TimeUnit.MILLISECONDS);
-        } catch (InterruptedException e) {
-            logger.error("Got interrupted while waiting that all requests have been sent to all clients");
-        }
-
-        super.countDownLatch.countDown();
     }
 
     @Override

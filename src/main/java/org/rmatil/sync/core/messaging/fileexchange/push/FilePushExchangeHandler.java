@@ -104,7 +104,7 @@ public class FilePushExchangeHandler extends ANetworkHandler<FilePushExchangeHan
 
             // check, whether there is a fileId already present,
             // e.g. made in an earlier push request (or on another client)
-            if (null == this.client.getIdentifierManager().getIdentifierValue(this.relativeFilePath)) {
+            if (null == super.client.getIdentifierManager().getValue(this.relativeFilePath)) {
                 // add a file id, if not
                 this.client.getIdentifierManager().addIdentifier(this.relativeFilePath, UUID.randomUUID());
             }
@@ -118,7 +118,7 @@ public class FilePushExchangeHandler extends ANetworkHandler<FilePushExchangeHan
                 this.sendChunk(0, uuid, location);
             }
         } catch (Exception e) {
-            logger.error("Failed to execute FilePushExchangeHandler. Message: " + e.getMessage());
+            logger.error("Failed to execute FilePushExchangeHandler. Message: " + e.getMessage(), e);
         }
     }
 
@@ -132,22 +132,20 @@ public class FilePushExchangeHandler extends ANetworkHandler<FilePushExchangeHan
 
     @Override
     public void onResponse(IResponse response) {
-        if (response instanceof FilePushResponse) {
-            if (- 1 < ((FilePushResponse) response).getChunkCounter()) {
-                this.sendChunk(((FilePushResponse) response).getChunkCounter(), response.getExchangeId(), new ClientLocation(response.getClientDevice().getClientDeviceId(), response.getClientDevice().getPeerAddress()));
-            } else {
-                // exchange is finished
-                super.client.getObjectDataReplyHandler().removeResponseCallbackHandler(response.getExchangeId());
+        if (! (response instanceof FilePushResponse)) {
+            logger.error("Expected response to be instance of " + FilePushResponse.class.getName() + " but got " + response.getClass().getName());
+            return;
+        }
 
-                try {
-                    super.waitForSentCountDownLatch.await(MAX_WAITING_TIME, TimeUnit.MILLISECONDS);
-                } catch (InterruptedException e) {
-                    logger.error("Got interrupted while waiting that all requests have been sent to all clients");
-                }
+        if (- 1 < ((FilePushResponse) response).getChunkCounter()) {
+            this.sendChunk(((FilePushResponse) response).getChunkCounter(), response.getExchangeId(), new ClientLocation(response.getClientDevice().getClientDeviceId(), response.getClientDevice().getPeerAddress()));
+        } else {
+            // exchange is finished
+            super.client.getObjectDataReplyHandler().removeResponseCallbackHandler(response.getExchangeId());
 
-                super.countDownLatch.countDown();
-                this.chunkCountDownLatch.countDown();
-            }
+            super.onResponse(response);
+
+            this.chunkCountDownLatch.countDown();
         }
     }
 

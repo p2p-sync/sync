@@ -3,6 +3,7 @@ package org.rmatil.sync.core.syncer.background.syncresult;
 import net.engio.mbassy.bus.MBassador;
 import org.rmatil.sync.core.eventbus.IBusEvent;
 import org.rmatil.sync.core.syncer.background.BlockingBackgroundSyncer;
+import org.rmatil.sync.core.syncer.background.fetchobjectstore.FetchObjectStoreResponse;
 import org.rmatil.sync.core.syncer.background.syncobjectstore.ObjectStoreSyncer;
 import org.rmatil.sync.network.api.IClient;
 import org.rmatil.sync.network.api.IClientManager;
@@ -19,7 +20,6 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 
 /**
  * Sends the merged object store from {@link ObjectStoreSyncer} to all other clients
@@ -71,9 +71,9 @@ public class SyncResultExchangeHandler extends ANetworkHandler<SyncResultExchang
     protected MBassador<IBusEvent> globalEventBus;
 
     /**
-     * @param exchangeId The exchange id to use for the exchange
-     * @param clientManager The client manager to fetch all client locations from
-     * @param client The client to use for sending messages
+     * @param exchangeId        The exchange id to use for the exchange
+     * @param clientManager     The client manager to fetch all client locations from
+     * @param client            The client to use for sending messages
      * @param zippedObjectStore The final merged and zipped object store
      */
     public SyncResultExchangeHandler(UUID exchangeId, IClientManager clientManager, IClient client, byte[] zippedObjectStore) {
@@ -113,17 +113,14 @@ public class SyncResultExchangeHandler extends ANetworkHandler<SyncResultExchang
     }
 
     @Override
-    public void onResponse(IResponse iResponse) {
-        logger.info("Received response for exchange " + iResponse.getExchangeId() + " of client " + iResponse.getClientDevice().getClientDeviceId() + " (" + iResponse.getClientDevice().getPeerAddress().inetAddress().getHostName() + ":" + iResponse.getClientDevice().getPeerAddress().tcpPort() + ")");
-
-        try {
-            super.waitForSentCountDownLatch.await(MAX_WAITING_TIME, TimeUnit.MILLISECONDS);
-        } catch (InterruptedException e) {
-            logger.error("Got interrupted while waiting that all requests have been sent to all clients");
+    public void onResponse(IResponse response) {
+        if (! (response instanceof FetchObjectStoreResponse)) {
+            logger.error("Expected response to be instance of " + FetchObjectStoreResponse.class.getName() + " but got " + response.getClass().getName());
+            return;
         }
 
-        this.respondedClients.add(iResponse);
-        super.countDownLatch.countDown();
+        this.respondedClients.add(response);
+        super.onResponse(response);
     }
 
     @Override

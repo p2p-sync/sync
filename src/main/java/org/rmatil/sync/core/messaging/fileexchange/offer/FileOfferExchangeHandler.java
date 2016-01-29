@@ -25,8 +25,9 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.*;
-import java.util.concurrent.TimeUnit;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
 import java.util.stream.Stream;
 
 /**
@@ -37,7 +38,7 @@ import java.util.stream.Stream;
  * If a conflict is detected, a {@link FileOfferExchangeHandlerResult} is returned having
  * the fields for conflict set to true.
  */
-public class FileOfferExchangeHandler extends ANetworkHandler<FileOfferExchangeHandlerResult> implements ILocalStateResponseCallback{
+public class FileOfferExchangeHandler extends ANetworkHandler<FileOfferExchangeHandlerResult> implements ILocalStateResponseCallback {
 
     private static final Logger logger = LoggerFactory.getLogger(FileOfferExchangeHandler.class);
 
@@ -127,7 +128,7 @@ public class FileOfferExchangeHandler extends ANetworkHandler<FileOfferExchangeH
 
                     // move also file id
                     try {
-                        UUID fileId = this.client.getIdentifierManager().getIdentifierValue(oldPath.toString());
+                        UUID fileId = this.client.getIdentifierManager().getValue(oldPath.toString());
                         this.client.getIdentifierManager().addIdentifier(relPath.toString(), fileId);
                         this.client.getIdentifierManager().removeIdentifier(oldPath.toString());
                     } catch (InputOutputException e) {
@@ -199,17 +200,14 @@ public class FileOfferExchangeHandler extends ANetworkHandler<FileOfferExchangeH
     }
 
     @Override
-    public void onResponse(IResponse iResponse) {
-        logger.info("Received response for exchange " + iResponse.getExchangeId() + " of client " + iResponse.getClientDevice().getClientDeviceId() + " (" + iResponse.getClientDevice().getPeerAddress().inetAddress().getHostAddress() + ":" + iResponse.getClientDevice().getPeerAddress().tcpPort() + ")");
-
-        try {
-            super.waitForSentCountDownLatch.await(MAX_WAITING_TIME, TimeUnit.MILLISECONDS);
-        } catch (InterruptedException e) {
-            logger.error("Got interrupted while waiting that all requests have been sent to all clients");
+    public void onResponse(IResponse response) {
+        if (! (response instanceof FileOfferResponse)) {
+            logger.error("Expected response to be instance of " + FileOfferResponse.class.getName() + " but got " + response.getClass().getName());
+            return;
         }
 
-        this.respondedClients.add(iResponse);
-        super.countDownLatch.countDown();
+        this.respondedClients.add(response);
+        super.onResponse(response);
     }
 
     @Override

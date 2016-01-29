@@ -1,16 +1,10 @@
 package org.rmatil.sync.core.messaging.fileexchange.demand;
 
-import org.rmatil.sync.core.eventbus.IgnoreBusEvent;
-import org.rmatil.sync.core.init.client.ILocalStateResponseCallback;
-import org.rmatil.sync.core.messaging.fileexchange.push.FilePushResponse;
-import org.rmatil.sync.event.aggregator.core.events.CreateEvent;
-import org.rmatil.sync.event.aggregator.core.events.ModifyEvent;
+import org.rmatil.sync.core.messaging.sharingexchange.shared.SharedResponse;
 import org.rmatil.sync.network.api.IClient;
 import org.rmatil.sync.network.api.IClientManager;
 import org.rmatil.sync.network.api.IResponse;
-import org.rmatil.sync.network.api.IUser;
 import org.rmatil.sync.network.core.ANetworkHandler;
-import org.rmatil.sync.network.core.exception.ConnectionFailedException;
 import org.rmatil.sync.network.core.model.ClientDevice;
 import org.rmatil.sync.network.core.model.ClientLocation;
 import org.rmatil.sync.persistence.api.IPathElement;
@@ -21,11 +15,10 @@ import org.rmatil.sync.persistence.exceptions.InputOutputException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.nio.file.Paths;
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 
 public class FileDemandExchangeHandler extends ANetworkHandler<FileDemandExchangeHandlerResult> {
 
@@ -85,14 +78,13 @@ public class FileDemandExchangeHandler extends ANetworkHandler<FileDemandExchang
     }
 
     @Override
-    public void onResponse(IResponse iResponse) {
-        try {
-            super.waitForSentCountDownLatch.await(MAX_WAITING_TIME, TimeUnit.MILLISECONDS);
-        } catch (InterruptedException e) {
-            logger.error("Got interrupted while waiting that all requests have been sent to all clients");
+    public void onResponse(IResponse response) {
+        if (! (response instanceof FileDemandResponse)) {
+            logger.error("Expected response to be instance of " + FileDemandResponse.class.getName() + " but got " + response.getClass().getName());
+            return;
         }
 
-        FileDemandResponse fileDemandResponse = (FileDemandResponse) iResponse;
+        FileDemandResponse fileDemandResponse = (FileDemandResponse) response;
 
         logger.info("Writing chunk " + fileDemandResponse.getChunkCounter() + " for file " + fileDemandResponse.getRelativeFilePath() + " for exchangeId " + fileDemandResponse.getExchangeId());
 
@@ -116,7 +108,7 @@ public class FileDemandExchangeHandler extends ANetworkHandler<FileDemandExchang
 
         if (this.chunkCounter == fileDemandResponse.getTotalNrOfChunks()) {
             // we received the last chunk needed
-            super.countDownLatch.countDown();
+            super.onResponse(response);
             return;
         }
 

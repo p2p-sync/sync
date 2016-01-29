@@ -14,7 +14,6 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 
 /**
  * Elects a master client by fetching all clients currently
@@ -117,16 +116,15 @@ public class MasterElectionExchangeHandler extends ANetworkHandler<MasterElectio
     }
 
     @Override
-    public void onResponse(IResponse iResponse) {
-        this.electionResponses.add((MasterElectionResponse) iResponse);
-
-        try {
-            super.waitForSentCountDownLatch.await(MAX_WAITING_TIME, TimeUnit.MILLISECONDS);
-        } catch (InterruptedException e) {
-            logger.error("Got interrupted while waiting that all requests have been sent to all clients");
+    public void onResponse(IResponse response) {
+        if (! (response instanceof MasterElectionResponse)) {
+            logger.error("Expected response to be instance of " + MasterElectionResponse.class.getName() + " but got " + response.getClass().getName());
+            return;
         }
 
-        super.countDownLatch.countDown();
+        this.electionResponses.add((MasterElectionResponse) response);
+
+        super.onResponse(response);
     }
 
     @Override
