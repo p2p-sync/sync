@@ -102,6 +102,13 @@ public class FilePushExchangeHandler extends ANetworkHandler<FilePushExchangeHan
 
             this.chunkCountDownLatch = new CountDownLatch(clientCounter);
 
+            // check, whether there is a fileId already present,
+            // e.g. made in an earlier push request (or on another client)
+            if (null == this.client.getIdentifierManager().getIdentifierValue(this.relativeFilePath)) {
+                // add a file id, if not
+                this.client.getIdentifierManager().addIdentifier(this.relativeFilePath, UUID.randomUUID());
+            }
+
             for (ClientLocation location : this.receivers) {
                 UUID uuid = UUID.randomUUID();
                 logger.info("Sending first chunk as subRequest of " + this.exchangeId + " with id " + uuid + " to client " + location.getPeerAddress().inetAddress().getHostName() + ":" + location.getPeerAddress().tcpPort());

@@ -4,21 +4,17 @@ import net.engio.mbassy.bus.MBassador;
 import org.rmatil.sync.core.eventbus.IBusEvent;
 import org.rmatil.sync.core.eventbus.IgnoreBusEvent;
 import org.rmatil.sync.core.init.client.ILocalStateRequestCallback;
-import org.rmatil.sync.event.aggregator.core.events.CreateEvent;
-import org.rmatil.sync.event.aggregator.core.events.DeleteEvent;
 import org.rmatil.sync.event.aggregator.core.events.MoveEvent;
 import org.rmatil.sync.network.api.IClient;
 import org.rmatil.sync.network.api.IRequest;
 import org.rmatil.sync.network.core.model.ClientDevice;
 import org.rmatil.sync.network.core.model.ClientLocation;
-import org.rmatil.sync.persistence.api.IFileMetaInfo;
 import org.rmatil.sync.persistence.api.IPathElement;
 import org.rmatil.sync.persistence.api.IStorageAdapter;
 import org.rmatil.sync.persistence.api.StorageType;
 import org.rmatil.sync.persistence.core.local.LocalPathElement;
 import org.rmatil.sync.persistence.exceptions.InputOutputException;
 import org.rmatil.sync.version.api.IObjectStore;
-import org.rmatil.sync.version.core.model.Index;
 import org.rmatil.sync.version.core.model.PathObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,7 +23,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.List;
 import java.util.stream.Stream;
 
 /**
@@ -139,10 +134,13 @@ public class FileMoveRequestHandler implements ILocalStateRequestCallback {
         if (StorageType.DIRECTORY == storageType) {
             try (Stream<Path> paths = Files.walk(this.storageAdapter.getRootDir().resolve(oldPath.getPath()))) {
                 paths.forEach((entry) -> {
+                    Path oldFilePath = this.storageAdapter.getRootDir().relativize(entry);
+                    Path newFilePath = Paths.get(newPath.getPath()).resolve(Paths.get(oldPath.getPath()).relativize(this.storageAdapter.getRootDir().relativize(Paths.get(entry.toString()))));
+
                     this.globalEventBus.publish(new IgnoreBusEvent(
                             new MoveEvent(
-                                    this.storageAdapter.getRootDir().relativize(entry),
-                                    Paths.get(newPath.getPath()).resolve(Paths.get(oldPath.getPath()).relativize(this.storageAdapter.getRootDir().relativize(Paths.get(entry.toString())))),
+                                    oldFilePath,
+                                    newFilePath,
                                     Paths.get(oldPath.getPath()).getFileName().toString(),
                                     "weIgnoreTheHash",
                                     System.currentTimeMillis()

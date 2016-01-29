@@ -17,6 +17,7 @@ import org.rmatil.sync.version.core.model.PathObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
@@ -62,10 +63,15 @@ public class FileDeleteExchangeHandler extends ANetworkHandler<FileDeleteExchang
 
             // ignore delete events from children
             for (PathObject entry : deletedPaths) {
+                Path filePathToDelete = Paths.get(entry.getAbsolutePath());
+
+                // remove the fileId
+                this.client.getIdentifierManager().removeIdentifier(filePathToDelete.toString());
+
                 this.globalEventBus.publish(
                         new IgnoreBusEvent(
                                 new DeleteEvent(
-                                        Paths.get(entry.getAbsolutePath()),
+                                        filePathToDelete,
                                         entry.getName(),
                                         "weIgnoreTheHash",
                                         System.currentTimeMillis()

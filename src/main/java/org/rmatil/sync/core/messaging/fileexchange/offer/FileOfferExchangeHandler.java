@@ -125,6 +125,15 @@ public class FileOfferExchangeHandler extends ANetworkHandler<FileOfferExchangeH
                     Path relPath = this.storageAdapter.getRootDir().relativize(entry);
                     Path oldPath = this.eventToPropagate.getPath().resolve(((MoveEvent) this.eventToPropagate).getNewPath().relativize(relPath));
 
+                    // move also file id
+                    try {
+                        UUID fileId = this.client.getIdentifierManager().getIdentifierValue(oldPath.toString());
+                        this.client.getIdentifierManager().addIdentifier(relPath.toString(), fileId);
+                        this.client.getIdentifierManager().removeIdentifier(oldPath.toString());
+                    } catch (InputOutputException e) {
+                        logger.error("Failed to move file id for file " + oldPath.toString() + ". Message: " + e.getMessage(), e);
+                    }
+
                     globalEventBus.publish(new IgnoreBusEvent(
                             new MoveEvent(
                                     oldPath,
