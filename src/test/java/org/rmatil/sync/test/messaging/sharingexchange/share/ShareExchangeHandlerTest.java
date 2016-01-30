@@ -195,7 +195,7 @@ public class ShareExchangeHandlerTest extends BaseNetworkHandlerTest {
 
         Sharer sharer = sharedObject.getSharers().iterator().next();
 
-        assertEquals("Sharer should have the same username", USER_2.getUserName(), sharer.getUsername());
+        assertEquals("Sharer should have the same username", USERNAME, sharer.getUsername());
         assertEquals("Sharer should have write access", AccessType.WRITE, sharer.getAccessType());
         assertEquals("Sharer should have one sharing history (the one of share)", 1, sharer.getSharingHistory().size());
     }
