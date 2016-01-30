@@ -65,13 +65,13 @@ public class UnsharedExchangeHandler extends ANetworkHandler<UnsharedExchangeHan
                     this.fileId
             );
 
-            super.sendRequest(unsharedRequest);
-
             // remove sharer from the file
             this.objectStore.getSharerManager().removeSharer(
                     this.sharer,
                     this.relativeFilePath
             );
+
+            super.sendRequest(unsharedRequest);
 
         } catch (Exception e) {
             logger.error("Got exception in UnsharedExchangeHandler. Message: " + e.getMessage(), e);
