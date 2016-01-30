@@ -1,6 +1,5 @@
 package org.rmatil.sync.core.messaging.sharingexchange.share;
 
-import org.rmatil.sync.core.messaging.fileexchange.offer.FileOfferResponse;
 import org.rmatil.sync.network.api.IClient;
 import org.rmatil.sync.network.api.IRequest;
 import org.rmatil.sync.network.api.IResponse;
@@ -33,7 +32,7 @@ public class ShareExchangeHandler extends ANetworkHandler<ShareExchangeHandlerRe
     /**
      * The chunk size to use for the whole file exchange
      */
-    protected static final int CHUNK_SIZE = 1024 * 1024; // 1MB
+    public static final int CHUNK_SIZE = 1024 * 1024; // 1MB
 
     /**
      * The client location to which this share should be sent
@@ -104,14 +103,13 @@ public class ShareExchangeHandler extends ANetworkHandler<ShareExchangeHandlerRe
         this.fileId = fileId;
         this.isFile = isFile;
         this.exchangeId = exchangeId;
+        this.chunkCountDownLatch = new CountDownLatch(1);
     }
 
     @Override
     public void run() {
         try {
             logger.info("Sharing file " + this.fileId + " with client on " + this.receiverAddress.getPeerAddress().inetAddress().getHostName() + ":" + this.receiverAddress.getPeerAddress().tcpPort());
-
-            this.chunkCountDownLatch = new CountDownLatch(1);
 
             this.sendChunk(0, this.exchangeId, receiverAddress);
 
@@ -142,14 +140,16 @@ public class ShareExchangeHandler extends ANetworkHandler<ShareExchangeHandlerRe
     @Override
     public void await()
             throws InterruptedException {
-        super.await();
+        // do not await on parent here, since the countdown latch will
+        // be re-initiated on sendRequest()
         this.chunkCountDownLatch.await(MAX_FILE_WAITING_TIME, TimeUnit.MILLISECONDS);
     }
 
     @Override
     public void await(long timeout, TimeUnit timeUnit)
             throws InterruptedException {
-        super.await();
+        // do not await on parent here, since the countdown latch will
+        // be re-initiated on sendRequest()
         this.chunkCountDownLatch.await(MAX_FILE_WAITING_TIME, TimeUnit.MILLISECONDS);
     }
 

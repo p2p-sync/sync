@@ -80,19 +80,11 @@ public class ShareRequestHandler implements ILocalStateRequestCallback {
             // if the chunk counter is greater than 0
             // we only modify the existing file, so we generate an ignore modify event
             if (this.request.getChunkCounter() > 0) {
-                PathObject pathObject = this.objectStore.getObjectManager().getObject(
+                PathObject pathObject = this.objectStore.getObjectManager().getObjectForPath(
                         this.client.getIdentifierManager().getKey(this.request.getFileId())
                 );
 
-                String relPathToSyncedFolder;
-
-                if (AccessType.WRITE == this.request.getAccessType()) {
-                    relPathToSyncedFolder = Config.DEFAULT.getSharedWithOthersReadWriteFolderName() + "/" + pathObject.getAbsolutePath();
-                } else {
-                    relPathToSyncedFolder = Config.DEFAULT.getSharedWithOthersReadOnlyFolderName() + "/" + pathObject.getAbsolutePath();
-                }
-
-                pathElement = new LocalPathElement(relPathToSyncedFolder);
+                pathElement = new LocalPathElement(pathObject.getAbsolutePath());
 
                 IEvent modifyEvent = new ModifyEvent(
                         Paths.get(pathObject.getAbsolutePath()),
@@ -106,6 +98,14 @@ public class ShareRequestHandler implements ILocalStateRequestCallback {
             } else {
 
                 String relPathToSyncedFolder;
+
+                if (! this.storageAdapter.exists(StorageType.DIRECTORY, new LocalPathElement(Config.DEFAULT.getSharedWithOthersReadOnlyFolderName()))) {
+                    this.storageAdapter.persist(StorageType.DIRECTORY, new LocalPathElement(Config.DEFAULT.getSharedWithOthersReadOnlyFolderName()), null);
+                }
+
+                if (! this.storageAdapter.exists(StorageType.DIRECTORY, new LocalPathElement(Config.DEFAULT.getSharedWithOthersReadWriteFolderName()))) {
+                    this.storageAdapter.persist(StorageType.DIRECTORY, new LocalPathElement(Config.DEFAULT.getSharedWithOthersReadWriteFolderName()), null);
+                }
 
                 if (AccessType.WRITE == this.request.getAccessType()) {
                     relPathToSyncedFolder = Config.DEFAULT.getSharedWithOthersReadWriteFolderName() + "/" + this.request.getRelativePathToSharedFolder();
@@ -160,7 +160,7 @@ public class ShareRequestHandler implements ILocalStateRequestCallback {
                             this.request.getData().getContent()
                     );
                 } catch (InputOutputException e) {
-                    logger.error("Could not write chunk " + this.request.getChunkCounter() + " for shared file " + pathElement + ". Message: " + e.getMessage(), e);
+                    logger.error("Could not write chunk " + this.request.getChunkCounter() + " for shared file " + pathElement.getPath() + ". Message: " + e.getMessage(), e);
                 }
             } else {
                 try {

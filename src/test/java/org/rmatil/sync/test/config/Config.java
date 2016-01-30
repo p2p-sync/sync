@@ -20,14 +20,29 @@ public enum Config {
     protected String username = "Quiche Hollandaise";
 
     /**
+     * The username of the user
+     */
+    protected String username2 = "Quiche Bolognese";
+
+    /**
      * The password for test purposes
      */
-    protected String password = "ThisIsNotSafeChangeIt";
+    protected String password2 = "ThisIsNotSafeChangeIt";
+
+    /**
+     * The password for test purposes
+     */
+    protected String password = "ThisIsAlsoNotSafe...";
 
     /**
      * The salt to use
      */
     protected String salt = "SaltAndPepperMakesTheMealBetter";
+
+    /**
+     * The salt to use
+     */
+    protected String salt2 = "SaltAndPepperMakesTheMealBetter.Haha";
 
     /**
      * The folder name for the settings folder
@@ -72,6 +87,18 @@ public enum Config {
 
     public String getSalt() {
         return salt;
+    }
+
+    public String getUsername2() {
+        return username2;
+    }
+
+    public String getPassword2() {
+        return password2;
+    }
+
+    public String getSalt2() {
+        return salt2;
     }
 
     public String getSyncFolderName() {

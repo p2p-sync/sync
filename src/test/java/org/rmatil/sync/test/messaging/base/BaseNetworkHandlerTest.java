@@ -89,8 +89,14 @@ public abstract class BaseNetworkHandlerTest {
     protected static final String PASSWORD           = Config.DEFAULT.getPassword();
     protected static final String SALT               = Config.DEFAULT.getSalt();
 
-    protected static KeyPair KEYPAIR;
-    protected static IUser   USER;
+    protected static final String USERNAME_2 = Config.DEFAULT.getUsername2();
+    protected static final String PASSWORD_2 = Config.DEFAULT.getPassword2();
+    protected static final String SALT_2     = Config.DEFAULT.getSalt2();
+
+    protected static KeyPair KEYPAIR_1;
+    protected static KeyPair KEYPAIR_2;
+    protected static IUser   USER_1;
+    protected static IUser   USER_2;
 
     protected static final UUID CLIENT_ID_1 = UUID.randomUUID();
     protected static final UUID CLIENT_ID_2 = UUID.randomUUID();
@@ -134,8 +140,11 @@ public abstract class BaseNetworkHandlerTest {
         createTestDirs();
         createObjectStoreDirs();
 
-        KEYPAIR = createKeyPair();
-        USER = createUser();
+        KEYPAIR_1 = createKeyPair();
+        KEYPAIR_2 = createKeyPair();
+
+        USER_1 = createUser();
+        USER_2 = createUser();
 
         GLOBAL_EVENT_BUS_1 = createGlobalEventBus();
         GLOBAL_EVENT_BUS_2 = createGlobalEventBus();
@@ -153,8 +162,8 @@ public abstract class BaseNetworkHandlerTest {
         OBJECT_STORE_1 = createObjectStore(ROOT_TEST_DIR1);
         OBJECT_STORE_2 = createObjectStore(ROOT_TEST_DIR2);
 
-        CLIENT_1 = createClient(STORAGE_ADAPTER_1, OBJECT_STORE_1, GLOBAL_EVENT_BUS_1, PORT_CLIENT_1, null);
-        CLIENT_2 = createClient(STORAGE_ADAPTER_2, OBJECT_STORE_2, GLOBAL_EVENT_BUS_2, PORT_CLIENT_2, new RemoteClientLocation(
+        CLIENT_1 = createClient(USER_1, STORAGE_ADAPTER_1, OBJECT_STORE_1, GLOBAL_EVENT_BUS_1, PORT_CLIENT_1, null);
+        CLIENT_2 = createClient(USER_1, STORAGE_ADAPTER_2, OBJECT_STORE_2, GLOBAL_EVENT_BUS_2, PORT_CLIENT_2, new RemoteClientLocation(
                 CLIENT_1.getPeerAddress().inetAddress().getHostName(),
                 CLIENT_1.getPeerAddress().isIPv6(),
                 CLIENT_1.getPeerAddress().tcpPort()
@@ -176,7 +185,7 @@ public abstract class BaseNetworkHandlerTest {
         CLIENT_DEVICE_1 = new ClientDevice(USERNAME, CLIENT_ID_1, CLIENT_1.getPeerAddress());
         CLIENT_DEVICE_2 = new ClientDevice(USERNAME, CLIENT_ID_2, CLIENT_2.getPeerAddress());
 
-        CLIENT_LOCATIONS = CLIENT_MANAGER_2.getClientLocations(USER);
+        CLIENT_LOCATIONS = CLIENT_MANAGER_2.getClientLocations(USER_1);
     }
 
     @AfterClass
@@ -306,8 +315,24 @@ public abstract class BaseNetworkHandlerTest {
                 USERNAME,
                 PASSWORD,
                 SALT,
-                KEYPAIR.getPublic(),
-                KEYPAIR.getPrivate(),
+                KEYPAIR_1.getPublic(),
+                KEYPAIR_1.getPrivate(),
+                new ArrayList<>()
+        );
+    }
+
+    /**
+     * Creates a new user
+     *
+     * @return The created user
+     */
+    private static IUser createUser2() {
+        return new User(
+                USERNAME_2,
+                PASSWORD_2,
+                SALT_2,
+                KEYPAIR_2.getPublic(),
+                KEYPAIR_2.getPrivate(),
                 new ArrayList<>()
         );
     }
@@ -343,8 +368,8 @@ public abstract class BaseNetworkHandlerTest {
      *
      * @return The configured and started client
      */
-    private static IClient createClient(IStorageAdapter storageAdapter, IObjectStore objectStore, MBassador<IBusEvent> globalEventBus, int port, RemoteClientLocation bootstrapLocation) {
-        IClient client = new Client(null, USER, null);
+    protected static IClient createClient(IUser user, IStorageAdapter storageAdapter, IObjectStore objectStore, MBassador<IBusEvent> globalEventBus, int port, RemoteClientLocation bootstrapLocation) {
+        IClient client = new Client(null, user, null);
         LocalStateObjectDataReplyHandler objectDataReplyHandler = new LocalStateObjectDataReplyHandler(
                 storageAdapter,
                 objectStore,
@@ -372,7 +397,7 @@ public abstract class BaseNetworkHandlerTest {
         objectDataReplyHandler.addRequestCallbackHandler(UnsharedRequest.class, UnsharedRequestHandler.class);
 
 
-        ClientInitializer clientInitializer = new ClientInitializer(objectDataReplyHandler, USER, port, bootstrapLocation);
+        ClientInitializer clientInitializer = new ClientInitializer(objectDataReplyHandler, USER_1, port, bootstrapLocation);
         client = clientInitializer.init();
         clientInitializer.start();
 
