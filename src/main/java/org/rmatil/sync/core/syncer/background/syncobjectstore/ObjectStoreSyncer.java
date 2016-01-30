@@ -183,6 +183,7 @@ public class ObjectStoreSyncer implements Runnable {
                         this.storageAdapter,
                         this.client,
                         this.clientManager,
+                        this.globalEventBus,
                         new ClientLocation(
                                 entry.getValue().getClientDeviceId(),
                                 entry.getValue().getPeerAddress()

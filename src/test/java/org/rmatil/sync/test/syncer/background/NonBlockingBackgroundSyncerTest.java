@@ -144,7 +144,7 @@ public class NonBlockingBackgroundSyncerTest extends BaseNetworkHandlerTest {
         // modify event is originating from backgroundSyncer's check after restarting the event aggregator:
         // there, he will detect that the conflict file has been created. There is no modify event for the original
         // conflict file since its content hash is merged from the other client
-        assertEquals("IgnoreEvents must contain move and modify event for the conflict file", 2, EVENT_HANDLER.ignoreEvents.size());
+        assertEquals("IgnoreEvents must contain move and modify event for the conflict file, the create event for the misingFile, the create event for the orig. conflict file and a modify event for the outdated one", 5, EVENT_HANDLER.ignoreEvents.size());
 
         // this is the move event for the conflicting file on our side
         IEvent moveEvent = EVENT_HANDLER.ignoreEvents.poll();
@@ -157,11 +157,25 @@ public class NonBlockingBackgroundSyncerTest extends BaseNetworkHandlerTest {
         Assert.assertThat("Event must be instance of modify event", modifyEvent, instanceOf(ModifyEvent.class));
         assertEquals("IgnoreEvents' modify event must contain the correct path for the conflict file", conflictFile.getPath(), modifyEvent.getPath().toString());
 
+        // this is the ignore event for the create event of the missing file
+        IEvent createEvent = EVENT_HANDLER.ignoreEvents.poll();
+        Assert.assertThat("Event must be instance of create event", createEvent, instanceOf(CreateEvent.class));
+        assertEquals("IgnoreEvents' create event must contain the correct path for the conflict file", MISSING_FILE.toString(), createEvent.getPath().toString());
+
+        IEvent createEvent2 = EVENT_HANDLER.ignoreEvents.poll();
+        Assert.assertThat("Event must be instance of create event", createEvent2, instanceOf(CreateEvent.class));
+        assertEquals("IgnoreEvents' create event must contain the correct path for the conflict file", CONFLICTING_FILE.toString(), createEvent2.getPath().toString());
+
+        IEvent modifyEvent3 = EVENT_HANDLER.ignoreEvents.poll();
+        Assert.assertThat("Event must be instance of modify event", modifyEvent3, instanceOf(ModifyEvent.class));
+        assertEquals("IgnoreEvents' modify event must contain the correct path for the outdated file", OUTDATED_PATH.toString(), modifyEvent3.getPath().toString());
+
+
         // this is the create event for the conflict file (ConflictHandler)
         assertEquals("CreateEvents must contain a create and modify event for the conflict file", 2, EVENT_HANDLER.createEvents.size());
-        IEvent createEvent = EVENT_HANDLER.createEvents.poll();
-        Assert.assertThat("Event must be instance of create event", createEvent, instanceOf(CreateEvent.class));
-        assertEquals("CreateEvent must be for the conflict file", conflictFile.getPath(), createEvent.getPath().toString());
+        IEvent createEvent3 = EVENT_HANDLER.createEvents.poll();
+        Assert.assertThat("Event must be instance of create event", createEvent3, instanceOf(CreateEvent.class));
+        assertEquals("CreateEvent must be for the conflict file", conflictFile.getPath(), createEvent3.getPath().toString());
 
         // this modify event is resulting from the final reconciliation between the merged object store and the actual disk contents
         IEvent modifyEvent2 = EVENT_HANDLER.createEvents.poll();

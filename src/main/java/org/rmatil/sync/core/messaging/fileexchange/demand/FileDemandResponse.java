@@ -5,7 +5,9 @@ import org.rmatil.sync.core.messaging.base.AResponse;
 import org.rmatil.sync.network.core.model.ClientDevice;
 import org.rmatil.sync.network.core.model.ClientLocation;
 import org.rmatil.sync.network.core.model.Data;
+import org.rmatil.sync.version.core.model.Sharer;
 
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -52,6 +54,11 @@ public class FileDemandResponse extends AResponse {
     protected int chunkSize;
 
     /**
+     * All sharers of this file
+     */
+    protected Set<Sharer> sharers;
+
+    /**
      * @param exchangeId       The exchange id of the request
      * @param clientDevice     The client device which is sending this request
      * @param relativeFilePath The relative path to the file which should be created
@@ -63,8 +70,9 @@ public class FileDemandResponse extends AResponse {
      * @param totalFileSize    The total file size of the file once all chunks have been transferred
      * @param data             The actual chunk data
      * @param receiverAddress  The receiver of this request
+     * @param sharers          All sharers of this file
      */
-    public FileDemandResponse(UUID exchangeId, ClientDevice clientDevice, String relativeFilePath, boolean isFile, long chunkCounter, int chunkSize, long totalNrOfChunks, long totalFileSize, Data data, ClientLocation receiverAddress) {
+    public FileDemandResponse(UUID exchangeId, ClientDevice clientDevice, String relativeFilePath, boolean isFile, long chunkCounter, int chunkSize, long totalNrOfChunks, long totalFileSize, Data data, ClientLocation receiverAddress, Set<Sharer> sharers) {
         super(exchangeId, clientDevice, receiverAddress);
         this.relativeFilePath = relativeFilePath;
         this.isFile = isFile;
@@ -73,6 +81,7 @@ public class FileDemandResponse extends AResponse {
         this.totalNrOfChunks = totalNrOfChunks;
         this.totalFileSize = totalFileSize;
         this.data = data;
+        this.sharers = sharers;
     }
 
     /**
@@ -142,5 +151,14 @@ public class FileDemandResponse extends AResponse {
      */
     public int getChunkSize() {
         return chunkSize;
+    }
+
+    /**
+     * Returns all sharers of this file
+     *
+     * @return All sharers
+     */
+    public Set<Sharer> getSharers() {
+        return sharers;
     }
 }

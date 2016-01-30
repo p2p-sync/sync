@@ -15,8 +15,12 @@ import org.rmatil.sync.persistence.api.IStorageAdapter;
 import org.rmatil.sync.persistence.core.local.LocalPathElement;
 import org.rmatil.sync.persistence.exceptions.InputOutputException;
 import org.rmatil.sync.version.api.IObjectStore;
+import org.rmatil.sync.version.core.model.Sharer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * Handles file requests by answering with chunks of the requested file
@@ -28,7 +32,7 @@ public class FileDemandRequestHandler implements ILocalStateRequestCallback {
     /**
      * The chunk size to use for the whole file exchange
      */
-    protected static final int CHUNK_SIZE = 1024 * 1024; // 1MB
+    public static final int CHUNK_SIZE = 1024 * 1024; // 1MB
 
     protected IStorageAdapter      storageAdapter;
     protected IObjectStore         objectStore;
@@ -68,7 +72,6 @@ public class FileDemandRequestHandler implements ILocalStateRequestCallback {
     @Override
     public void run() {
         try {
-
             IPathElement pathElement = new LocalPathElement(this.request.getRelativeFilePath());
             IFileMetaInfo fileMetaInfo;
             try {
@@ -82,12 +85,13 @@ public class FileDemandRequestHandler implements ILocalStateRequestCallback {
                                 new ClientDevice(this.client.getUser().getUserName(), this.client.getClientDeviceId(), this.client.getPeerAddress()),
                                 this.request.getRelativeFilePath(),
                                 true,
-                                -1,
-                                -1,
-                                -1,
-                                -1,
+                                - 1,
+                                - 1,
+                                - 1,
+                                - 1,
                                 null,
-                                new ClientLocation(this.request.getClientDevice().getClientDeviceId(), this.request.getClientDevice().getPeerAddress())
+                                new ClientLocation(this.request.getClientDevice().getClientDeviceId(), this.request.getClientDevice().getPeerAddress()),
+                                new HashSet<>()
                         )
                 );
 
@@ -115,6 +119,13 @@ public class FileDemandRequestHandler implements ILocalStateRequestCallback {
                 data = new Data(content, false);
             }
 
+            Set<Sharer> sharers = new HashSet<>();
+            try {
+                sharers = this.objectStore.getSharerManager().getSharer(this.request.getRelativeFilePath());
+            } catch (InputOutputException e) {
+                logger.error("Failed to read the sharers for file " + this.request.getRelativeFilePath() + ". Sending an empty sharer set. Message: " + e.getMessage());
+            }
+
             IResponse response = new FileDemandResponse(
                     this.request.getExchangeId(),
                     new ClientDevice(this.client.getUser().getUserName(), this.client.getClientDeviceId(), this.client.getPeerAddress()),
@@ -125,7 +136,8 @@ public class FileDemandRequestHandler implements ILocalStateRequestCallback {
                     totalNrOfChunks,
                     fileMetaInfo.getTotalFileSize(),
                     data,
-                    new ClientLocation(this.request.getClientDevice().getClientDeviceId(), this.request.getClientDevice().getPeerAddress())
+                    new ClientLocation(this.request.getClientDevice().getClientDeviceId(), this.request.getClientDevice().getPeerAddress()),
+                    sharers
             );
 
             this.sendResponse(response);

@@ -168,6 +168,7 @@ public class SyncResultRequestHandler implements IExtendedLocalStateRequestCallb
                         this.storageAdapter,
                         this.client,
                         this.clientManager,
+                        this.globalEventBus,
                         new ClientLocation(
                                 this.request.getClientDevice().getClientDeviceId(),
                                 this.request.getClientDevice().getPeerAddress()

@@ -237,6 +237,7 @@ public class NonBlockingBackgroundSyncer implements IBackgroundSyncer {
                         this.storageAdapter,
                         this.client,
                         this.clientManager,
+                        this.globalEventBus,
                         new ClientLocation(
                                 entry.getValue().getClientDeviceId(),
                                 entry.getValue().getPeerAddress()
