@@ -59,8 +59,12 @@ public class UnsharedRequestHandler implements ILocalStateRequestCallback {
             // add file id from request to the attached file path
             logger.info("Starting to unshare file for id " + this.request.getFileId() + " with sharer " + this.request.getSharer());
 
+            String fileName = this.client.getIdentifierManager().getKey(this.request.getFileId());
+
+            logger.debug("Found file " + fileName + " for fileId " + this.request.getFileId());
+
             PathObject sharedObject = this.objectStore.getObjectManager().getObjectForPath(
-                    this.client.getIdentifierManager().getKey(this.request.getFileId())
+                fileName
             );
 
             logger.trace("Found file on path " + sharedObject.getAbsolutePath() + " for file with id " + this.request.getFileId());
