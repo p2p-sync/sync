@@ -8,7 +8,7 @@ public class SharedExchangeHandlerResult {
         this.hasAccepted = hasAccepted;
     }
 
-    public boolean isHasAccepted() {
+    public boolean hasAccepted() {
         return hasAccepted;
     }
 }
