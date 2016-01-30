@@ -15,13 +15,33 @@ import org.rmatil.sync.core.init.eventaggregator.EventAggregatorInitializer;
 import org.rmatil.sync.core.init.objecstore.ObjectStoreInitializer;
 import org.rmatil.sync.core.messaging.fileexchange.delete.FileDeleteRequest;
 import org.rmatil.sync.core.messaging.fileexchange.delete.FileDeleteRequestHandler;
+import org.rmatil.sync.core.messaging.fileexchange.demand.FileDemandRequest;
+import org.rmatil.sync.core.messaging.fileexchange.demand.FileDemandRequestHandler;
 import org.rmatil.sync.core.messaging.fileexchange.move.FileMoveRequest;
 import org.rmatil.sync.core.messaging.fileexchange.move.FileMoveRequestHandler;
 import org.rmatil.sync.core.messaging.fileexchange.offer.FileOfferRequest;
 import org.rmatil.sync.core.messaging.fileexchange.offer.FileOfferRequestHandler;
 import org.rmatil.sync.core.messaging.fileexchange.push.FilePushRequest;
 import org.rmatil.sync.core.messaging.fileexchange.push.FilePushRequestHandler;
+import org.rmatil.sync.core.messaging.sharingexchange.share.ShareRequest;
+import org.rmatil.sync.core.messaging.sharingexchange.share.ShareRequestHandler;
+import org.rmatil.sync.core.messaging.sharingexchange.shared.SharedRequest;
+import org.rmatil.sync.core.messaging.sharingexchange.shared.SharedRequestHandler;
+import org.rmatil.sync.core.messaging.sharingexchange.unshare.UnshareRequest;
+import org.rmatil.sync.core.messaging.sharingexchange.unshare.UnshareRequestHandler;
+import org.rmatil.sync.core.messaging.sharingexchange.unshared.UnsharedRequest;
+import org.rmatil.sync.core.messaging.sharingexchange.unshared.UnsharedRequestHandler;
 import org.rmatil.sync.core.model.RemoteClientLocation;
+import org.rmatil.sync.core.syncer.background.fetchobjectstore.FetchObjectStoreRequest;
+import org.rmatil.sync.core.syncer.background.fetchobjectstore.FetchObjectStoreRequestHandler;
+import org.rmatil.sync.core.syncer.background.initsync.InitSyncRequest;
+import org.rmatil.sync.core.syncer.background.initsync.InitSyncRequestHandler;
+import org.rmatil.sync.core.syncer.background.masterelection.MasterElectionRequest;
+import org.rmatil.sync.core.syncer.background.masterelection.MasterElectionRequestHandler;
+import org.rmatil.sync.core.syncer.background.synccomplete.SyncCompleteRequest;
+import org.rmatil.sync.core.syncer.background.synccomplete.SyncCompleteRequestHandler;
+import org.rmatil.sync.core.syncer.background.syncresult.SyncResultRequest;
+import org.rmatil.sync.core.syncer.background.syncresult.SyncResultRequestHandler;
 import org.rmatil.sync.core.syncer.file.FileSyncer;
 import org.rmatil.sync.core.syncer.file.SyncFileChangeListener;
 import org.rmatil.sync.event.aggregator.api.IEventAggregator;
@@ -338,6 +358,19 @@ public abstract class BaseNetworkHandlerTest {
         objectDataReplyHandler.addRequestCallbackHandler(FilePushRequest.class, FilePushRequestHandler.class);
         objectDataReplyHandler.addRequestCallbackHandler(FileDeleteRequest.class, FileDeleteRequestHandler.class);
         objectDataReplyHandler.addRequestCallbackHandler(FileMoveRequest.class, FileMoveRequestHandler.class);
+        objectDataReplyHandler.addRequestCallbackHandler(MasterElectionRequest.class, MasterElectionRequestHandler.class);
+        objectDataReplyHandler.addRequestCallbackHandler(InitSyncRequest.class, InitSyncRequestHandler.class);
+        objectDataReplyHandler.addRequestCallbackHandler(FetchObjectStoreRequest.class, FetchObjectStoreRequestHandler.class);
+        objectDataReplyHandler.addRequestCallbackHandler(SyncResultRequest.class, SyncResultRequestHandler.class);
+        objectDataReplyHandler.addRequestCallbackHandler(FileDemandRequest.class, FileDemandRequestHandler.class);
+        objectDataReplyHandler.addRequestCallbackHandler(SyncCompleteRequest.class, SyncCompleteRequestHandler.class);
+
+        // file sharing
+        objectDataReplyHandler.addRequestCallbackHandler(ShareRequest.class, ShareRequestHandler.class);
+        objectDataReplyHandler.addRequestCallbackHandler(SharedRequest.class, SharedRequestHandler.class);
+        objectDataReplyHandler.addRequestCallbackHandler(UnshareRequest.class, UnshareRequestHandler.class);
+        objectDataReplyHandler.addRequestCallbackHandler(UnsharedRequest.class, UnsharedRequestHandler.class);
+
 
         ClientInitializer clientInitializer = new ClientInitializer(objectDataReplyHandler, USER, port, bootstrapLocation);
         client = clientInitializer.init();
