@@ -44,9 +44,8 @@ public class FileDeleteExchangeHandlerTest extends BaseNetworkHandlerTest {
     public void testDelete()
             throws InputOutputException, InterruptedException {
         STORAGE_ADAPTER_1.delete(new LocalPathElement(TEST_DIR_1.toString()));
-
-        // resync after deletion
-        OBJECT_STORE_1.sync(ROOT_TEST_DIR1.toFile());
+        // Note: do not sync object store so that delete ignore events are published
+        // to the global event bus for the children
 
         DeleteEvent deleteEvent = new DeleteEvent(
                 TEST_DIR_1,
@@ -110,6 +109,19 @@ public class FileDeleteExchangeHandlerTest extends BaseNetworkHandlerTest {
                         System.currentTimeMillis()
                 )
         );
+
+
+        List<IBusEvent> listener1Events = EVENT_BUS_LISTENER_1.getReceivedBusEvents();
+
+        assertEquals("Listener should only contain one delete event", 1, listener1Events.size());
+
+        IBusEvent actualEvent0 = listener1Events.get(0);
+
+        assertEquals("Expected delete event", expectedEvent2.getEvent().getEventName(), actualEvent0.getEvent().getEventName());
+        assertEquals("Expected path for testDir1", expectedEvent2.getEvent().getPath().toString(), actualEvent0.getEvent().getPath().toString());
+        assertEquals("Expected name testDir1", expectedEvent2.getEvent().getName(), actualEvent0.getEvent().getName());
+        assertEquals("Expected different hash", expectedEvent2.getEvent().getHash(), actualEvent0.getEvent().getHash());
+
 
         List<IBusEvent> listener2Events = EVENT_BUS_LISTENER_2.getReceivedBusEvents();
 
