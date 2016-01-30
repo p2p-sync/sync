@@ -144,7 +144,7 @@ public abstract class BaseNetworkHandlerTest {
         KEYPAIR_2 = createKeyPair();
 
         USER_1 = createUser();
-        USER_2 = createUser();
+        USER_2 = createUser2();
 
         GLOBAL_EVENT_BUS_1 = createGlobalEventBus();
         GLOBAL_EVENT_BUS_2 = createGlobalEventBus();
