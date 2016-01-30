@@ -31,7 +31,7 @@ public class FilePushExchangeHandler extends ANetworkHandler<FilePushExchangeHan
     /**
      * Wait a maximum of 2 minutes for a file exchange to complete
      */
-    protected static final long MAX_FILE_WWAITNG_TIME = 120000L;
+    protected static final long MAX_FILE_WAITNG_TIME = 120000L;
 
     /**
      * The chunk size to use for the whole file exchange
@@ -158,14 +158,14 @@ public class FilePushExchangeHandler extends ANetworkHandler<FilePushExchangeHan
     public void await()
             throws InterruptedException {
         super.await();
-        this.chunkCountDownLatch.await(MAX_FILE_WWAITNG_TIME, TimeUnit.MILLISECONDS);
+        this.chunkCountDownLatch.await(MAX_FILE_WAITNG_TIME, TimeUnit.MILLISECONDS);
     }
 
     @Override
     public void await(long timeout, TimeUnit timeUnit)
             throws InterruptedException {
-        super.await();
-        this.chunkCountDownLatch.await(MAX_FILE_WWAITNG_TIME, TimeUnit.MILLISECONDS);
+        super.await(timeout, timeUnit);
+        this.chunkCountDownLatch.await(timeout, timeUnit);
     }
 
     @Override
