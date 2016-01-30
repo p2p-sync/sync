@@ -22,26 +22,67 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * Propagates delete events to other connected clients.
+ *
+ * @see FileDeleteRequestHandler
+ */
 public class FileDeleteExchangeHandler extends ANetworkHandler<FileDeleteExchangeHandlerResult> implements ILocalStateResponseCallback {
 
     private static final Logger logger = LoggerFactory.getLogger(FileDeleteExchangeHandler.class);
 
+    /**
+     * The exchangeId for this delete exchange
+     */
     protected UUID exchangeId;
 
+    /**
+     * The client device which is sending the request
+     */
     protected ClientDevice clientDevice;
 
+    /**
+     * The storage adapter to access the synced folder
+     */
     protected IStorageAdapter storageAdapter;
 
+    /**
+     * The client manager to get the client locations from
+     */
     protected IClientManager clientManager;
 
+    /**
+     * The object store
+     */
     protected IObjectStore objectStore;
 
+    /**
+     * The actual delete event to propagate
+     * to the other clients
+     */
     protected DeleteEvent deleteEvent;
 
+    /**
+     * The global event bus
+     */
     protected MBassador<IBusEvent> globalEventBus;
 
+    /**
+     * The client location to send the requests to
+     */
     protected List<ClientLocation> receivers;
 
+    /**
+     * @param exchangeId     The exchange id for this exchange
+     * @param clientDevice   The client device from the client starting the exchange
+     * @param storageAdapter The storage adapter to access the synced folder
+     * @param clientManager  The client manager to access client locations
+     * @param client         The client to send the actual message
+     * @param objectStore    The object store
+     * @param globalEventBus The global event bus to send events to
+     * @param receivers      The receiver addresses which should receive the delete requests
+     * @param deleteEvent    The actual delete event to propagate
+     */
     public FileDeleteExchangeHandler(UUID exchangeId, ClientDevice clientDevice, IStorageAdapter storageAdapter, IClientManager clientManager, IClient client, IObjectStore objectStore, MBassador<IBusEvent> globalEventBus, List<ClientLocation> receivers, DeleteEvent deleteEvent) {
         super(client);
         this.exchangeId = exchangeId;

@@ -4,7 +4,6 @@ import net.engio.mbassy.bus.MBassador;
 import org.rmatil.sync.core.eventbus.IBusEvent;
 import org.rmatil.sync.core.eventbus.IgnoreBusEvent;
 import org.rmatil.sync.core.init.client.ILocalStateRequestCallback;
-import org.rmatil.sync.core.messaging.fileexchange.move.FileMoveResponse;
 import org.rmatil.sync.event.aggregator.core.events.DeleteEvent;
 import org.rmatil.sync.network.api.IClient;
 import org.rmatil.sync.network.api.IRequest;
@@ -22,17 +21,40 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.stream.Stream;
 
+/**
+ * The request handler for a FileDeleteExchange.
+ *
+ * @see FileDeleteExchangeHandler
+ */
 public class FileDeleteRequestHandler implements ILocalStateRequestCallback {
 
     private static final Logger logger = LoggerFactory.getLogger(FileDeleteExchangeHandler.class);
 
-    protected IStorageAdapter      storageAdapter;
-    protected IObjectStore         objectStore;
-    protected IClient              client;
-    protected FileDeleteRequest    request;
+    /**
+     * The storage adapter to access the synced folder
+     */
+    protected IStorageAdapter storageAdapter;
+
+    /**
+     * The object store
+     */
+    protected IObjectStore objectStore;
+
+    /**
+     * The client to send responses
+     */
+    protected IClient client;
+
+    /**
+     * The file delete request which have been received
+     */
+    protected FileDeleteRequest request;
+
+    /**
+     * The global event bus to send events to
+     */
     protected MBassador<IBusEvent> globalEventBus;
 
     @Override
@@ -56,12 +78,12 @@ public class FileDeleteRequestHandler implements ILocalStateRequestCallback {
     }
 
     @Override
-    public void setRequest(IRequest iRequest) {
-        if (! (iRequest instanceof FileDeleteRequest)) {
-            throw new IllegalArgumentException("Got request " + iRequest.getClass().getName() + " but expected " + FileDeleteExchangeHandler.class.getName());
+    public void setRequest(IRequest request) {
+        if (! (request instanceof FileDeleteRequest)) {
+            throw new IllegalArgumentException("Got request " + request.getClass().getName() + " but expected " + FileDeleteExchangeHandler.class.getName());
         }
 
-        this.request = (FileDeleteRequest) iRequest;
+        this.request = (FileDeleteRequest) request;
     }
 
     @Override
@@ -74,16 +96,14 @@ public class FileDeleteRequestHandler implements ILocalStateRequestCallback {
                 if (this.storageAdapter.exists(StorageType.DIRECTORY, pathToDelete) || this.storageAdapter.exists(StorageType.FILE, pathToDelete)) {
                     // create ignore events for all dir contents
                     try (Stream<Path> paths = Files.walk(this.storageAdapter.getRootDir().resolve(pathToDelete.getPath()))) {
-                        paths.forEach((entry) -> {
-                            this.globalEventBus.publish(new IgnoreBusEvent(
-                                    new DeleteEvent(
-                                            Paths.get(pathToDelete.getPath()),
-                                            Paths.get(pathToDelete.getPath()).getFileName().toString(),
-                                            "weIgnoreTheHash",
-                                            System.currentTimeMillis()
-                                    )
-                            ));
-                        });
+                        paths.forEach((entry) -> this.globalEventBus.publish(new IgnoreBusEvent(
+                                new DeleteEvent(
+                                        this.storageAdapter.getRootDir().relativize(entry),
+                                        this.storageAdapter.getRootDir().relativize(entry).getFileName().toString(),
+                                        "weIgnoreTheHash",
+                                        System.currentTimeMillis()
+                                )
+                        )));
                     } catch (IOException e) {
                         logger.error("Could not create ignore events for the deletion of " + this.request.getPathToDelete() + ". Message: " + e.getMessage());
                     }

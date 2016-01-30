@@ -6,8 +6,16 @@ import org.rmatil.sync.network.core.model.ClientLocation;
 
 import java.util.UUID;
 
+/**
+ * The response of a corresponding {@link FileDeleteRequest}.
+ *
+ * @see FileDeleteExchangeHandler
+ */
 public class FileDeleteResponse extends AResponse {
 
+    /**
+     * Whether the client sending this response has accepted the delete
+     */
     protected boolean hasAccepted;
 
     /**
@@ -21,7 +29,13 @@ public class FileDeleteResponse extends AResponse {
         this.hasAccepted = hasAccepted;
     }
 
-    public boolean isHasAccepted() {
+    /**
+     * Returns whether the client sending this response
+     * has accepted the delete request.
+     *
+     * @return True, if accepted, false otherwise
+     */
+    public boolean hasAccepted() {
         return hasAccepted;
     }
 }

@@ -7,9 +7,17 @@ import org.rmatil.sync.network.core.model.ClientLocation;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * The request for a file delete exchange
+ *
+ * @see FileDeleteExchangeHandler
+ */
 public class FileDeleteRequest extends ARequest {
 
-    protected String  pathToDelete;
+    /**
+     * The path to delete relative to the synced folder's root
+     */
+    protected String pathToDelete;
 
     /**
      * @param exchangeId        The id of the exchange to which this request belongs
@@ -22,6 +30,11 @@ public class FileDeleteRequest extends ARequest {
         this.pathToDelete = pathToDelete;
     }
 
+    /**
+     * Returns the path to delete (relative to the synced folder)
+     *
+     * @return The path to delete
+     */
     public String getPathToDelete() {
         return pathToDelete;
     }

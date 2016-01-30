@@ -78,6 +78,9 @@ public abstract class BaseNetworkHandlerTest {
     protected static MBassador<IBusEvent> GLOBAL_EVENT_BUS_1;
     protected static MBassador<IBusEvent> GLOBAL_EVENT_BUS_2;
 
+    protected static GlobalEventBusDummyListener EVENT_BUS_LISTENER_1;
+    protected static GlobalEventBusDummyListener EVENT_BUS_LISTENER_2;
+
     protected static IStorageAdapter STORAGE_ADAPTER_1;
     protected static IObjectStore    OBJECT_STORE_1;
 
@@ -116,6 +119,12 @@ public abstract class BaseNetworkHandlerTest {
 
         GLOBAL_EVENT_BUS_1 = createGlobalEventBus();
         GLOBAL_EVENT_BUS_2 = createGlobalEventBus();
+
+        EVENT_BUS_LISTENER_1 = new GlobalEventBusDummyListener();
+        EVENT_BUS_LISTENER_2 = new GlobalEventBusDummyListener();
+
+        GLOBAL_EVENT_BUS_1.subscribe(EVENT_BUS_LISTENER_1);
+        GLOBAL_EVENT_BUS_2.subscribe(EVENT_BUS_LISTENER_2);
 
         STORAGE_ADAPTER_1 = new LocalStorageAdapter(ROOT_TEST_DIR1);
         STORAGE_ADAPTER_2 = new LocalStorageAdapter(ROOT_TEST_DIR2);
