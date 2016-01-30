@@ -3,7 +3,6 @@ package org.rmatil.sync.core.messaging.sharingexchange.unshare;
 import net.engio.mbassy.bus.MBassador;
 import org.rmatil.sync.core.eventbus.IBusEvent;
 import org.rmatil.sync.core.init.client.IExtendedLocalStateRequestCallback;
-import org.rmatil.sync.core.messaging.sharingexchange.unshared.UnsharedExchangeHandler;
 import org.rmatil.sync.event.aggregator.api.IEventAggregator;
 import org.rmatil.sync.network.api.IClient;
 import org.rmatil.sync.network.api.IClientManager;
@@ -12,12 +11,11 @@ import org.rmatil.sync.network.api.IResponse;
 import org.rmatil.sync.network.core.model.ClientDevice;
 import org.rmatil.sync.network.core.model.ClientLocation;
 import org.rmatil.sync.persistence.api.IStorageAdapter;
+import org.rmatil.sync.persistence.core.local.LocalPathElement;
 import org.rmatil.sync.version.api.IObjectStore;
 import org.rmatil.sync.version.core.model.PathObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.UUID;
 
 public class UnshareRequestHandler implements IExtendedLocalStateRequestCallback {
 
@@ -87,39 +85,10 @@ public class UnshareRequestHandler implements IExtendedLocalStateRequestCallback
                     sharedObject.getAbsolutePath()
             );
 
+            // remove the file
+            this.storageAdapter.delete(new LocalPathElement(sharedObject.getAbsolutePath()));
+
             this.sendResponse(true);
-
-            UUID exchangeId = UUID.randomUUID();
-            logger.info("Starting to send unshare request for file id " + this.request.getFileId() + " to own clients. Request " + exchangeId);
-            UnsharedExchangeHandler unsharedExchangeHandler = new UnsharedExchangeHandler(
-                    this.client,
-                    this.clientManager,
-                    this.objectStore,
-                    sharedObject.getAbsolutePath(),
-                    this.request.getFileId(),
-                    this.request.getClientDevice().getUserName(),
-                    exchangeId
-            );
-
-            this.client.getObjectDataReplyHandler().addResponseCallbackHandler(exchangeId, unsharedExchangeHandler);
-
-            Thread unsharedExchangeHandlerThread = new Thread(unsharedExchangeHandler);
-            unsharedExchangeHandlerThread.setName("UnsharedExchangeHandler-" + exchangeId);
-            unsharedExchangeHandlerThread.start();
-
-            try {
-                unsharedExchangeHandler.await();
-            } catch (InterruptedException e) {
-                logger.error("Got interrupted while waiting that own clients are unsharing file " + this.request.getFileId() + " for exchange " + exchangeId);
-            }
-
-            this.client.getObjectDataReplyHandler().removeResponseCallbackHandler(exchangeId);
-
-            if (! unsharedExchangeHandler.isCompleted()) {
-                logger.error("UnsharedExchangeHandler should be completed after awaiting. Own clients may be inconsistent for sharing until next sync. Exchange " + exchangeId);
-            }
-
-
         } catch (Exception e) {
             logger.error("Got exception in UnshareRequestHandler. Message: " + e.getMessage(), e);
         }
