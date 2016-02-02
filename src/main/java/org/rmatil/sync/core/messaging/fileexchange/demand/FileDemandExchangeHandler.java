@@ -160,7 +160,13 @@ public class FileDemandExchangeHandler extends ANetworkHandler<FileDemandExchang
 
         // if the chunk counter is greater than 0
         // we only modify the existing file, so we generate an ignore modify event
-        if (fileDemandResponse.getChunkCounter() > 0) {
+        if (fileDemandResponse.getChunkCounter() == - 1) {
+            // there was an error on fetching the chunk on the other side
+            logger.info("Received an abort fileDemandResponse for exchange " + this.exchangeId + ". Aborting exchange and let file be incomplete");
+            super.onResponse(response);
+            this.receivedAllChunksCountDownLatch.countDown();
+            return;
+        } else if (fileDemandResponse.getChunkCounter() > 0) {
             this.globalEventBus.publish(new IgnoreBusEvent(
                     new ModifyEvent(
                             Paths.get(fileDemandResponse.getRelativeFilePath()),
@@ -220,9 +226,23 @@ public class FileDemandExchangeHandler extends ANetworkHandler<FileDemandExchang
 
         if (this.chunkCounter == fileDemandResponse.getTotalNrOfChunks()) {
             // we received the last chunk needed
-            super.onResponse(response);
-            this.receivedAllChunksCountDownLatch.countDown();
-            return;
+
+            // now check that we got the same checksum for the file
+            try {
+                String checksum = this.storageAdapter.getChecksum(localPathElement);
+
+                if (((FileDemandResponse) response).getChecksum().equals(checksum)) {
+                    // checksums match
+                    super.onResponse(response);
+                    this.receivedAllChunksCountDownLatch.countDown();
+                    return;
+                } else {
+                    // restart to fetch the whole file
+                    this.chunkCounter = - 1; // -1 since the chunk counter is just increased on the end of this method
+                }
+            } catch (InputOutputException e) {
+                logger.error("Failed to generate the checksum for file " + localPathElement.getPath() + " on exchange " + this.exchangeId + ". Accepting the file. Message: " + e.getMessage());
+            }
         }
 
         this.chunkCounter++;

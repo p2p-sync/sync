@@ -16,6 +16,12 @@ import java.util.UUID;
 public class FileDemandResponse extends AResponse {
 
     /**
+     * A checksum over the content from the complete file,
+     * i.e. the combination of all chunks
+     */
+    protected String checksum;
+
+    /**
      * The relative file to the path which should be created
      * or completed with chunks
      */
@@ -72,8 +78,9 @@ public class FileDemandResponse extends AResponse {
      * @param receiverAddress  The receiver of this request
      * @param sharers          All sharers of this file
      */
-    public FileDemandResponse(UUID exchangeId, ClientDevice clientDevice, String relativeFilePath, boolean isFile, long chunkCounter, int chunkSize, long totalNrOfChunks, long totalFileSize, Data data, ClientLocation receiverAddress, Set<Sharer> sharers) {
+    public FileDemandResponse(UUID exchangeId, ClientDevice clientDevice, String checksum, String relativeFilePath, boolean isFile, long chunkCounter, int chunkSize, long totalNrOfChunks, long totalFileSize, Data data, ClientLocation receiverAddress, Set<Sharer> sharers) {
         super(exchangeId, clientDevice, receiverAddress);
+        this.checksum = checksum;
         this.relativeFilePath = relativeFilePath;
         this.isFile = isFile;
         this.chunkCounter = chunkCounter;
@@ -82,6 +89,15 @@ public class FileDemandResponse extends AResponse {
         this.totalFileSize = totalFileSize;
         this.data = data;
         this.sharers = sharers;
+    }
+
+    /**
+     * Returns the checksum from the complete file
+     *
+     * @return The checksum from the complete file
+     */
+    public String getChecksum() {
+        return checksum;
     }
 
     /**

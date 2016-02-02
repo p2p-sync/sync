@@ -112,6 +112,7 @@ public class FileDemandRequestHandler implements ILocalStateRequestCallback {
                         new FileDemandResponse(
                                 this.request.getExchangeId(),
                                 new ClientDevice(this.client.getUser().getUserName(), this.client.getClientDeviceId(), this.client.getPeerAddress()),
+                                "",
                                 this.request.getRelativeFilePath(),
                                 true,
                                 - 1,
@@ -137,6 +138,7 @@ public class FileDemandRequestHandler implements ILocalStateRequestCallback {
                         new FileDemandResponse(
                                 this.request.getExchangeId(),
                                 new ClientDevice(this.client.getUser().getUserName(), this.client.getClientDeviceId(), this.client.getPeerAddress()),
+                                "",
                                 this.request.getRelativeFilePath(),
                                 true,
                                 - 1,
@@ -178,9 +180,12 @@ public class FileDemandRequestHandler implements ILocalStateRequestCallback {
                 logger.error("Failed to read the sharers for file " + this.request.getRelativeFilePath() + ". Sending an empty sharer set. Message: " + e.getMessage());
             }
 
+            String checksum = this.storageAdapter.getChecksum(pathElement);
+
             IResponse response = new FileDemandResponse(
                     this.request.getExchangeId(),
                     new ClientDevice(this.client.getUser().getUserName(), this.client.getClientDeviceId(), this.client.getPeerAddress()),
+                    checksum,
                     this.request.getRelativeFilePath(),
                     fileMetaInfo.isFile(),
                     this.request.getChunkCounter(),
