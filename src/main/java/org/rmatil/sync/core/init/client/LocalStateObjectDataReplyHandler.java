@@ -5,6 +5,7 @@ import net.tomp2p.peers.PeerAddress;
 import org.rmatil.sync.core.eventbus.IBusEvent;
 import org.rmatil.sync.core.messaging.fileexchange.offer.FileOfferRequest;
 import org.rmatil.sync.core.messaging.fileexchange.offer.FileOfferResponse;
+import org.rmatil.sync.core.security.IAccessManager;
 import org.rmatil.sync.core.syncer.background.masterelection.MasterElectionRequest;
 import org.rmatil.sync.core.syncer.background.masterelection.MasterElectionResponse;
 import org.rmatil.sync.event.aggregator.api.IEventAggregator;
@@ -26,25 +27,28 @@ public class LocalStateObjectDataReplyHandler extends ObjectDataReplyHandler {
     protected MBassador<IBusEvent> globalEventBus;
     protected IEventAggregator     eventAggregator;
     protected IClientManager       clientManager;
+    protected IAccessManager accessManager;
 
     protected Map<String, Set<UUID>> pathsInProgress           = new HashMap<>();
 
-    public LocalStateObjectDataReplyHandler(IStorageAdapter storageAdapter, IObjectStore objectStore, IClient client, MBassador<IBusEvent> globalEventBus, IEventAggregator eventAggregator, IClientManager clientManager, Map<UUID, IResponseCallback> responseCallbackHandlers, Map<Class<? extends IRequest>, Class<? extends IRequestCallback>> requestCallbackHandlers) {
+    public LocalStateObjectDataReplyHandler(IStorageAdapter storageAdapter, IObjectStore objectStore, IClient client, MBassador<IBusEvent> globalEventBus, IEventAggregator eventAggregator, IClientManager clientManager, IAccessManager accessManager, Map<UUID, IResponseCallback> responseCallbackHandlers, Map<Class<? extends IRequest>, Class<? extends IRequestCallback>> requestCallbackHandlers) {
         super(client, responseCallbackHandlers, requestCallbackHandlers);
         this.storageAdapter = storageAdapter;
         this.objectStore = objectStore;
         this.globalEventBus = globalEventBus;
         this.eventAggregator = eventAggregator;
         this.clientManager = clientManager;
+        this.accessManager = accessManager;
     }
 
-    public LocalStateObjectDataReplyHandler(IStorageAdapter storageAdapter, IObjectStore objectStore, IClient client, MBassador<IBusEvent> globalEventBus, IEventAggregator eventAggregator, IClientManager clientManager) {
+    public LocalStateObjectDataReplyHandler(IStorageAdapter storageAdapter, IObjectStore objectStore, IClient client, MBassador<IBusEvent> globalEventBus, IEventAggregator eventAggregator, IClientManager clientManager, IAccessManager accessManager) {
         super(client);
         this.storageAdapter = storageAdapter;
         this.objectStore = objectStore;
         this.globalEventBus = globalEventBus;
         this.eventAggregator = eventAggregator;
         this.clientManager = clientManager;
+        this.accessManager = accessManager;
     }
 
     public void setClient(IClient client) {
@@ -173,6 +177,7 @@ public class LocalStateObjectDataReplyHandler extends ObjectDataReplyHandler {
                     requestCallback.setRequest((IRequest) request);
                     requestCallback.setEventAggregator(this.eventAggregator);
                     requestCallback.setClientManager(this.clientManager);
+                    requestCallback.setAccessManager(this.accessManager);
 
                     Thread thread = new Thread(requestCallback);
                     thread.setName("RequestCallback-" + ((IRequest) request).getExchangeId());
@@ -189,6 +194,7 @@ public class LocalStateObjectDataReplyHandler extends ObjectDataReplyHandler {
                     requestCallback.setObjectStore(this.objectStore);
                     requestCallback.setGlobalEventBus(this.globalEventBus);
                     requestCallback.setRequest((IRequest) request);
+                    requestCallback.setAccessManager(this.accessManager);
 
                     Thread thread = new Thread(requestCallback);
                     thread.setName("RequestCallback-" + ((IRequest) request).getExchangeId());

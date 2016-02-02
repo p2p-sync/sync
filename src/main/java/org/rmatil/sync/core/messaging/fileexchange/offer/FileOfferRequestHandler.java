@@ -6,6 +6,7 @@ import org.rmatil.sync.core.eventbus.CreateBusEvent;
 import org.rmatil.sync.core.eventbus.IBusEvent;
 import org.rmatil.sync.core.eventbus.IgnoreBusEvent;
 import org.rmatil.sync.core.init.client.ILocalStateRequestCallback;
+import org.rmatil.sync.core.security.IAccessManager;
 import org.rmatil.sync.event.aggregator.core.events.CreateEvent;
 import org.rmatil.sync.event.aggregator.core.events.DeleteEvent;
 import org.rmatil.sync.event.aggregator.core.events.ModifyEvent;
@@ -20,6 +21,7 @@ import org.rmatil.sync.persistence.api.IStorageAdapter;
 import org.rmatil.sync.persistence.api.StorageType;
 import org.rmatil.sync.persistence.core.local.LocalPathElement;
 import org.rmatil.sync.persistence.exceptions.InputOutputException;
+import org.rmatil.sync.version.api.AccessType;
 import org.rmatil.sync.version.api.IObjectStore;
 import org.rmatil.sync.version.core.model.PathObject;
 import org.rmatil.sync.version.core.model.Version;
@@ -48,11 +50,35 @@ public class FileOfferRequestHandler implements ILocalStateRequestCallback {
         NO_CONFLICT_REQUEST_REQUIRED
     }
 
-    protected IStorageAdapter      storageAdapter;
-    protected IObjectStore         objectStore;
-    protected IClient              client;
-    protected FileOfferRequest     request;
+    /**
+     * The storage adapter to access the synchronized folder
+     */
+    protected IStorageAdapter storageAdapter;
+
+    /**
+     * The object store to access versions
+     */
+    protected IObjectStore objectStore;
+
+    /**
+     * The client to send back messages
+     */
+    protected IClient client;
+
+    /**
+     * The file offer request from the sender
+     */
+    protected FileOfferRequest request;
+
+    /**
+     * The global event bus to add ignore events
+     */
     protected MBassador<IBusEvent> globalEventBus;
+
+    /**
+     * The access manager to check for sharer's access to files
+     */
+    protected IAccessManager accessManager;
 
     @Override
     public void setStorageAdapter(IStorageAdapter storageAdapter) {
@@ -75,6 +101,11 @@ public class FileOfferRequestHandler implements ILocalStateRequestCallback {
     }
 
     @Override
+    public void setAccessManager(IAccessManager accessManager) {
+        this.accessManager = accessManager;
+    }
+
+    @Override
     public void setRequest(IRequest iRequest) {
         if (! (iRequest instanceof FileOfferRequest)) {
             throw new IllegalArgumentException("Got request " + iRequest.getClass().getName() + " but expected " + FileOfferRequest.class.getName());
@@ -86,6 +117,16 @@ public class FileOfferRequestHandler implements ILocalStateRequestCallback {
     @Override
     public void run() {
         try {
+            if (! this.client.getUser().getUserName().equals(this.request.getClientDevice().getUserName()) && ! this.accessManager.hasAccess(this.request.getClientDevice().getUserName(), AccessType.WRITE, this.request.getEvent().getPath())) {
+                logger.warn("Failed to positively return the offer from user " + this.request.getClientDevice().getUserName() + " for file " + this.request.getEvent().getPath() + " due to missing access rights on exchange " + this.request.getExchangeId());
+                this.sendResponse(this.createResponse(
+                        false,
+                        false,
+                        true
+                ));
+                return;
+            }
+
             LocalPathElement pathElement = new LocalPathElement(this.request.getEvent().getPath());
 
             boolean hasAccepted = false;
@@ -174,8 +215,9 @@ public class FileOfferRequestHandler implements ILocalStateRequestCallback {
     /**
      * Create a new FileOfferResponse
      *
-     * @param hasAccepted Whether this client has accepted the file offer request
-     * @param hasConflict Whether this client has detected a conflict
+     * @param hasAccepted       Whether this client has accepted the file offer request
+     * @param hasConflict       Whether this client has detected a conflict
+     * @param isRequestObsolete Whether a following up request is necessary for the offered action
      *
      * @return The FileOfferResponse representing the result of this client
      */

@@ -4,6 +4,8 @@ import net.engio.mbassy.bus.MBassador;
 import org.rmatil.sync.core.Zip;
 import org.rmatil.sync.core.eventbus.IBusEvent;
 import org.rmatil.sync.core.init.client.ILocalStateRequestCallback;
+import org.rmatil.sync.core.messaging.fileexchange.delete.FileDeleteRequest;
+import org.rmatil.sync.core.security.IAccessManager;
 import org.rmatil.sync.core.syncer.background.masterelection.MasterElectionRequest;
 import org.rmatil.sync.network.api.IClient;
 import org.rmatil.sync.network.api.IRequest;
@@ -18,11 +20,35 @@ public class FetchObjectStoreRequestHandler implements ILocalStateRequestCallbac
 
     private static final Logger logger = LoggerFactory.getLogger(FetchObjectStoreRequestHandler.class);
 
-    protected IStorageAdapter         storageAdapter;
-    protected IObjectStore            objectStore;
-    protected IClient                 client;
+    /**
+     * The storage adapter to access the synced folder
+     */
+    protected IStorageAdapter storageAdapter;
+
+    /**
+     * The object store
+     */
+    protected IObjectStore objectStore;
+
+    /**
+     * The client to send responses
+     */
+    protected IClient client;
+
+    /**
+     * The fetch object store which have been received
+     */
     protected FetchObjectStoreRequest request;
-    protected MBassador<IBusEvent>    globalEventBus;
+
+    /**
+     * The global event bus to send events to
+     */
+    protected MBassador<IBusEvent> globalEventBus;
+
+    /**
+     * The access manager to check for sharer's access to files
+     */
+    protected IAccessManager accessManager;
 
     @Override
     public void setStorageAdapter(IStorageAdapter storageAdapter) {
@@ -42,6 +68,11 @@ public class FetchObjectStoreRequestHandler implements ILocalStateRequestCallbac
     @Override
     public void setClient(IClient iClient) {
         this.client = iClient;
+    }
+
+    @Override
+    public void setAccessManager(IAccessManager accessManager) {
+        this.accessManager = accessManager;
     }
 
     @Override

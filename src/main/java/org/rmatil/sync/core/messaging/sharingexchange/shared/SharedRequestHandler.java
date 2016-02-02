@@ -4,6 +4,8 @@ import net.engio.mbassy.bus.MBassador;
 import org.rmatil.sync.core.eventbus.IBusEvent;
 import org.rmatil.sync.core.init.client.ILocalStateRequestCallback;
 import org.rmatil.sync.core.messaging.fileexchange.push.FilePushRequest;
+import org.rmatil.sync.core.messaging.sharingexchange.share.ShareRequest;
+import org.rmatil.sync.core.security.IAccessManager;
 import org.rmatil.sync.network.api.IClient;
 import org.rmatil.sync.network.api.IRequest;
 import org.rmatil.sync.network.api.IResponse;
@@ -20,11 +22,35 @@ public class SharedRequestHandler implements ILocalStateRequestCallback {
 
     private static final Logger logger = LoggerFactory.getLogger(SharedRequestHandler.class);
 
-    protected IStorageAdapter      storageAdapter;
-    protected IObjectStore         objectStore;
-    protected IClient              client;
-    protected SharedRequest        request;
+    /**
+     * The storage adapter to access the synchronized folder
+     */
+    protected IStorageAdapter storageAdapter;
+
+    /**
+     * The object store to access versions
+     */
+    protected IObjectStore objectStore;
+
+    /**
+     * The client to send back messages
+     */
+    protected IClient client;
+
+    /**
+     * The file shared request from the sender
+     */
+    protected SharedRequest request;
+
+    /**
+     * The global event bus to add ignore events
+     */
     protected MBassador<IBusEvent> globalEventBus;
+
+    /**
+     * The access manager to check for sharer's access to files
+     */
+    protected IAccessManager accessManager;
 
     @Override
     public void setStorageAdapter(IStorageAdapter storageAdapter) {
@@ -44,6 +70,11 @@ public class SharedRequestHandler implements ILocalStateRequestCallback {
     @Override
     public void setClient(IClient iClient) {
         this.client = iClient;
+    }
+
+    @Override
+    public void setAccessManager(IAccessManager accessManager) {
+        this.accessManager = accessManager;
     }
 
     @Override
@@ -75,6 +106,16 @@ public class SharedRequestHandler implements ILocalStateRequestCallback {
                     this.request.getAccessType(),
                     this.request.getRelativePath()
             );
+
+            // if there is no owner of the file yet (due to sharing already, or
+            // if we are not the owner, but just share the shared file with any other user)
+            // set it to our self
+            if (null == this.objectStore.getSharerManager().getOwner(this.request.getRelativePath())) {
+                this.objectStore.getSharerManager().addOwner(
+                        this.client.getUser().getUserName(),
+                        this.request.getRelativePath()
+                );
+            }
 
             this.sendResponse(true);
 

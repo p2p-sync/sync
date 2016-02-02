@@ -27,11 +27,35 @@ public class FilePushRequestHandler implements ILocalStateRequestCallback {
 
     private static final Logger logger = LoggerFactory.getLogger(FilePushRequestHandler.class);
 
-    protected IStorageAdapter      storageAdapter;
-    protected IObjectStore         objectStore;
-    protected IClient              client;
-    protected FilePushRequest      request;
+    /**
+     * The storage adapter to access the synchronized folder
+     */
+    protected IStorageAdapter storageAdapter;
+
+    /**
+     * The object store to access versions
+     */
+    protected IObjectStore objectStore;
+
+    /**
+     * The client to send back messages
+     */
+    protected IClient client;
+
+    /**
+     * The file push request from the sender
+     */
+    protected FilePushRequest request;
+
+    /**
+     * The global event bus to add ignore events
+     */
     protected MBassador<IBusEvent> globalEventBus;
+
+    /**
+     * The access manager to check for sharer's access to files
+     */
+    protected IAccessManager accessManager;
 
     @Override
     public void setStorageAdapter(IStorageAdapter storageAdapter) {
@@ -54,6 +78,11 @@ public class FilePushRequestHandler implements ILocalStateRequestCallback {
     }
 
     @Override
+    public void setAccessManager(IAccessManager accessManager) {
+	this.accessManager = accessManager;
+    }
+
+    @Override
     public void setRequest(IRequest iRequest) {
         if (! (iRequest instanceof FilePushRequest)) {
             throw new IllegalArgumentException("Got request " + iRequest.getClass().getName() + " but expected " + FilePushRequest.class.getName());
@@ -66,6 +95,12 @@ public class FilePushRequestHandler implements ILocalStateRequestCallback {
     public void run() {
         try {
             logger.info("Writing chunk " + this.request.getChunkCounter() + " for file " + this.request.getRelativeFilePath() + " for exchangeId " + this.request.getExchangeId());
+
+	    if (! this.client.getUser().getUserName().equals(this.request.getClientDevice().getUserName()) && ! this.accessManager.hasAccess(this.request.getClientDevice().getUserName(), AccessType.WRITE, this.request.getRelativeFilePath())) {
+		logger.warn("Failed to write chunk " + this.request.getChunkCounter() + " for file " + this.request.getRelativeFilePath() + " due to missing access rights of user " + this.request.getClientDevice().getUserName() + " on exchange " + this.request.getExchangeId());
+		this.sendResponse(this.createResponse(-1));
+		return;
+	    }
 
             IPathElement localPathElement = new LocalPathElement(this.request.getRelativeFilePath());
 
@@ -138,18 +173,27 @@ public class FilePushRequestHandler implements ILocalStateRequestCallback {
                 requestingChunk++;
             }
 
-            IResponse response = new FilePushResponse(
-                    this.request.getExchangeId(),
-                    new ClientDevice(this.client.getUser().getUserName(), this.client.getClientDeviceId(), this.client.getPeerAddress()),
-                    this.request.getRelativeFilePath(),
-                    new ClientLocation(this.request.getClientDevice().getClientDeviceId(), this.request.getClientDevice().getPeerAddress()),
-                    requestingChunk
-            );
-
-            this.sendResponse(response);
+	    this.sendResponse(this.createResponse(requestingChunk));
         } catch (Exception e) {
             logger.error("Error in FilePushRequestHandler for exchangeId " + this.request.getExchangeId() + ". Message: " + e.getMessage(), e);
         }
+    }
+
+    /**
+     * Creates a file push response with the given chunk counter
+     *
+     * @param requestingChunk The chunk to request from the other client
+     *
+     * @return The created FilePushResponse
+     */
+    protected FilePushResponse createResponse(long requestingChunk) {
+	return new FilePushResponse(
+		this.request.getExchangeId(),
+		new ClientDevice(this.client.getUser().getUserName(), this.client.getClientDeviceId(), this.client.getPeerAddress()),
+		this.request.getRelativeFilePath(),
+		new ClientLocation(this.request.getClientDevice().getClientDeviceId(), this.request.getClientDevice().getPeerAddress()),
+		requestingChunk
+	);
     }
 
     /**
@@ -157,7 +201,7 @@ public class FilePushRequestHandler implements ILocalStateRequestCallback {
      *
      * @param iResponse The response to send back
      */
-    public void sendResponse(IResponse iResponse) {
+    protected void sendResponse(IResponse iResponse) {
         if (null == this.client) {
             throw new IllegalStateException("A client instance is required to send a response back");
         }

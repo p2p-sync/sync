@@ -53,6 +53,7 @@ public class AccessManagerTest extends BaseTest {
                 TEST_FILE_NAME,
                 "",
                 PathType.FILE,
+                AccessType.WRITE,
                 true,
                 false,
                 OWNER_USER_NAME,

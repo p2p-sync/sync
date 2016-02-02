@@ -3,6 +3,7 @@ package org.rmatil.sync.core.syncer.background.initsync;
 import net.engio.mbassy.bus.MBassador;
 import org.rmatil.sync.core.eventbus.IBusEvent;
 import org.rmatil.sync.core.init.client.IExtendedLocalStateRequestCallback;
+import org.rmatil.sync.core.security.IAccessManager;
 import org.rmatil.sync.core.syncer.background.syncobjectstore.ObjectStoreSyncer;
 import org.rmatil.sync.event.aggregator.api.IEventAggregator;
 import org.rmatil.sync.network.api.IClient;
@@ -62,6 +63,11 @@ public class InitSyncRequestHandler implements IExtendedLocalStateRequestCallbac
      */
     protected MBassador<IBusEvent> globalEventBus;
 
+    /**
+     * The access manager to check for sharer's access to files
+     */
+    protected IAccessManager accessManager;
+
     @Override
     public void setStorageAdapter(IStorageAdapter storageAdapter) {
         this.storageAdapter = storageAdapter;
@@ -80,6 +86,11 @@ public class InitSyncRequestHandler implements IExtendedLocalStateRequestCallbac
     @Override
     public void setClient(IClient iClient) {
         this.client = iClient;
+    }
+
+    @Override
+    public void setAccessManager(IAccessManager accessManager) {
+        this.accessManager = accessManager;
     }
 
     @Override

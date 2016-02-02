@@ -4,6 +4,7 @@ import net.engio.mbassy.bus.MBassador;
 import org.rmatil.sync.core.eventbus.IBusEvent;
 import org.rmatil.sync.core.eventbus.IgnoreBusEvent;
 import org.rmatil.sync.core.init.client.ILocalStateRequestCallback;
+import org.rmatil.sync.core.security.IAccessManager;
 import org.rmatil.sync.event.aggregator.core.events.DeleteEvent;
 import org.rmatil.sync.network.api.IClient;
 import org.rmatil.sync.network.api.IRequest;
@@ -14,6 +15,7 @@ import org.rmatil.sync.persistence.api.IStorageAdapter;
 import org.rmatil.sync.persistence.api.StorageType;
 import org.rmatil.sync.persistence.core.local.LocalPathElement;
 import org.rmatil.sync.persistence.exceptions.InputOutputException;
+import org.rmatil.sync.version.api.AccessType;
 import org.rmatil.sync.version.api.IObjectStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -57,6 +59,11 @@ public class FileDeleteRequestHandler implements ILocalStateRequestCallback {
      */
     protected MBassador<IBusEvent> globalEventBus;
 
+    /**
+     * The access manager to check for sharer's access to files
+     */
+    protected IAccessManager accessManager;
+
     @Override
     public void setStorageAdapter(IStorageAdapter storageAdapter) {
         this.storageAdapter = storageAdapter;
@@ -78,6 +85,11 @@ public class FileDeleteRequestHandler implements ILocalStateRequestCallback {
     }
 
     @Override
+    public void setAccessManager(IAccessManager accessManager) {
+        this.accessManager = accessManager;
+    }
+
+    @Override
     public void setRequest(IRequest request) {
         if (! (request instanceof FileDeleteRequest)) {
             throw new IllegalArgumentException("Got request " + request.getClass().getName() + " but expected " + FileDeleteExchangeHandler.class.getName());
@@ -90,6 +102,13 @@ public class FileDeleteRequestHandler implements ILocalStateRequestCallback {
     public void run() {
         try {
             logger.info("Deleting path on " + this.request.getPathToDelete());
+
+            if (! this.client.getUser().getUserName().equals(this.request.getClientDevice().getUserName()) && ! this.accessManager.hasAccess(this.request.getClientDevice().getUserName(), AccessType.WRITE, this.request.getPathToDelete())) {
+                // client has no access to delete the file
+                logger.warn("Deletion failed due to missing access rights on file " + this.request.getPathToDelete() + " for user " + this.request.getClientDevice().getUserName() + " on exchange " + this.request.getExchangeId());
+                this.sendResponse(true);
+                return;
+            }
 
             IPathElement pathToDelete = new LocalPathElement(this.request.getPathToDelete());
             try {
@@ -114,15 +133,19 @@ public class FileDeleteRequestHandler implements ILocalStateRequestCallback {
                 logger.error("Could not delete path " + pathToDelete.getPath() + ". Message: " + e.getMessage());
             }
 
-            this.client.sendDirect(this.request.getClientDevice().getPeerAddress(), new FileDeleteResponse(
-                    this.request.getExchangeId(),
-                    new ClientDevice(this.client.getUser().getUserName(), this.client.getClientDeviceId(), this.client.getPeerAddress()),
-                    new ClientLocation(this.request.getClientDevice().getClientDeviceId(), this.request.getClientDevice().getPeerAddress()),
-                    true
-            ));
+            this.sendResponse(true);
 
         } catch (Exception e) {
             logger.error("Error in FileDeleteRequestHandler thread for exchangeId " + this.request.getExchangeId() + ". Message: " + e.getMessage(), e);
         }
+    }
+
+    protected void sendResponse(boolean hasAccepted) {
+        this.client.sendDirect(this.request.getClientDevice().getPeerAddress(), new FileDeleteResponse(
+                this.request.getExchangeId(),
+                new ClientDevice(this.client.getUser().getUserName(), this.client.getClientDeviceId(), this.client.getPeerAddress()),
+                new ClientLocation(this.request.getClientDevice().getClientDeviceId(), this.request.getClientDevice().getPeerAddress()),
+                hasAccepted
+        ));
     }
 }

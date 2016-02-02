@@ -4,6 +4,7 @@ import net.engio.mbassy.bus.MBassador;
 import org.rmatil.sync.core.eventbus.CreateBusEvent;
 import org.rmatil.sync.core.eventbus.IBusEvent;
 import org.rmatil.sync.core.init.client.IExtendedLocalStateRequestCallback;
+import org.rmatil.sync.core.security.IAccessManager;
 import org.rmatil.sync.event.aggregator.api.IEventAggregator;
 import org.rmatil.sync.event.aggregator.core.events.DeleteEvent;
 import org.rmatil.sync.event.aggregator.core.events.ModifyEvent;
@@ -42,13 +43,45 @@ public class SyncCompleteRequestHandler implements IExtendedLocalStateRequestCal
 
     private static final Logger logger = LoggerFactory.getLogger(SyncCompleteRequestHandler.class);
 
-    protected IStorageAdapter      storageAdapter;
-    protected IObjectStore         objectStore;
-    protected IClient              client;
-    protected IClientManager       clientManager;
-    protected IEventAggregator     eventAggregator;
-    protected SyncCompleteRequest  request;
+    /**
+     * The storage adapter to access the synced folder
+     */
+    protected IStorageAdapter storageAdapter;
+
+    /**
+     * The object store
+     */
+    protected IObjectStore objectStore;
+
+    /**
+     * The client to send responses
+     */
+    protected IClient client;
+
+    /**
+     * The sync complete request which have been received
+     */
+    protected SyncCompleteRequest request;
+
+    /**
+     * The global event bus to send events to
+     */
     protected MBassador<IBusEvent> globalEventBus;
+
+    /**
+     * The access manager to check for sharer's access to files
+     */
+    protected IAccessManager accessManager;
+
+    /**
+     * The client manager to fetch locations from
+     */
+    protected IClientManager clientManager;
+
+    /**
+     * The event aggregator
+     */
+    protected IEventAggregator eventAggregator;
 
     @Override
     public void setStorageAdapter(IStorageAdapter storageAdapter) {
@@ -68,6 +101,11 @@ public class SyncCompleteRequestHandler implements IExtendedLocalStateRequestCal
     @Override
     public void setClient(IClient iClient) {
         this.client = iClient;
+    }
+
+    @Override
+    public void setAccessManager(IAccessManager accessManager) {
+        this.accessManager = accessManager;
     }
 
     @Override
@@ -105,7 +143,7 @@ public class SyncCompleteRequestHandler implements IExtendedLocalStateRequestCal
                 objectStoreStorageManager.delete(pathElement);
             }
 
-            objectStoreStorageManager.persist(StorageType.DIRECTORY,pathElement , null);
+            objectStoreStorageManager.persist(StorageType.DIRECTORY, pathElement, null);
 
             // create the temporary object store in the .sync folder
             Path rootPath = this.storageAdapter.getRootDir();
@@ -119,7 +157,7 @@ public class SyncCompleteRequestHandler implements IExtendedLocalStateRequestCal
             changeObjectStore.sync(rootPath.toFile(), ignoredPaths);
 
             // get differences between disk and merged object store
-            HashMap<ObjectStore.MergedObjectType, Set<String>> updatedOrDeletedPaths =  this.objectStore.mergeObjectStore(changeObjectStore);
+            HashMap<ObjectStore.MergedObjectType, Set<String>> updatedOrDeletedPaths = this.objectStore.mergeObjectStore(changeObjectStore);
 
             // remove change object store again
             changeObjectStoreStorageManager.delete(new LocalPathElement("./"));

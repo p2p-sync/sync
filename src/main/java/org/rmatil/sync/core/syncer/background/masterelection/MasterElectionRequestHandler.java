@@ -4,6 +4,7 @@ import net.engio.mbassy.bus.MBassador;
 import org.rmatil.sync.core.eventbus.IBusEvent;
 import org.rmatil.sync.core.init.client.ILocalStateRequestCallback;
 import org.rmatil.sync.core.messaging.fileexchange.delete.FileDeleteExchangeHandler;
+import org.rmatil.sync.core.security.IAccessManager;
 import org.rmatil.sync.network.api.IClient;
 import org.rmatil.sync.network.api.IRequest;
 import org.rmatil.sync.network.core.model.ClientDevice;
@@ -49,6 +50,11 @@ public class MasterElectionRequestHandler implements ILocalStateRequestCallback 
      */
     protected MasterElectionRequest request;
 
+    /**
+     * The access manager to check for sharer's access to files
+     */
+    protected IAccessManager accessManager;
+
     @Override
     public void setStorageAdapter(IStorageAdapter storageAdapter) {
         this.storageAdapter = storageAdapter;
@@ -67,6 +73,11 @@ public class MasterElectionRequestHandler implements ILocalStateRequestCallback 
     @Override
     public void setClient(IClient iClient) {
         this.client = iClient;
+    }
+
+    @Override
+    public void setAccessManager(IAccessManager accessManager) {
+        this.accessManager = accessManager;
     }
 
     @Override

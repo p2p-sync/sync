@@ -6,6 +6,7 @@ import org.rmatil.sync.core.Zip;
 import org.rmatil.sync.core.eventbus.IBusEvent;
 import org.rmatil.sync.core.init.client.IExtendedLocalStateRequestCallback;
 import org.rmatil.sync.core.messaging.fileexchange.demand.FileDemandExchangeHandler;
+import org.rmatil.sync.core.security.IAccessManager;
 import org.rmatil.sync.event.aggregator.api.IEventAggregator;
 import org.rmatil.sync.network.api.IClient;
 import org.rmatil.sync.network.api.IClientManager;
@@ -23,7 +24,10 @@ import org.rmatil.sync.version.core.model.Version;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.Set;
+import java.util.TreeSet;
+import java.util.UUID;
 
 /**
  * Reconciles the local object store and the monitored folder with
@@ -38,17 +42,17 @@ public class SyncResultRequestHandler implements IExtendedLocalStateRequestCallb
     /**
      * The storage adapter to access the synchronised folder
      */
-    protected IStorageAdapter      storageAdapter;
+    protected IStorageAdapter storageAdapter;
 
     /**
      * The object store of the synchronised folder
      */
-    protected IObjectStore         objectStore;
+    protected IObjectStore objectStore;
 
     /**
      * The client to send messages
      */
-    protected IClient              client;
+    protected IClient client;
 
     /**
      * The client manager to fetch locations of other clients
@@ -68,7 +72,12 @@ public class SyncResultRequestHandler implements IExtendedLocalStateRequestCallb
     /**
      * The request which causes this handler to run
      */
-    protected SyncResultRequest    request;
+    protected SyncResultRequest request;
+
+    /**
+     * The access manager to check for sharer's access to files
+     */
+    protected IAccessManager accessManager;
 
     @Override
     public void setStorageAdapter(IStorageAdapter storageAdapter) {
@@ -88,6 +97,11 @@ public class SyncResultRequestHandler implements IExtendedLocalStateRequestCallb
     @Override
     public void setClient(IClient iClient) {
         this.client = iClient;
+    }
+
+    @Override
+    public void setAccessManager(IAccessManager accessManager) {
+        this.accessManager = accessManager;
     }
 
     @Override

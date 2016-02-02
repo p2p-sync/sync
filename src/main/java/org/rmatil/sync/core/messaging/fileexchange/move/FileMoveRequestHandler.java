@@ -4,6 +4,7 @@ import net.engio.mbassy.bus.MBassador;
 import org.rmatil.sync.core.eventbus.IBusEvent;
 import org.rmatil.sync.core.eventbus.IgnoreBusEvent;
 import org.rmatil.sync.core.init.client.ILocalStateRequestCallback;
+import org.rmatil.sync.core.security.IAccessManager;
 import org.rmatil.sync.event.aggregator.core.events.MoveEvent;
 import org.rmatil.sync.network.api.IClient;
 import org.rmatil.sync.network.api.IRequest;
@@ -14,6 +15,7 @@ import org.rmatil.sync.persistence.api.IStorageAdapter;
 import org.rmatil.sync.persistence.api.StorageType;
 import org.rmatil.sync.persistence.core.local.LocalPathElement;
 import org.rmatil.sync.persistence.exceptions.InputOutputException;
+import org.rmatil.sync.version.api.AccessType;
 import org.rmatil.sync.version.api.IObjectStore;
 import org.rmatil.sync.version.core.model.PathObject;
 import org.slf4j.Logger;
@@ -59,6 +61,11 @@ public class FileMoveRequestHandler implements ILocalStateRequestCallback {
      */
     protected MBassador<IBusEvent> globalEventBus;
 
+    /**
+     * The access manager to check for sharer's access to files
+     */
+    protected IAccessManager accessManager;
+
     @Override
     public void setStorageAdapter(IStorageAdapter storageAdapter) {
         this.storageAdapter = storageAdapter;
@@ -80,6 +87,11 @@ public class FileMoveRequestHandler implements ILocalStateRequestCallback {
     }
 
     @Override
+    public void setAccessManager(IAccessManager accessManager) {
+        this.accessManager = accessManager;
+    }
+
+    @Override
     public void setRequest(IRequest iRequest) {
         if (! (iRequest instanceof FileMoveRequest)) {
             throw new IllegalArgumentException("Got request " + iRequest.getClass().getName() + " but expected " + FileMoveRequest.class.getName());
@@ -92,6 +104,12 @@ public class FileMoveRequestHandler implements ILocalStateRequestCallback {
     public void run() {
         try {
             logger.info("Moving path from " + this.request.getOldPath() + " to " + this.request.getNewPath());
+
+            if (! this.client.getUser().getUserName().equals(this.request.getClientDevice().getUserName()) && ! this.accessManager.hasAccess(this.request.getClientDevice().getUserName(), AccessType.WRITE, this.request.getOldPath())) {
+                logger.warn("Moving path failed due to missing access rights on file " + this.request.getOldPath() + " for user " + this.request.getClientDevice().getUserName() + " on exchange " + this.request.getExchangeId());
+                this.sendResponse(false);
+                return;
+            }
 
             IPathElement oldPathElement = new LocalPathElement(this.request.getOldPath());
             IPathElement newPathElement = new LocalPathElement(this.request.getNewPath());
@@ -108,15 +126,19 @@ public class FileMoveRequestHandler implements ILocalStateRequestCallback {
                 logger.error("Could not move path " + this.request.getOldPath() + " to " + this.request.getNewPath() + ". Message: " + e.getMessage());
             }
 
-            this.client.sendDirect(this.request.getClientDevice().getPeerAddress(), new FileMoveResponse(
-                    this.request.getExchangeId(),
-                    new ClientDevice(this.client.getUser().getUserName(), this.client.getClientDeviceId(), this.client.getPeerAddress()),
-                    new ClientLocation(this.request.getClientDevice().getClientDeviceId(), this.request.getClientDevice().getPeerAddress()),
-                    true
-            ));
+            this.sendResponse(true);
         } catch (Exception e) {
             logger.error("Error in FileMoveRequestHandler thread for exchangeId " + this.request.getExchangeId() + ". Message: " + e.getMessage(), e);
         }
+    }
+
+    protected void sendResponse(boolean hasAccepted) {
+        this.client.sendDirect(this.request.getClientDevice().getPeerAddress(), new FileMoveResponse(
+                this.request.getExchangeId(),
+                new ClientDevice(this.client.getUser().getUserName(), this.client.getClientDeviceId(), this.client.getPeerAddress()),
+                new ClientLocation(this.request.getClientDevice().getClientDeviceId(), this.request.getClientDevice().getPeerAddress()),
+                hasAccepted
+        ));
     }
 
     /**

@@ -2,10 +2,9 @@ package org.rmatil.sync.core.messaging.sharingexchange.unshare;
 
 import net.engio.mbassy.bus.MBassador;
 import org.rmatil.sync.core.eventbus.IBusEvent;
-import org.rmatil.sync.core.init.client.IExtendedLocalStateRequestCallback;
-import org.rmatil.sync.event.aggregator.api.IEventAggregator;
+import org.rmatil.sync.core.init.client.ILocalStateRequestCallback;
+import org.rmatil.sync.core.security.IAccessManager;
 import org.rmatil.sync.network.api.IClient;
-import org.rmatil.sync.network.api.IClientManager;
 import org.rmatil.sync.network.api.IRequest;
 import org.rmatil.sync.network.api.IResponse;
 import org.rmatil.sync.network.core.model.ClientDevice;
@@ -17,17 +16,39 @@ import org.rmatil.sync.version.core.model.PathObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class UnshareRequestHandler implements IExtendedLocalStateRequestCallback {
+public class UnshareRequestHandler implements ILocalStateRequestCallback {
 
     private static final Logger logger = LoggerFactory.getLogger(UnshareRequestHandler.class);
 
-    protected IStorageAdapter      storageAdapter;
-    protected IObjectStore         objectStore;
-    protected IClient              client;
-    protected IClientManager       clientManager;
-    protected IEventAggregator     eventAggregator;
-    protected UnshareRequest       request;
+    /**
+     * The storage adapter to access the synced folder
+     */
+    protected IStorageAdapter storageAdapter;
+
+    /**
+     * The object store
+     */
+    protected IObjectStore objectStore;
+
+    /**
+     * The client to send responses
+     */
+    protected IClient client;
+
+    /**
+     * The unshare request which have been received
+     */
+    protected UnshareRequest request;
+
+    /**
+     * The global event bus to send events to
+     */
     protected MBassador<IBusEvent> globalEventBus;
+
+    /**
+     * The access manager to check for sharer's access to files
+     */
+    protected IAccessManager accessManager;
 
     @Override
     public void setStorageAdapter(IStorageAdapter storageAdapter) {
@@ -50,13 +71,8 @@ public class UnshareRequestHandler implements IExtendedLocalStateRequestCallback
     }
 
     @Override
-    public void setClientManager(IClientManager clientManager) {
-        this.clientManager = clientManager;
-    }
-
-    @Override
-    public void setEventAggregator(IEventAggregator eventAggregator) {
-        this.eventAggregator = eventAggregator;
+    public void setAccessManager(IAccessManager accessManager) {
+        this.accessManager = accessManager;
     }
 
     @Override
@@ -82,6 +98,10 @@ public class UnshareRequestHandler implements IExtendedLocalStateRequestCallback
 
             this.objectStore.getSharerManager().removeSharer(
                     this.request.getClientDevice().getUserName(),
+                    sharedObject.getAbsolutePath()
+            );
+
+            this.objectStore.getSharerManager().removeOwner(
                     sharedObject.getAbsolutePath()
             );
 

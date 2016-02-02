@@ -9,6 +9,7 @@ import org.rmatil.sync.core.eventbus.IBusEvent;
 import org.rmatil.sync.core.eventbus.IgnoreBusEvent;
 import org.rmatil.sync.core.eventbus.IgnoreObjectStoreUpdateBusEvent;
 import org.rmatil.sync.core.init.client.ILocalStateRequestCallback;
+import org.rmatil.sync.core.security.IAccessManager;
 import org.rmatil.sync.event.aggregator.core.events.CreateEvent;
 import org.rmatil.sync.event.aggregator.core.events.IEvent;
 import org.rmatil.sync.event.aggregator.core.events.ModifyEvent;
@@ -35,11 +36,35 @@ public class ShareRequestHandler implements ILocalStateRequestCallback {
 
     private static final Logger logger = LoggerFactory.getLogger(ShareRequestHandler.class);
 
-    protected IStorageAdapter      storageAdapter;
-    protected IObjectStore         objectStore;
-    protected IClient              client;
-    protected ShareRequest         request;
+    /**
+     * The storage adapter to access the synchronized folder
+     */
+    protected IStorageAdapter storageAdapter;
+
+    /**
+     * The object store to access versions
+     */
+    protected IObjectStore objectStore;
+
+    /**
+     * The client to send back messages
+     */
+    protected IClient client;
+
+    /**
+     * The file share request from the sender
+     */
+    protected ShareRequest request;
+
+    /**
+     * The global event bus to add ignore events
+     */
     protected MBassador<IBusEvent> globalEventBus;
+
+    /**
+     * The access manager to check for sharer's access to files
+     */
+    protected IAccessManager accessManager;
 
     @Override
     public void setStorageAdapter(IStorageAdapter storageAdapter) {
@@ -59,6 +84,11 @@ public class ShareRequestHandler implements ILocalStateRequestCallback {
     @Override
     public void setClient(IClient iClient) {
         this.client = iClient;
+    }
+
+    @Override
+    public void setAccessManager(IAccessManager accessManager) {
+        this.accessManager = accessManager;
     }
 
     @Override
@@ -123,13 +153,17 @@ public class ShareRequestHandler implements ILocalStateRequestCallback {
                 try {
                     this.objectStore.onCreateFile(uniqueFilePath, null);
 
-                    // adds the sharer to the file
-                    this.objectStore.getSharerManager().addSharer(
+                    // adds the owner to the file but not as sharer
+                    // since we did not share the file with anyone yet
+                    this.objectStore.getSharerManager().addOwner(
                             this.request.getClientDevice().getUserName(),
-                            this.request.getAccessType(),
                             uniqueFilePath
                     );
 
+                    // also set the access type
+                    PathObject pathObject = this.objectStore.getObjectManager().getObjectForPath(uniqueFilePath);
+                    pathObject.setAccessType(this.request.getAccessType());
+                    this.objectStore.getObjectManager().writeObject(pathObject);
 
                     // since we generated an unique filename, the file is guaranteed to not exist
                     // and therefore, we ignore a create event until the whole file is written

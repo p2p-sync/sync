@@ -3,6 +3,7 @@ package org.rmatil.sync.core.messaging.fileexchange.demand;
 import net.engio.mbassy.bus.MBassador;
 import org.rmatil.sync.core.eventbus.IBusEvent;
 import org.rmatil.sync.core.init.client.ILocalStateRequestCallback;
+import org.rmatil.sync.core.security.IAccessManager;
 import org.rmatil.sync.network.api.IClient;
 import org.rmatil.sync.network.api.IRequest;
 import org.rmatil.sync.network.api.IResponse;
@@ -14,6 +15,7 @@ import org.rmatil.sync.persistence.api.IPathElement;
 import org.rmatil.sync.persistence.api.IStorageAdapter;
 import org.rmatil.sync.persistence.core.local.LocalPathElement;
 import org.rmatil.sync.persistence.exceptions.InputOutputException;
+import org.rmatil.sync.version.api.AccessType;
 import org.rmatil.sync.version.api.IObjectStore;
 import org.rmatil.sync.version.core.model.Sharer;
 import org.slf4j.Logger;
@@ -34,11 +36,36 @@ public class FileDemandRequestHandler implements ILocalStateRequestCallback {
      */
     public static final int CHUNK_SIZE = 1024 * 1024; // 1MB
 
-    protected IStorageAdapter      storageAdapter;
-    protected IObjectStore         objectStore;
-    protected IClient              client;
-    protected FileDemandRequest    request;
+    /**
+     * The storage adapter to access the synced folder
+     */
+    protected IStorageAdapter storageAdapter;
+
+    /**
+     * The object store
+     */
+    protected IObjectStore objectStore;
+
+    /**
+     * The client to send responses
+     */
+    protected IClient client;
+
+    /**
+     * The file demand request which have been received
+     */
+    protected FileDemandRequest request;
+
+    /**
+     * The global event bus to send events to
+     */
     protected MBassador<IBusEvent> globalEventBus;
+
+    /**
+     * The access manager to check for sharer's access to files
+     */
+    protected IAccessManager accessManager;
+
 
     @Override
     public void setStorageAdapter(IStorageAdapter storageAdapter) {
@@ -61,6 +88,11 @@ public class FileDemandRequestHandler implements ILocalStateRequestCallback {
     }
 
     @Override
+    public void setAccessManager(IAccessManager accessManager) {
+        this.accessManager = accessManager;
+    }
+
+    @Override
     public void setRequest(IRequest iRequest) {
         if (! (iRequest instanceof FileDemandRequest)) {
             throw new IllegalArgumentException("Got request " + iRequest.getClass().getName() + " but expected " + FileDemandRequest.class.getName());
@@ -72,6 +104,28 @@ public class FileDemandRequestHandler implements ILocalStateRequestCallback {
     @Override
     public void run() {
         try {
+            logger.info("Getting requested chunk " + this.request.getChunkCounter() + " for exchange " + this.request.getExchangeId());
+
+            if (! this.client.getUser().getUserName().equals(this.request.getClientDevice().getUserName()) && ! this.accessManager.hasAccess(this.request.getClientDevice().getUserName(), AccessType.READ, this.request.getRelativeFilePath())) {
+                logger.warn("Failed to get requested chunk due to missing access rights on file " + this.request.getRelativeFilePath() + " for user " + this.request.getClientDevice().getUserName() + " on exchange " + this.request.getExchangeId());
+                this.sendResponse(
+                        new FileDemandResponse(
+                                this.request.getExchangeId(),
+                                new ClientDevice(this.client.getUser().getUserName(), this.client.getClientDeviceId(), this.client.getPeerAddress()),
+                                this.request.getRelativeFilePath(),
+                                true,
+                                - 1,
+                                - 1,
+                                - 1,
+                                - 1,
+                                null,
+                                new ClientLocation(this.request.getClientDevice().getClientDeviceId(), this.request.getClientDevice().getPeerAddress()),
+                                new HashSet<>()
+                        )
+                );
+                return;
+            }
+
             IPathElement pathElement = new LocalPathElement(this.request.getRelativeFilePath());
             IFileMetaInfo fileMetaInfo;
             try {
@@ -97,8 +151,6 @@ public class FileDemandRequestHandler implements ILocalStateRequestCallback {
 
                 return;
             }
-
-            // TODO: check access for file by comparing requesting user and shared with users in object store
 
             int totalNrOfChunks = 0;
             Data data = null;

@@ -3,6 +3,7 @@ package org.rmatil.sync.core.messaging.sharingexchange.unshared;
 import net.engio.mbassy.bus.MBassador;
 import org.rmatil.sync.core.eventbus.IBusEvent;
 import org.rmatil.sync.core.init.client.ILocalStateRequestCallback;
+import org.rmatil.sync.core.security.IAccessManager;
 import org.rmatil.sync.network.api.IClient;
 import org.rmatil.sync.network.api.IRequest;
 import org.rmatil.sync.network.api.IResponse;
@@ -18,11 +19,35 @@ public class UnsharedRequestHandler implements ILocalStateRequestCallback {
 
     private static final Logger logger = LoggerFactory.getLogger(UnsharedRequestHandler.class);
 
-    protected IStorageAdapter      storageAdapter;
-    protected IObjectStore         objectStore;
-    protected IClient              client;
-    protected UnsharedRequest      request;
+    /**
+     * The storage adapter to access the synced folder
+     */
+    protected IStorageAdapter storageAdapter;
+
+    /**
+     * The object store
+     */
+    protected IObjectStore objectStore;
+
+    /**
+     * The client to send responses
+     */
+    protected IClient client;
+
+    /**
+     * The unshared request which have been received
+     */
+    protected UnsharedRequest request;
+
+    /**
+     * The global event bus to send events to
+     */
     protected MBassador<IBusEvent> globalEventBus;
+
+    /**
+     * The access manager to check for sharer's access to files
+     */
+    protected IAccessManager accessManager;
 
     @Override
     public void setStorageAdapter(IStorageAdapter storageAdapter) {
@@ -45,6 +70,11 @@ public class UnsharedRequestHandler implements ILocalStateRequestCallback {
     }
 
     @Override
+    public void setAccessManager(IAccessManager accessManager) {
+        this.accessManager = accessManager;
+    }
+
+    @Override
     public void setRequest(IRequest iRequest) {
         if (! (iRequest instanceof UnsharedRequest)) {
             throw new IllegalArgumentException("Got request " + iRequest.getClass().getName() + " but expected " + UnsharedRequest.class.getName());
@@ -64,7 +94,7 @@ public class UnsharedRequestHandler implements ILocalStateRequestCallback {
             logger.debug("Found file " + fileName + " for fileId " + this.request.getFileId());
 
             PathObject sharedObject = this.objectStore.getObjectManager().getObjectForPath(
-                fileName
+                    fileName
             );
 
             logger.trace("Found file on path " + sharedObject.getAbsolutePath() + " for file with id " + this.request.getFileId());

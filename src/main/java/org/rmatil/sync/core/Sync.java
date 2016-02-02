@@ -31,6 +31,8 @@ import org.rmatil.sync.core.messaging.sharingexchange.unshare.UnshareRequestHand
 import org.rmatil.sync.core.messaging.sharingexchange.unshared.UnsharedRequest;
 import org.rmatil.sync.core.messaging.sharingexchange.unshared.UnsharedRequestHandler;
 import org.rmatil.sync.core.model.RemoteClientLocation;
+import org.rmatil.sync.core.security.AccessManager;
+import org.rmatil.sync.core.security.IAccessManager;
 import org.rmatil.sync.core.syncer.background.IBackgroundSyncer;
 import org.rmatil.sync.core.syncer.background.NonBlockingBackgroundSyncer;
 import org.rmatil.sync.core.syncer.background.fetchobjectstore.FetchObjectStoreRequest;
@@ -108,6 +110,8 @@ public class Sync {
         IObjectStore objectStore = objectStoreInitializer.init();
         objectStoreInitializer.start();
 
+        IAccessManager accessManager = new AccessManager(objectStore);
+
         // Init client
         IClient client = new Client(null, user, null);
         LocalStateObjectDataReplyHandler objectDataReplyHandler = new LocalStateObjectDataReplyHandler(
@@ -116,7 +120,8 @@ public class Sync {
                 client,
                 globalEventBus,
                 null,
-                null
+                null,
+                new AccessManager(objectStore)
         );
 
         // specify protocol

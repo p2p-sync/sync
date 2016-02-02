@@ -31,6 +31,7 @@ import org.rmatil.sync.core.messaging.sharingexchange.unshare.UnshareRequestHand
 import org.rmatil.sync.core.messaging.sharingexchange.unshared.UnsharedRequest;
 import org.rmatil.sync.core.messaging.sharingexchange.unshared.UnsharedRequestHandler;
 import org.rmatil.sync.core.model.RemoteClientLocation;
+import org.rmatil.sync.core.security.AccessManager;
 import org.rmatil.sync.core.syncer.background.fetchobjectstore.FetchObjectStoreRequest;
 import org.rmatil.sync.core.syncer.background.fetchobjectstore.FetchObjectStoreRequestHandler;
 import org.rmatil.sync.core.syncer.background.initsync.InitSyncRequest;
@@ -274,7 +275,8 @@ public abstract class BaseNetworkHandlerTest extends BaseTest {
                 client,
                 globalEventBus,
                 null,
-                null
+                null,
+                new AccessManager(objectStore)
         );
         // specify protocol
         objectDataReplyHandler.addRequestCallbackHandler(FileOfferRequest.class, FileOfferRequestHandler.class);

@@ -148,12 +148,15 @@ public class FileDemandExchangeHandler extends ANetworkHandler<FileDemandExchang
         IPathElement localPathElement = new LocalPathElement(fileDemandResponse.getRelativeFilePath());
 
         if (- 1 == fileDemandResponse.getChunkCounter()) {
-            // the other client does not have the file anymore...
-            logger.error("The answering client (" + fileDemandResponse.getClientDevice().getPeerAddress().inetAddress().getHostName() + ":" + fileDemandResponse.getClientDevice().getPeerAddress().tcpPort() + ") does not have the requested file (anymore). Aborting file demand");
+            // the other client does not have the file anymore or we do not have the correct access rights to fetch it...
+            logger.error("The answering client (" + fileDemandResponse.getClientDevice().getPeerAddress().inetAddress().getHostName() + ":" + fileDemandResponse.getClientDevice().getPeerAddress().tcpPort() + ") does not have the requested file (anymore) or denied our request due to missing access rights. Aborting file demand " + this.exchangeId);
             super.onResponse(fileDemandResponse);
             this.receivedAllChunksCountDownLatch.countDown();
             return;
         }
+
+        // TODO: check whether the file isDeleted on each write, there might be a concurrent incoming delete request
+        // -> affected FilePaths? in ObjectDataReply?
 
         // if the chunk counter is greater than 0
         // we only modify the existing file, so we generate an ignore modify event
