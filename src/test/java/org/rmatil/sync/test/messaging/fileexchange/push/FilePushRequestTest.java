@@ -20,6 +20,7 @@ public class FilePushRequestTest {
 
     protected static final UUID           EXCHANGE_ID        = UUID.randomUUID();
     protected static final ClientDevice   CLIENT_DEVICE      = new ClientDevice("Inverness McKenzie", UUID.randomUUID(), null);
+    protected static final String         CHECKSUM           = "checksum";
     protected static final String         RELATIVE_FILE_PATH = "path/to/some/file.txt";
     protected static final String         OWNER              = "owner";
     protected static final AccessType     ACCESS_TYPE        = AccessType.WRITE;
@@ -37,6 +38,7 @@ public class FilePushRequestTest {
         FilePushRequest filePushRequest = new FilePushRequest(
                 EXCHANGE_ID,
                 CLIENT_DEVICE,
+                CHECKSUM,
                 OWNER,
                 ACCESS_TYPE,
                 SHARERS,
@@ -52,6 +54,7 @@ public class FilePushRequestTest {
 
         assertEquals("ExchangeId is not equal", EXCHANGE_ID, filePushRequest.getExchangeId());
         assertEquals("ClientDevice is not equal", CLIENT_DEVICE, filePushRequest.getClientDevice());
+        assertEquals("Checksum is not equal", CHECKSUM, filePushRequest.getChecksum());
         assertEquals("RelativeFilePath is not equal", RELATIVE_FILE_PATH, filePushRequest.getRelativeFilePath());
         assertEquals("Is File is not equal", IS_FILE, filePushRequest.isFile());
         assertEquals("ChunkCounter is not equal", CHUNK_COUNTER, filePushRequest.getChunkCounter());

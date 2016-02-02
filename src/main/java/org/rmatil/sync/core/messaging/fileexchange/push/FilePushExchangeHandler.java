@@ -199,6 +199,12 @@ public class FilePushExchangeHandler extends ANetworkHandler<FilePushExchangeHan
         if (fileMetaInfo.isFile()) {
             // should round to the next bigger int value anyway
             totalNrOfChunks = (int) Math.ceil(fileMetaInfo.getTotalFileSize() / CHUNK_SIZE);
+
+            // restart the exchange, if the requested chunk counter is bigger than expected
+            if (totalNrOfChunks < chunkCounter) {
+                chunkCounter = 0;
+            }
+
             long fileChunkStartOffset = chunkCounter * CHUNK_SIZE;
 
             // storage adapter trims requests for a too large chunk
@@ -230,9 +236,22 @@ public class FilePushExchangeHandler extends ANetworkHandler<FilePushExchangeHan
             logger.error("Failed to get AccessType for file " + this.relativeFilePath + " Sending access type write. Message: " + e.getMessage());
         }
 
+        String checksum = null;
+        try {
+            if (fileMetaInfo.isFile()) {
+                checksum = this.storageAdapter.getChecksum(pathElement);
+            } else {
+                // dirs may not have checksums
+                checksum = "";
+            }
+        } catch (InputOutputException e) {
+            logger.error("Could not generate checksum. Message: " + e.getMessage(), e);
+        }
+
         IRequest request = new FilePushRequest(
                 exchangeId,
                 this.clientDevice,
+                checksum,
                 owner,
                 accessType,
                 sharers,

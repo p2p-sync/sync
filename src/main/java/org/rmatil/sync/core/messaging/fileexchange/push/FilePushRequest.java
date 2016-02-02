@@ -18,6 +18,15 @@ import java.util.UUID;
 public class FilePushRequest extends ARequest {
 
     /**
+     * A checksum over the content from the complete file,
+     * i.e. the combination of all chunks
+     *
+     * <i>Note</i>: Returns null, if the checksum could not have
+     * been generated on the other client.
+     */
+    protected String checksum;
+
+    /**
      * The relative file to the path which should be created
      * or completed with chunks
      */
@@ -75,6 +84,7 @@ public class FilePushRequest extends ARequest {
      * @param exchangeId       The exchange id of the request
      * @param clientDevice     The client device which is sending this request
      * @param owner            The owner of the file. May be null if the file is not shared
+     * @param checksum         The checksum of the complete file
      * @param accessType       The access type to this file. May be null if not shared
      * @param sharers          The set of sharers stored on this client
      * @param relativeFilePath The relative path to the file which should be created
@@ -87,8 +97,9 @@ public class FilePushRequest extends ARequest {
      * @param data             The actual chunk data
      * @param receiverAddress  The receiver of this request
      */
-    public FilePushRequest(UUID exchangeId, ClientDevice clientDevice, String owner, AccessType accessType, Set<Sharer> sharers, String relativeFilePath, boolean isFile, long chunkCounter, int chunkSize, long totalNrOfChunks, long totalFileSize, Data data, ClientLocation receiverAddress) {
+    public FilePushRequest(UUID exchangeId, ClientDevice clientDevice, String checksum, String owner, AccessType accessType, Set<Sharer> sharers, String relativeFilePath, boolean isFile, long chunkCounter, int chunkSize, long totalNrOfChunks, long totalFileSize, Data data, ClientLocation receiverAddress) {
         super(exchangeId, clientDevice, new ArrayList<>());
+        this.checksum = checksum;
         this.owner = owner;
         this.accessType = accessType;
         this.sharers = sharers;
@@ -101,6 +112,17 @@ public class FilePushRequest extends ARequest {
         this.data = data;
 
         super.receiverAddresses.add(receiverAddress);
+    }
+
+    /**
+     * Returns the checksum of the complete file.
+     * <i>Note</i>: Returns null, if the checksum could not have
+     * been generated on the other client.
+     *
+     * @return The checksum of the complete file.
+     */
+    public String getChecksum() {
+        return checksum;
     }
 
     /**

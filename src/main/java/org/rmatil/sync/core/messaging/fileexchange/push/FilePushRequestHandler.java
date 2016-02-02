@@ -101,7 +101,7 @@ public class FilePushRequestHandler implements ILocalStateRequestCallback {
 
             if (! this.client.getUser().getUserName().equals(this.request.getClientDevice().getUserName()) && ! this.accessManager.hasAccess(this.request.getClientDevice().getUserName(), AccessType.WRITE, this.request.getRelativeFilePath())) {
                 logger.warn("Failed to write chunk " + this.request.getChunkCounter() + " for file " + this.request.getRelativeFilePath() + " due to missing access rights of user " + this.request.getClientDevice().getUserName() + " on exchange " + this.request.getExchangeId());
-                this.sendResponse(this.createResponse(-1));
+                this.sendResponse(this.createResponse(- 1));
                 return;
             }
 
@@ -179,8 +179,29 @@ public class FilePushRequestHandler implements ILocalStateRequestCallback {
 
             long requestingChunk = this.request.getChunkCounter();
             if (this.request.getChunkCounter() == this.request.getTotalNrOfChunks()) {
-                // indicate we got all chunks
-                requestingChunk = - 1;
+                // now check that we got the same checksum for the file
+                try {
+                    String checksum = "";
+
+                    // dirs may not have a checksum
+                    if (this.request.isFile) {
+                        checksum = this.storageAdapter.getChecksum(localPathElement);
+                    }
+
+                    if (null == this.request.getChecksum() || this.request.getChecksum().equals(checksum)) {
+                        logger.info("Checksums match. Stopping exchange " + this.request.getExchangeId());
+                        // checksums match or the other side failed to compute one
+                        // -> indicate we got all chunks
+                        requestingChunk = - 1;
+                    } else {
+                        logger.info("Checksums do not match. Restarting to push file for exchange " + this.request.getExchangeId());
+                        // restart to fetch the whole file
+                        requestingChunk = 0;
+                    }
+                } catch (InputOutputException e) {
+                    logger.error("Failed to generate the checksum for file " + localPathElement.getPath() + " on exchange " + this.request.getExchangeId() + ". Accepting the file. Message: " + e.getMessage());
+                    requestingChunk = - 1;
+                }
             } else {
                 requestingChunk++;
             }
