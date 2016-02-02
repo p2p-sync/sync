@@ -5,6 +5,7 @@ import org.junit.Test;
 import org.omg.CORBA.TIMEOUT;
 import org.rmatil.sync.core.messaging.fileexchange.push.FilePushExchangeHandler;
 import org.rmatil.sync.core.messaging.fileexchange.push.FilePushExchangeHandlerResult;
+import org.rmatil.sync.persistence.exceptions.InputOutputException;
 import org.rmatil.sync.test.messaging.base.BaseNetworkHandlerTest;
 
 import java.io.IOException;
@@ -28,12 +29,14 @@ public class FilePushExchangeHandlerTest extends BaseNetworkHandlerTest {
 
     @BeforeClass
     public static void setUpChild()
-            throws IOException {
+            throws IOException, InputOutputException {
         Files.createDirectory(ROOT_TEST_DIR1.resolve(TEST_DIR_1));
         Files.createDirectory(ROOT_TEST_DIR2.resolve(TEST_DIR_1));
 
         Files.createDirectory(ROOT_TEST_DIR1.resolve(TEST_DIR_2));
         Files.createFile(ROOT_TEST_DIR1.resolve(TEST_FILE_1));
+
+        OBJECT_STORE_1.sync(ROOT_TEST_DIR1.toFile());
 
         RandomAccessFile randomAccessFile = new RandomAccessFile(ROOT_TEST_DIR1.resolve(TEST_FILE_1).toString(), "rw");
         randomAccessFile.write(content);
