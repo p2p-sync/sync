@@ -3,7 +3,6 @@ package org.rmatil.sync.core.messaging.fileexchange.move;
 import net.engio.mbassy.bus.MBassador;
 import org.rmatil.sync.core.eventbus.IBusEvent;
 import org.rmatil.sync.core.init.client.ILocalStateResponseCallback;
-import org.rmatil.sync.core.messaging.sharingexchange.shared.SharedResponse;
 import org.rmatil.sync.event.aggregator.core.events.MoveEvent;
 import org.rmatil.sync.network.api.IClient;
 import org.rmatil.sync.network.api.IClientManager;

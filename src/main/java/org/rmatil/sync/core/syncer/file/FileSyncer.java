@@ -102,11 +102,12 @@ public class FileSyncer implements IFileSyncer {
             }
         }
 
-        // TODO: check why we sometimes still get modify events for directories despite adding the IgnoreDirModifier
         if (event instanceof ModifyEvent) {
+            // directory modifications will happen, since we need them to correctly identify
+            // a move of a directory.
             try {
                 if (this.storageAdapter.isDir(new LocalPathElement(event.getPath().toString()))) {
-                    logger.info("Skipping unintentionally received modified event for directory " + event.getPath().toString());
+                    logger.info("Skipping received modified event for directory " + event.getPath().toString());
                     return;
                 }
             } catch (InputOutputException e) {
@@ -119,7 +120,6 @@ public class FileSyncer implements IFileSyncer {
         UUID fileExchangeId = UUID.randomUUID();
 
         // all events require an offering step
-
         FileOfferExchangeHandler fileOfferExchangeHandler = new FileOfferExchangeHandler(
                 fileExchangeId,
                 this.clientDevice,
@@ -181,7 +181,7 @@ public class FileSyncer implements IFileSyncer {
         }
 
         if (hasConflictDetected) {
-            // all clients will have to again check for the conflict file
+            // all clients will have to check again for the conflict file
             ConflictHandler.createConflictFile(
                     this.globalEventBus,
                     this.clientDevice.getClientDeviceId().toString(),
