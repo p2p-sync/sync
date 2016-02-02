@@ -5,18 +5,24 @@ import org.rmatil.sync.core.messaging.fileexchange.push.FilePushRequest;
 import org.rmatil.sync.network.core.model.ClientDevice;
 import org.rmatil.sync.network.core.model.ClientLocation;
 import org.rmatil.sync.network.core.model.Data;
+import org.rmatil.sync.version.api.AccessType;
+import org.rmatil.sync.version.core.model.Sharer;
 
 import java.util.HashSet;
+import java.util.Set;
 import java.util.UUID;
 
 import static org.hamcrest.CoreMatchers.hasItem;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
 
 public class FilePushRequestTest {
 
     protected static final UUID           EXCHANGE_ID        = UUID.randomUUID();
     protected static final ClientDevice   CLIENT_DEVICE      = new ClientDevice("Inverness McKenzie", UUID.randomUUID(), null);
     protected static final String         RELATIVE_FILE_PATH = "path/to/some/file.txt";
+    protected static final String         OWNER              = "owner";
+    protected static final AccessType     ACCESS_TYPE        = AccessType.WRITE;
     protected static final boolean        IS_FILE            = true;
     protected static final long           CHUNK_COUNTER      = 0;
     protected static final int            CHUNK_SIZE         = 1024; // bytes
@@ -24,13 +30,16 @@ public class FilePushRequestTest {
     protected static final long           TOTAL_FILE_SIZE    = 0;
     protected static final Data           DATA               = new Data(new byte[0], false);
     protected static final ClientLocation RECEIVER_ADDRESS   = new ClientLocation(UUID.randomUUID(), null);
+    protected static final Set<Sharer>    SHARERS            = new HashSet<>();
 
     @Test
     public void test() {
         FilePushRequest filePushRequest = new FilePushRequest(
                 EXCHANGE_ID,
                 CLIENT_DEVICE,
-                new HashSet<>(),
+                OWNER,
+                ACCESS_TYPE,
+                SHARERS,
                 RELATIVE_FILE_PATH,
                 IS_FILE,
                 CHUNK_COUNTER,
@@ -51,5 +60,8 @@ public class FilePushRequestTest {
         assertEquals("TotalFileSize is not equal", TOTAL_FILE_SIZE, filePushRequest.getTotalFileSize());
         assertEquals("Data is not equal", DATA, filePushRequest.getData());
         assertThat("Receiver addresses should contain clientLocation", filePushRequest.getReceiverAddresses(), hasItem(RECEIVER_ADDRESS));
+        assertEquals("Owner should be equal", OWNER, filePushRequest.getOwner());
+        assertEquals("AccessType should be equal", ACCESS_TYPE, filePushRequest.getAccessType());
+        assertEquals("Sharers should be equal", SHARERS, filePushRequest.getSharers());
     }
 }

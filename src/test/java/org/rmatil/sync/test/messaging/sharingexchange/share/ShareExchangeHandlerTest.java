@@ -190,13 +190,10 @@ public class ShareExchangeHandlerTest extends BaseNetworkHandlerTest {
         PathObject sharedObject = OBJECT_STORE_2.getObjectManager().getObjectForPath(Paths.get(Config.DEFAULT.getSharedWithOthersReadWriteFolderName()).resolve(TEST_FILE_1.getFileName()).toString());
 
         assertNotNull("SharedObject should not be null", sharedObject);
-        assertTrue("File should be shared", sharedObject.isShared());
-        assertEquals("Sharer should contain the user of client1", 1, sharedObject.getSharers().size());
-
-        Sharer sharer = sharedObject.getSharers().iterator().next();
-
-        assertEquals("Sharer should have the same username", USERNAME, sharer.getUsername());
-        assertEquals("Sharer should have write access", AccessType.WRITE, sharer.getAccessType());
-        assertEquals("Sharer should have one sharing history (the one of share)", 1, sharer.getSharingHistory().size());
+        // since the client 2 did not share with anyone. Instead client1 shared with client2.
+        // -> only the owner should be set
+        assertFalse("File should not be shared", sharedObject.isShared());
+        assertEquals("Owner should be equal to client1's user", CLIENT_1.getUser().getUserName(), sharedObject.getOwner());
+        assertEquals("Sharer should not contain any user", 0, sharedObject.getSharers().size());
     }
 }
