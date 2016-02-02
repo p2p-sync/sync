@@ -77,7 +77,7 @@ public class FileDemandExchangeHandlerTest extends BaseNetworkHandlerTest {
         CLIENT_2.getObjectDataReplyHandler().removeResponseCallbackHandler(EXCHANGE_ID);
 
         // now check that the file is written completely
-        assertTrue("TestFile1 should not exist on client2", Files.exists(ROOT_TEST_DIR2.resolve(TEST_FILE_1)));
+        assertTrue("TestFile1 should exist on client2", Files.exists(ROOT_TEST_DIR2.resolve(TEST_FILE_1)));
 
         // check that the content is equal
         assertArrayEquals("FileContent is not equal", FILE_CONTENT, Files.readAllBytes(ROOT_TEST_DIR2.resolve(TEST_FILE_1)));
@@ -146,6 +146,7 @@ public class FileDemandExchangeHandlerTest extends BaseNetworkHandlerTest {
         assertEquals("Expected name testFile1", expectedEvent3.getEvent().getName(), actualEvent3.getEvent().getName());
         assertEquals("Expected different hash", expectedEvent3.getEvent().getHash(), actualEvent3.getEvent().getHash());
 
+        Files.delete(ROOT_TEST_DIR2.resolve(TEST_FILE_1));
     }
 
 
@@ -178,5 +179,63 @@ public class FileDemandExchangeHandlerTest extends BaseNetworkHandlerTest {
         CLIENT_2.getObjectDataReplyHandler().removeResponseCallbackHandler(EXCHANGE_ID);
 
         assertFalse("File should not exist", Files.exists(ROOT_TEST_DIR2.resolve(NON_EXISTING_FILE)));
+    }
+
+    @Test
+    public void testRetransmitOnWrongChecksum()
+            throws InterruptedException, IOException {
+        assertFalse("TestFile1 should not exist on client2", Files.exists(ROOT_TEST_DIR2.resolve(TEST_FILE_1)));
+
+        byte[] largeContent = new byte[1024*1024 + 12]; // 11 chunks
+        Files.write(ROOT_TEST_DIR1.resolve(TEST_FILE_1), largeContent);
+
+        FileDemandExchangeHandler fileDemandExchangeHandler = new FileDemandExchangeHandler(
+                STORAGE_ADAPTER_2,
+                CLIENT_2,
+                CLIENT_MANAGER_2,
+                GLOBAL_EVENT_BUS_2,
+                new ClientLocation(CLIENT_DEVICE_1.getClientDeviceId(), CLIENT_1.getPeerAddress()),
+                TEST_FILE_1.toString(),
+                EXCHANGE_ID
+        );
+
+        CLIENT_2.getObjectDataReplyHandler().addResponseCallbackHandler(EXCHANGE_ID, fileDemandExchangeHandler);
+
+        final byte[] alteredContent = "This is some different content".getBytes();
+
+        Thread fileDemandExchangeHandlerThread = new Thread(fileDemandExchangeHandler);
+        fileDemandExchangeHandlerThread.setName("TEST-FileDemandExchangeHandler-ChangedFile");
+        fileDemandExchangeHandlerThread.start();
+
+
+        // just hope, that the file exchange is still running once we alter the content
+        Thread changeFileThread = new Thread(() -> {
+            try {
+                // wait a bit until the first chunks have been written
+                Thread.sleep(10);
+                Files.write(ROOT_TEST_DIR1.resolve(TEST_FILE_1), alteredContent);
+            } catch (IOException | InterruptedException e) {
+                e.printStackTrace();
+            }
+        });
+        changeFileThread.start();
+
+        fileDemandExchangeHandler.await();
+
+        assertTrue("Handler should be completed after awaiting", fileDemandExchangeHandler.isCompleted());
+        assertNotNull("Result should not be null", fileDemandExchangeHandler.getResult());
+
+        CLIENT_2.getObjectDataReplyHandler().removeResponseCallbackHandler(EXCHANGE_ID);
+
+        // now check that the file is written completely
+        assertTrue("TestFile1 should not exist on client2", Files.exists(ROOT_TEST_DIR2.resolve(TEST_FILE_1)));
+
+        // check that the content is equal
+        assertArrayEquals("Altered content is not equal", alteredContent, Files.readAllBytes(ROOT_TEST_DIR2.resolve(TEST_FILE_1)));
+
+        Files.delete(ROOT_TEST_DIR2.resolve(TEST_FILE_1));
+
+        // we do not check the events here, since we may not be absolutely sure, when the file is altered and therefore
+        // which event would contain the modify event for the new content
     }
 }

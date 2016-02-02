@@ -17,7 +17,10 @@ public class FileDemandResponse extends AResponse {
 
     /**
      * A checksum over the content from the complete file,
-     * i.e. the combination of all chunks
+     * i.e. the combination of all chunks.
+     * <p>
+     * <i>Note</i>: Is null, if the checksum could not have
+     * been generated on the other client.
      */
     protected String checksum;
 
@@ -67,6 +70,7 @@ public class FileDemandResponse extends AResponse {
     /**
      * @param exchangeId       The exchange id of the request
      * @param clientDevice     The client device which is sending this request
+     * @param checksum         The checksum of the complete file
      * @param relativeFilePath The relative path to the file which should be created
      * @param isFile           Whether the path represents a file or a directory
      * @param chunkCounter     The counter of the chunk contained in this request (starts at 0)
@@ -92,7 +96,9 @@ public class FileDemandResponse extends AResponse {
     }
 
     /**
-     * Returns the checksum from the complete file
+     * Returns the checksum from the complete file.
+     * <i>Note</i>: Returns null, if the checksum could not have
+     * been generated on the other client.
      *
      * @return The checksum from the complete file
      */

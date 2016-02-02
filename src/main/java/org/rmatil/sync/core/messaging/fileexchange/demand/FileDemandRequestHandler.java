@@ -108,22 +108,7 @@ public class FileDemandRequestHandler implements ILocalStateRequestCallback {
 
             if (! this.client.getUser().getUserName().equals(this.request.getClientDevice().getUserName()) && ! this.accessManager.hasAccess(this.request.getClientDevice().getUserName(), AccessType.READ, this.request.getRelativeFilePath())) {
                 logger.warn("Failed to get requested chunk due to missing access rights on file " + this.request.getRelativeFilePath() + " for user " + this.request.getClientDevice().getUserName() + " on exchange " + this.request.getExchangeId());
-                this.sendResponse(
-                        new FileDemandResponse(
-                                this.request.getExchangeId(),
-                                new ClientDevice(this.client.getUser().getUserName(), this.client.getClientDeviceId(), this.client.getPeerAddress()),
-                                "",
-                                this.request.getRelativeFilePath(),
-                                true,
-                                - 1,
-                                - 1,
-                                - 1,
-                                - 1,
-                                null,
-                                new ClientLocation(this.request.getClientDevice().getClientDeviceId(), this.request.getClientDevice().getPeerAddress()),
-                                new HashSet<>()
-                        )
-                );
+                this.sendResponse(this.createErrorResponse(-1, -1));
                 return;
             }
 
@@ -134,23 +119,7 @@ public class FileDemandRequestHandler implements ILocalStateRequestCallback {
             } catch (InputOutputException e) {
                 logger.error("Could not fetch meta information about " + pathElement.getPath() + ". Message: " + e.getMessage());
 
-                this.sendResponse(
-                        new FileDemandResponse(
-                                this.request.getExchangeId(),
-                                new ClientDevice(this.client.getUser().getUserName(), this.client.getClientDeviceId(), this.client.getPeerAddress()),
-                                "",
-                                this.request.getRelativeFilePath(),
-                                true,
-                                - 1,
-                                - 1,
-                                - 1,
-                                - 1,
-                                null,
-                                new ClientLocation(this.request.getClientDevice().getClientDeviceId(), this.request.getClientDevice().getPeerAddress()),
-                                new HashSet<>()
-                        )
-                );
-
+                this.sendResponse(this.createErrorResponse(-1, -1));
                 return;
             }
 
@@ -159,6 +128,15 @@ public class FileDemandRequestHandler implements ILocalStateRequestCallback {
             if (fileMetaInfo.isFile()) {
                 // should round to the next bigger int value anyway
                 totalNrOfChunks = (int) Math.ceil(fileMetaInfo.getTotalFileSize() / CHUNK_SIZE);
+
+                // restart the file exchange again if the other client requests a chunk we do not have
+                // maybe due to a rewrite of the file content while syncing
+                if (totalNrOfChunks < this.request.getChunkCounter()) {
+                    // no chunk anymore, fileDemandExchangeHandler is then forced to check checksum -> re-download if not matching
+                    this.sendResponse(this.createErrorResponse(-1, totalNrOfChunks));
+                    return;
+                }
+
                 long fileChunkStartOffset = this.request.getChunkCounter() * CHUNK_SIZE;
 
                 // storage adapter trims requests for a too large chunk
@@ -180,7 +158,12 @@ public class FileDemandRequestHandler implements ILocalStateRequestCallback {
                 logger.error("Failed to read the sharers for file " + this.request.getRelativeFilePath() + ". Sending an empty sharer set. Message: " + e.getMessage());
             }
 
-            String checksum = this.storageAdapter.getChecksum(pathElement);
+            String checksum = null;
+            try {
+                checksum = this.storageAdapter.getChecksum(pathElement);
+            } catch (InputOutputException e) {
+                logger.error("Could not generate checksum. Message: " + e.getMessage(), e);
+            }
 
             IResponse response = new FileDemandResponse(
                     this.request.getExchangeId(),
@@ -204,12 +187,29 @@ public class FileDemandRequestHandler implements ILocalStateRequestCallback {
         }
     }
 
+    protected FileDemandResponse createErrorResponse(long chunkCounter, long totalNrOfChunks) {
+        return new FileDemandResponse(
+                this.request.getExchangeId(),
+                new ClientDevice(this.client.getUser().getUserName(), this.client.getClientDeviceId(), this.client.getPeerAddress()),
+                "",
+                this.request.getRelativeFilePath(),
+                true,
+                chunkCounter,
+                CHUNK_SIZE,
+                totalNrOfChunks,
+                - 1,
+                null,
+                new ClientLocation(this.request.getClientDevice().getClientDeviceId(), this.request.getClientDevice().getPeerAddress()),
+                new HashSet<>()
+        );
+    }
+
     /**
      * Sends the given response back to the client
      *
      * @param iResponse The response to send back
      */
-    public void sendResponse(IResponse iResponse) {
+    protected void sendResponse(IResponse iResponse) {
         if (null == this.client) {
             throw new IllegalStateException("A client instance is required to send a response back");
         }

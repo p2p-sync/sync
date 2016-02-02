@@ -15,6 +15,7 @@ public class FileDemandResponseTest {
 
     protected static final UUID           EXCHANGE_ID        = UUID.randomUUID();
     protected static final ClientDevice   CLIENT_DEVICE      = new ClientDevice("Inverness McKenzie", UUID.randomUUID(), null);
+    protected static final String         CHECKSUM           = "someHash";
     protected static final String         RELATIVE_FILE_PATH = "path/to/some/file.txt";
     protected static final boolean        IS_FILE            = true;
     protected static final long           CHUNK_COUNTER      = 0;
@@ -29,6 +30,7 @@ public class FileDemandResponseTest {
         FileDemandResponse filePushRequest = new FileDemandResponse(
                 EXCHANGE_ID,
                 CLIENT_DEVICE,
+                CHECKSUM,
                 RELATIVE_FILE_PATH,
                 IS_FILE,
                 CHUNK_COUNTER,
@@ -42,6 +44,7 @@ public class FileDemandResponseTest {
 
         assertEquals("ExchangeId is not equal", EXCHANGE_ID, filePushRequest.getExchangeId());
         assertEquals("ClientDevice is not equal", CLIENT_DEVICE, filePushRequest.getClientDevice());
+        assertEquals("Checksum is not equal", CHECKSUM, filePushRequest.getChecksum());
         assertEquals("RelativeFilePath is not equal", RELATIVE_FILE_PATH, filePushRequest.getRelativeFilePath());
         assertEquals("Is File is not equal", IS_FILE, filePushRequest.isFile());
         assertEquals("ChunkCounter is not equal", CHUNK_COUNTER, filePushRequest.getChunkCounter());

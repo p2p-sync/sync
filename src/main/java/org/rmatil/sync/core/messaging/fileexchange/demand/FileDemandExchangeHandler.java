@@ -147,7 +147,7 @@ public class FileDemandExchangeHandler extends ANetworkHandler<FileDemandExchang
 
         IPathElement localPathElement = new LocalPathElement(fileDemandResponse.getRelativeFilePath());
 
-        if (- 1 == fileDemandResponse.getChunkCounter()) {
+        if (- 1 == fileDemandResponse.getChunkCounter() && -1 == fileDemandResponse.getTotalNrOfChunks()) {
             // the other client does not have the file anymore or we do not have the correct access rights to fetch it...
             logger.error("The answering client (" + fileDemandResponse.getClientDevice().getPeerAddress().inetAddress().getHostName() + ":" + fileDemandResponse.getClientDevice().getPeerAddress().tcpPort() + ") does not have the requested file (anymore) or denied our request due to missing access rights. Aborting file demand " + this.exchangeId);
             super.onResponse(fileDemandResponse);
@@ -160,88 +160,75 @@ public class FileDemandExchangeHandler extends ANetworkHandler<FileDemandExchang
 
         // if the chunk counter is greater than 0
         // we only modify the existing file, so we generate an ignore modify event
-        if (fileDemandResponse.getChunkCounter() == - 1) {
-            // there was an error on fetching the chunk on the other side
-            logger.info("Received an abort fileDemandResponse for exchange " + this.exchangeId + ". Aborting exchange and let file be incomplete");
-            super.onResponse(response);
-            this.receivedAllChunksCountDownLatch.countDown();
-            return;
-        } else if (fileDemandResponse.getChunkCounter() > 0) {
-            this.globalEventBus.publish(new IgnoreBusEvent(
-                    new ModifyEvent(
-                            Paths.get(fileDemandResponse.getRelativeFilePath()),
-                            Paths.get(fileDemandResponse.getRelativeFilePath()).getFileName().toString(),
-                            "weIgnoreTheHash",
-                            System.currentTimeMillis()
-                    )
-            ));
-        } else {
-            // we check for local existence, if the file already exists, we just ignore the
-            // modify event, otherwise we ignore the create event
-            try {
-                if (this.storageAdapter.exists(StorageType.FILE, localPathElement) || this.storageAdapter.exists(StorageType.DIRECTORY, localPathElement)) {
-                    this.globalEventBus.publish(new IgnoreBusEvent(
-                            new ModifyEvent(
-                                    Paths.get(fileDemandResponse.getRelativeFilePath()),
-                                    Paths.get(fileDemandResponse.getRelativeFilePath()).getFileName().toString(),
-                                    "weIgnoreTheHash",
-                                    System.currentTimeMillis()
-                            )
-                    ));
-                } else {
-                    this.globalEventBus.publish(new IgnoreBusEvent(
-                            new CreateEvent(
-                                    Paths.get(fileDemandResponse.getRelativeFilePath()),
-                                    Paths.get(fileDemandResponse.getRelativeFilePath()).getFileName().toString(),
-                                    "weIgnoreTheHash",
-                                    System.currentTimeMillis()
-                            )
-                    ));
+        this.publishIgnoreEvents(fileDemandResponse, localPathElement);
 
-                    this.globalEventBus.publish(new AddSharerToObjectStoreBusEvent(
-                            fileDemandResponse.getRelativeFilePath(),
-                            fileDemandResponse.getSharers()
-                    ));
+        if (fileDemandResponse.getChunkCounter() > - 1) {
+            if (fileDemandResponse.isFile()) {
+                try {
+                    this.storageAdapter.persist(StorageType.FILE, localPathElement, fileDemandResponse.getChunkCounter() * fileDemandResponse.getChunkSize(), fileDemandResponse.getData().getContent());
+                } catch (InputOutputException e) {
+                    logger.error("Could not write chunk " + fileDemandResponse.getChunkCounter() + " of file " + fileDemandResponse.getRelativeFilePath() + ". Message: " + e.getMessage(), e);
                 }
-            } catch (InputOutputException e) {
-                logger.error("Can not determine whether the file " + localPathElement.getPath() + " exists. Message: " + e.getMessage() + ". Just checking the chunk counters...");
+            } else {
+                try {
+                    if (! this.storageAdapter.exists(StorageType.DIRECTORY, localPathElement)) {
+                        this.storageAdapter.persist(StorageType.DIRECTORY, localPathElement, null);
+                    }
+                } catch (InputOutputException e) {
+                    logger.error("Could not create directory " + localPathElement.getPath() + ". Message: " + e.getMessage());
+                }
             }
         }
 
-        if (fileDemandResponse.isFile()) {
-            try {
-                this.storageAdapter.persist(StorageType.FILE, localPathElement, fileDemandResponse.getChunkCounter() * fileDemandResponse.getChunkSize(), fileDemandResponse.getData().getContent());
-            } catch (InputOutputException e) {
-                logger.error("Could not write chunk " + fileDemandResponse.getChunkCounter() + " of file " + fileDemandResponse.getRelativeFilePath() + ". Message: " + e.getMessage(), e);
-            }
-        } else {
-            try {
-                if (! this.storageAdapter.exists(StorageType.DIRECTORY, localPathElement)) {
-                    this.storageAdapter.persist(StorageType.DIRECTORY, localPathElement, null);
-                }
-            } catch (InputOutputException e) {
-                logger.error("Could not create directory " + localPathElement.getPath() + ". Message: " + e.getMessage());
-            }
-        }
+        System.err.println("ChunkCounter: " + this.chunkCounter + ", totalNrOfChunks: " + fileDemandResponse.getTotalNrOfChunks());
 
         if (this.chunkCounter == fileDemandResponse.getTotalNrOfChunks()) {
             // we received the last chunk needed
 
             // now check that we got the same checksum for the file
             try {
-                String checksum = this.storageAdapter.getChecksum(localPathElement);
+                String checksum = "";
 
-                if (((FileDemandResponse) response).getChecksum().equals(checksum)) {
-                    // checksums match
+                // only files may have a checksum
+                if (fileDemandResponse.isFile()) {
+                     checksum = this.storageAdapter.getChecksum(localPathElement);
+                }
+
+                if (null == fileDemandResponse.getChecksum() || fileDemandResponse.getChecksum().equals(checksum)) {
+                    // checksums match or the other side failed to compute one
+                    logger.info("Checksums match (" + fileDemandResponse.getChecksum() + " = " + checksum + "). Stopping FileDemand " + this.exchangeId);
                     super.onResponse(response);
                     this.receivedAllChunksCountDownLatch.countDown();
                     return;
                 } else {
+                    logger.info("Checksums did not match. Restarting FileDemand at chunk 0 for exchange" + this.exchangeId);
                     // restart to fetch the whole file
                     this.chunkCounter = - 1; // -1 since the chunk counter is just increased on the end of this method
+                    // delete all file contents fetched until now
+                    if (fileDemandResponse.isFile()) {
+                        this.storageAdapter.persist(StorageType.FILE, localPathElement, new byte[0]);
+                    } else {
+                        this.storageAdapter.persist(StorageType.DIRECTORY, localPathElement, null);
+                    }
                 }
             } catch (InputOutputException e) {
                 logger.error("Failed to generate the checksum for file " + localPathElement.getPath() + " on exchange " + this.exchangeId + ". Accepting the file. Message: " + e.getMessage());
+                super.onResponse(response);
+                this.receivedAllChunksCountDownLatch.countDown();
+                return;
+            }
+        } else if (fileDemandResponse.getTotalNrOfChunks() < this.chunkCounter) {
+            // the file changed while we are transferring it (i.e. it is shorter than before)
+            this.chunkCounter = - 1;
+            // delete all file contents fetched until now
+            try {
+                if (fileDemandResponse.isFile()) {
+                    this.storageAdapter.persist(StorageType.FILE, localPathElement, new byte[0]);
+                } else {
+                    this.storageAdapter.persist(StorageType.DIRECTORY, localPathElement, null);
+                }
+            } catch (InputOutputException e) {
+                logger.error("Failed to clear the file again");
             }
         }
 
@@ -277,5 +264,49 @@ public class FileDemandExchangeHandler extends ANetworkHandler<FileDemandExchang
     @Override
     public FileDemandExchangeHandlerResult getResult() {
         return new FileDemandExchangeHandlerResult();
+    }
+
+    protected void publishIgnoreEvents(FileDemandResponse fileDemandResponse, IPathElement localPathElement) {
+        if (fileDemandResponse.getChunkCounter() > 0) {
+            this.globalEventBus.publish(new IgnoreBusEvent(
+                    new ModifyEvent(
+                            Paths.get(fileDemandResponse.getRelativeFilePath()),
+                            Paths.get(fileDemandResponse.getRelativeFilePath()).getFileName().toString(),
+                            "weIgnoreTheHash",
+                            System.currentTimeMillis()
+                    )
+            ));
+        } else if (fileDemandResponse.getChunkCounter() > - 1) {
+            // we check for local existence, if the file already exists, we just ignore the
+            // modify event, otherwise we ignore the create event
+            try {
+                if (this.storageAdapter.exists(StorageType.FILE, localPathElement) || this.storageAdapter.exists(StorageType.DIRECTORY, localPathElement)) {
+                    this.globalEventBus.publish(new IgnoreBusEvent(
+                            new ModifyEvent(
+                                    Paths.get(fileDemandResponse.getRelativeFilePath()),
+                                    Paths.get(fileDemandResponse.getRelativeFilePath()).getFileName().toString(),
+                                    "weIgnoreTheHash",
+                                    System.currentTimeMillis()
+                            )
+                    ));
+                } else {
+                    this.globalEventBus.publish(new IgnoreBusEvent(
+                            new CreateEvent(
+                                    Paths.get(fileDemandResponse.getRelativeFilePath()),
+                                    Paths.get(fileDemandResponse.getRelativeFilePath()).getFileName().toString(),
+                                    "weIgnoreTheHash",
+                                    System.currentTimeMillis()
+                            )
+                    ));
+
+                    this.globalEventBus.publish(new AddSharerToObjectStoreBusEvent(
+                            fileDemandResponse.getRelativeFilePath(),
+                            fileDemandResponse.getSharers()
+                    ));
+                }
+            } catch (InputOutputException e) {
+                logger.error("Can not determine whether the file " + localPathElement.getPath() + " exists. Message: " + e.getMessage() + ". Just checking the chunk counters...");
+            }
+        }
     }
 }
