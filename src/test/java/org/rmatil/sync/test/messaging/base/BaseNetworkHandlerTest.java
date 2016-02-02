@@ -12,7 +12,6 @@ import org.rmatil.sync.core.exception.InitializationException;
 import org.rmatil.sync.core.init.client.ClientInitializer;
 import org.rmatil.sync.core.init.client.LocalStateObjectDataReplyHandler;
 import org.rmatil.sync.core.init.eventaggregator.EventAggregatorInitializer;
-import org.rmatil.sync.core.init.objecstore.ObjectStoreInitializer;
 import org.rmatil.sync.core.messaging.fileexchange.delete.FileDeleteRequest;
 import org.rmatil.sync.core.messaging.fileexchange.delete.FileDeleteRequestHandler;
 import org.rmatil.sync.core.messaging.fileexchange.demand.FileDemandRequest;
@@ -58,12 +57,11 @@ import org.rmatil.sync.persistence.api.IStorageAdapter;
 import org.rmatil.sync.persistence.core.dht.DhtStorageAdapter;
 import org.rmatil.sync.persistence.core.local.LocalStorageAdapter;
 import org.rmatil.sync.persistence.exceptions.InputOutputException;
+import org.rmatil.sync.test.base.BaseTest;
 import org.rmatil.sync.test.config.Config;
 import org.rmatil.sync.version.api.IObjectStore;
 
-import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.KeyPair;
@@ -76,18 +74,13 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-public abstract class BaseNetworkHandlerTest {
+public abstract class BaseNetworkHandlerTest extends BaseTest {
 
-    protected static final Path   ROOT_TEST_DIR1     = Paths.get(Config.DEFAULT.getTestRootDir1());
-    protected static final Path   ROOT_TEST_DIR2     = Paths.get(Config.DEFAULT.getTestRootDir2());
-    protected static final int    PORT_CLIENT_1      = Config.DEFAULT.getPort1();
-    protected static final int    PORT_CLIENT_2      = Config.DEFAULT.getPort2();
-    protected static final String SYNC_FOLDER_NAME   = Config.DEFAULT.getSyncFolderName();
-    protected static final String INDEX_FILE_NAME    = Config.DEFAULT.getIndexFileName();
-    protected static final String OBJECT_FOLDER_NAME = Config.DEFAULT.getObjectFolderName();
-    protected static final String USERNAME           = Config.DEFAULT.getUsername();
-    protected static final String PASSWORD           = Config.DEFAULT.getPassword();
-    protected static final String SALT               = Config.DEFAULT.getSalt();
+    protected static final int    PORT_CLIENT_1 = Config.DEFAULT.getPort1();
+    protected static final int    PORT_CLIENT_2 = Config.DEFAULT.getPort2();
+    protected static final String USERNAME      = Config.DEFAULT.getUsername();
+    protected static final String PASSWORD      = Config.DEFAULT.getPassword();
+    protected static final String SALT          = Config.DEFAULT.getSalt();
 
     protected static final String USERNAME_2 = Config.DEFAULT.getUsername2();
     protected static final String PASSWORD_2 = Config.DEFAULT.getPassword2();
@@ -199,81 +192,6 @@ public abstract class BaseNetworkHandlerTest {
         deleteTestDirs();
     }
 
-
-    /**
-     * Creates the test directories
-     *
-     * @throws IOException If creating the directories failed
-     */
-    private static void createTestDirs()
-            throws IOException {
-        if (! ROOT_TEST_DIR1.toFile().exists()) {
-            Files.createDirectory(ROOT_TEST_DIR1);
-        }
-
-        if (! ROOT_TEST_DIR2.toFile().exists()) {
-            Files.createDirectory(ROOT_TEST_DIR2);
-        }
-    }
-
-    /**
-     * Creates the .sync folders
-     *
-     * @throws IOException If creating failed
-     */
-    private static void createObjectStoreDirs()
-            throws IOException {
-        Path syncFolder1 = ROOT_TEST_DIR1.resolve(SYNC_FOLDER_NAME);
-        Path syncFolder2 = ROOT_TEST_DIR2.resolve(SYNC_FOLDER_NAME);
-
-        if (! syncFolder1.toFile().exists()) {
-            Files.createDirectory(syncFolder1);
-        }
-
-        if (! syncFolder2.toFile().exists()) {
-            Files.createDirectory(syncFolder2);
-        }
-    }
-
-    /**
-     * Deletes the test directories and all contents in them
-     */
-    private static void deleteTestDirs() {
-        if (ROOT_TEST_DIR1.toFile().exists()) {
-            delete(ROOT_TEST_DIR1.toFile());
-        }
-
-        if (ROOT_TEST_DIR2.toFile().exists()) {
-            delete(ROOT_TEST_DIR2.toFile());
-        }
-    }
-
-    /**
-     * Deletes recursively the given file (if it is a directory)
-     * or just removes itself
-     *
-     * @param file The file or dir to remove
-     *
-     * @return True if the deletion was successful
-     */
-    public static boolean delete(File file) {
-        if (file.isDirectory()) {
-            File[] contents = file.listFiles();
-
-            if (null != contents) {
-                for (File child : contents) {
-                    delete(child);
-                }
-            }
-
-            file.delete();
-
-            return true;
-        } else {
-            return file.delete();
-        }
-    }
-
     /**
      * Generates the public private key pair
      *
@@ -335,26 +253,6 @@ public abstract class BaseNetworkHandlerTest {
                 KEYPAIR_2.getPrivate(),
                 new ArrayList<>()
         );
-    }
-
-    /**
-     * Creates, inits and starts an object store in the given root test dir
-     *
-     * @param rootTestDir The root directory in which to create the object store
-     *
-     * @return The created object store
-     */
-    private static IObjectStore createObjectStore(Path rootTestDir) {
-        ObjectStoreInitializer objectStoreInitializer1 = new ObjectStoreInitializer(
-                rootTestDir,
-                SYNC_FOLDER_NAME,
-                INDEX_FILE_NAME,
-                OBJECT_FOLDER_NAME
-        );
-        IObjectStore objectStore = objectStoreInitializer1.init();
-        objectStoreInitializer1.start();
-
-        return objectStore;
     }
 
     /**
