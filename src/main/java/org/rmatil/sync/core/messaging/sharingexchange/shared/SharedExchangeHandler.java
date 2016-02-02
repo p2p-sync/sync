@@ -83,6 +83,16 @@ public class SharedExchangeHandler extends ANetworkHandler<SharedExchangeHandler
                     this.relativeFilePath
             );
 
+            // if there is no owner of the file yet (due to sharing already, or
+            // if we are not the owner, but just share the shared file with any other user)
+            // set it to our self
+            if (null == this.objectStore.getSharerManager().getOwner(this.relativeFilePath)) {
+                this.objectStore.getSharerManager().addOwner(
+                        this.client.getUser().getUserName(),
+                        this.relativeFilePath
+                );
+            }
+
         } catch (Exception e) {
             logger.error("Got exception in SharedExchangeHandler. Message: " + e.getMessage(), e);
         }

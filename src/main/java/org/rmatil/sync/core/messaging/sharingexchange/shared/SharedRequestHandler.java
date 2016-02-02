@@ -92,15 +92,6 @@ public class SharedRequestHandler implements ILocalStateRequestCallback {
             // add file id from request to the attached file path
             logger.info("Adding sharer " + this.request.getSharer() + " (AccessType " + this.request.getAccessType() + ") to path " + this.request.getRelativePath());
 
-            PathObject pathObject = this.objectStore.getObjectManager().getObjectForPath(this.request.getRelativePath());
-
-            if (null == pathObject) {
-                logger.error("Could not add the sharer and the file id to path " + this.request.getRelativePath() + ". Did not find the pathObject. Aborting on this client and relying on the next background sync");
-                return;
-            }
-
-            this.objectStore.getObjectManager().writeObject(pathObject);
-
             this.objectStore.getSharerManager().addSharer(
                     this.request.getSharer(),
                     this.request.getAccessType(),
