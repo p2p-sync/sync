@@ -4,6 +4,7 @@ import org.rmatil.sync.core.messaging.base.ARequest;
 import org.rmatil.sync.network.core.model.ClientDevice;
 import org.rmatil.sync.network.core.model.ClientLocation;
 import org.rmatil.sync.network.core.model.Data;
+import org.rmatil.sync.version.api.AccessType;
 import org.rmatil.sync.version.core.model.Sharer;
 
 import java.util.ArrayList;
@@ -54,11 +55,27 @@ public class FilePushRequest extends ARequest {
      */
     protected int chunkSize;
 
+    /**
+     * The owner of the file, may be null, if the file is not shared
+     */
+    protected String owner;
+
+    /**
+     * The access type we got for the file. May be null, if
+     * the file is not shared
+     */
+    protected AccessType accessType;
+
+    /**
+     * The set of sharers of the file
+     */
     protected Set<Sharer> sharers;
 
     /**
      * @param exchangeId       The exchange id of the request
      * @param clientDevice     The client device which is sending this request
+     * @param owner            The owner of the file. May be null if the file is not shared
+     * @param accessType       The access type to this file. May be null if not shared
      * @param sharers          The set of sharers stored on this client
      * @param relativeFilePath The relative path to the file which should be created
      * @param isFile           Whether the path represents a file or a directory
@@ -70,8 +87,10 @@ public class FilePushRequest extends ARequest {
      * @param data             The actual chunk data
      * @param receiverAddress  The receiver of this request
      */
-    public FilePushRequest(UUID exchangeId, ClientDevice clientDevice, Set<Sharer> sharers, String relativeFilePath, boolean isFile, long chunkCounter, int chunkSize, long totalNrOfChunks, long totalFileSize, Data data, ClientLocation receiverAddress) {
+    public FilePushRequest(UUID exchangeId, ClientDevice clientDevice, String owner, AccessType accessType, Set<Sharer> sharers, String relativeFilePath, boolean isFile, long chunkCounter, int chunkSize, long totalNrOfChunks, long totalFileSize, Data data, ClientLocation receiverAddress) {
         super(exchangeId, clientDevice, new ArrayList<>());
+        this.owner = owner;
+        this.accessType = accessType;
         this.sharers = sharers;
         this.relativeFilePath = relativeFilePath;
         this.isFile = isFile;
@@ -82,6 +101,24 @@ public class FilePushRequest extends ARequest {
         this.data = data;
 
         super.receiverAddresses.add(receiverAddress);
+    }
+
+    /**
+     * Returns the owner of this file. May be null if not shared
+     *
+     * @return The owner's username, or null if not shared
+     */
+    public String getOwner() {
+        return owner;
+    }
+
+    /**
+     * Returns the access type to this file. May be null if not shared
+     *
+     * @return The access type or null if not shared
+     */
+    public AccessType getAccessType() {
+        return accessType;
     }
 
     /**

@@ -15,7 +15,9 @@ import org.rmatil.sync.persistence.api.IPathElement;
 import org.rmatil.sync.persistence.api.IStorageAdapter;
 import org.rmatil.sync.persistence.core.local.LocalPathElement;
 import org.rmatil.sync.persistence.exceptions.InputOutputException;
+import org.rmatil.sync.version.api.AccessType;
 import org.rmatil.sync.version.api.IObjectStore;
+import org.rmatil.sync.version.core.model.PathObject;
 import org.rmatil.sync.version.core.model.Sharer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -105,9 +107,11 @@ public class FilePushExchangeHandler extends ANetworkHandler<FilePushExchangeHan
             // check, whether there is a fileId already present,
             // e.g. made in an earlier push request (or on another client)
             if (null == super.client.getIdentifierManager().getValue(this.relativeFilePath)) {
-                // add a file id, if not
+                // add a file id
                 this.client.getIdentifierManager().addIdentifier(this.relativeFilePath, UUID.randomUUID());
             }
+
+            // the owner of a file is only added on a share request
 
             for (ClientLocation location : this.receivers) {
                 UUID uuid = UUID.randomUUID();
@@ -216,10 +220,21 @@ public class FilePushExchangeHandler extends ANetworkHandler<FilePushExchangeHan
             logger.error("Failed to read the sharers for file " + this.relativeFilePath + ". Sending an empty sharer set. Message: " + e.getMessage());
         }
 
+        AccessType accessType = AccessType.WRITE;
+        String owner = null;
+        try {
+            PathObject pathObject = this.objectStore.getObjectManager().getObjectForPath(this.relativeFilePath);
+            accessType = pathObject.getAccessType();
+            owner = pathObject.getOwner();
+        } catch (InputOutputException e) {
+            logger.error("Failed to get AccessType for file " + this.relativeFilePath + " Sending access type write. Message: " + e.getMessage());
+        }
 
         IRequest request = new FilePushRequest(
                 exchangeId,
                 this.clientDevice,
+                owner,
+                accessType,
                 sharers,
                 this.relativeFilePath,
                 fileMetaInfo.isFile(),

@@ -1,11 +1,13 @@
 package org.rmatil.sync.core.init.objecstore;
 
 import net.engio.mbassy.listener.Handler;
+import org.rmatil.sync.core.eventbus.AddOwnerAndAccessTypeToObjectStoreBusEvent;
 import org.rmatil.sync.core.eventbus.AddSharerToObjectStoreBusEvent;
 import org.rmatil.sync.core.eventbus.IgnoreObjectStoreUpdateBusEvent;
 import org.rmatil.sync.event.aggregator.api.IEventListener;
 import org.rmatil.sync.event.aggregator.core.events.*;
 import org.rmatil.sync.persistence.exceptions.InputOutputException;
+import org.rmatil.sync.version.api.AccessType;
 import org.rmatil.sync.version.api.IObjectStore;
 import org.rmatil.sync.version.core.model.PathObject;
 import org.rmatil.sync.version.core.model.Sharer;
@@ -26,10 +28,13 @@ public class ObjectStoreFileChangeListener implements IEventListener {
 
     protected final Map<String, Set<Sharer>> sharerToAdd;
 
+    protected final Map<String, AddOwnerAndAccessTypeToObjectStoreBusEvent> ownersToAdd;
+
     public ObjectStoreFileChangeListener(IObjectStore objectStore) {
         this.objectStore = objectStore;
         this.ignoredEvents = new ConcurrentLinkedQueue<>();
         this.sharerToAdd = new ConcurrentHashMap<>();
+        this.ownersToAdd = new ConcurrentHashMap<>();
     }
 
     @Handler
@@ -50,6 +55,15 @@ public class ObjectStoreFileChangeListener implements IEventListener {
             for (Sharer entry : addSharerEvent.getSharers()) {
                 this.sharerToAdd.get(addSharerEvent.getRelativeFilePath()).add(entry);
             }
+        }
+    }
+
+    @Handler
+    public void handleOwnerEvent(AddOwnerAndAccessTypeToObjectStoreBusEvent event) {
+        logger.debug("Got notified from event bus: AddOwnerAndAccessTypeToObjectStoreBusEvent for file " + event.getRelativeFilePath());
+
+        synchronized (this.ownersToAdd) {
+            this.ownersToAdd.put(event.getRelativeFilePath(), event);
         }
     }
 
@@ -119,6 +133,23 @@ public class ObjectStoreFileChangeListener implements IEventListener {
                     }
                 }
             }
+
+            synchronized (this.ownersToAdd) {
+                AddOwnerAndAccessTypeToObjectStoreBusEvent addOwnerAndAccessTypeToObjectStoreBusEvent = this.ownersToAdd.get(event.getPath().toString());
+                if (null != addOwnerAndAccessTypeToObjectStoreBusEvent) {
+
+                    try {
+                        this.setOwnerAndAccessType(
+                                addOwnerAndAccessTypeToObjectStoreBusEvent.getRelativeFilePath(),
+                                addOwnerAndAccessTypeToObjectStoreBusEvent.getOwner(),
+                                addOwnerAndAccessTypeToObjectStoreBusEvent.getAccessType()
+                        );
+                    } catch (InputOutputException e) {
+                        logger.error("Failed to write owner and access type for file " + event.getPath().toString() + ". Message: " + e.getMessage(), e);
+                    }
+
+                }
+            }
         }
     }
 
@@ -146,6 +177,21 @@ public class ObjectStoreFileChangeListener implements IEventListener {
         for (Sharer entry : sharers) {
             pathObject.getSharers().add(entry);
         }
+
+        this.objectStore.getObjectManager().writeObject(pathObject);
+    }
+
+    public void setOwnerAndAccessType(String filePath, String owner, AccessType accessType)
+            throws InputOutputException {
+        PathObject pathObject = this.objectStore.getObjectManager().getObjectForPath(filePath);
+
+        if (null == pathObject) {
+            logger.error("Could not add owner and access type to the file on path " + filePath + ". Aborting on this client and relying on the next background sync");
+            return;
+        }
+
+        pathObject.setOwner(owner);
+        pathObject.setAccessType(accessType);
 
         this.objectStore.getObjectManager().writeObject(pathObject);
     }

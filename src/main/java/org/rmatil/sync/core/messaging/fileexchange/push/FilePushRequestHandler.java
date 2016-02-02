@@ -1,10 +1,12 @@
 package org.rmatil.sync.core.messaging.fileexchange.push;
 
 import net.engio.mbassy.bus.MBassador;
+import org.rmatil.sync.core.eventbus.AddOwnerAndAccessTypeToObjectStoreBusEvent;
 import org.rmatil.sync.core.eventbus.AddSharerToObjectStoreBusEvent;
 import org.rmatil.sync.core.eventbus.IBusEvent;
 import org.rmatil.sync.core.eventbus.IgnoreBusEvent;
 import org.rmatil.sync.core.init.client.ILocalStateRequestCallback;
+import org.rmatil.sync.core.security.IAccessManager;
 import org.rmatil.sync.event.aggregator.core.events.CreateEvent;
 import org.rmatil.sync.event.aggregator.core.events.ModifyEvent;
 import org.rmatil.sync.network.api.IClient;
@@ -17,6 +19,7 @@ import org.rmatil.sync.persistence.api.IStorageAdapter;
 import org.rmatil.sync.persistence.api.StorageType;
 import org.rmatil.sync.persistence.core.local.LocalPathElement;
 import org.rmatil.sync.persistence.exceptions.InputOutputException;
+import org.rmatil.sync.version.api.AccessType;
 import org.rmatil.sync.version.api.IObjectStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -79,7 +82,7 @@ public class FilePushRequestHandler implements ILocalStateRequestCallback {
 
     @Override
     public void setAccessManager(IAccessManager accessManager) {
-	this.accessManager = accessManager;
+        this.accessManager = accessManager;
     }
 
     @Override
@@ -96,13 +99,16 @@ public class FilePushRequestHandler implements ILocalStateRequestCallback {
         try {
             logger.info("Writing chunk " + this.request.getChunkCounter() + " for file " + this.request.getRelativeFilePath() + " for exchangeId " + this.request.getExchangeId());
 
-	    if (! this.client.getUser().getUserName().equals(this.request.getClientDevice().getUserName()) && ! this.accessManager.hasAccess(this.request.getClientDevice().getUserName(), AccessType.WRITE, this.request.getRelativeFilePath())) {
-		logger.warn("Failed to write chunk " + this.request.getChunkCounter() + " for file " + this.request.getRelativeFilePath() + " due to missing access rights of user " + this.request.getClientDevice().getUserName() + " on exchange " + this.request.getExchangeId());
-		this.sendResponse(this.createResponse(-1));
-		return;
-	    }
+            if (! this.client.getUser().getUserName().equals(this.request.getClientDevice().getUserName()) && ! this.accessManager.hasAccess(this.request.getClientDevice().getUserName(), AccessType.WRITE, this.request.getRelativeFilePath())) {
+                logger.warn("Failed to write chunk " + this.request.getChunkCounter() + " for file " + this.request.getRelativeFilePath() + " due to missing access rights of user " + this.request.getClientDevice().getUserName() + " on exchange " + this.request.getExchangeId());
+                this.sendResponse(this.createResponse(-1));
+                return;
+            }
 
             IPathElement localPathElement = new LocalPathElement(this.request.getRelativeFilePath());
+
+            // TODO: check whether the file isDeleted on each write, there might be a concurrent incoming delete request
+            // -> affected FilePaths? in ObjectDataReply?
 
             // if the chunk counter is greater than 0
             // we only modify the existing file, so we generate an ignore modify event
@@ -142,6 +148,12 @@ public class FilePushRequestHandler implements ILocalStateRequestCallback {
                                 this.request.getRelativeFilePath(),
                                 this.request.getSharers()
                         ));
+
+                        this.globalEventBus.publish(new AddOwnerAndAccessTypeToObjectStoreBusEvent(
+                                this.request.getOwner(),
+                                this.request.getAccessType(),
+                                this.request.getRelativeFilePath()
+                        ));
                     }
                 } catch (InputOutputException e) {
                     logger.error("Can not determine whether the file " + localPathElement.getPath() + " exists. Message: " + e.getMessage() + ". Just checking the chunk counters...");
@@ -173,7 +185,7 @@ public class FilePushRequestHandler implements ILocalStateRequestCallback {
                 requestingChunk++;
             }
 
-	    this.sendResponse(this.createResponse(requestingChunk));
+            this.sendResponse(this.createResponse(requestingChunk));
         } catch (Exception e) {
             logger.error("Error in FilePushRequestHandler for exchangeId " + this.request.getExchangeId() + ". Message: " + e.getMessage(), e);
         }
@@ -187,13 +199,13 @@ public class FilePushRequestHandler implements ILocalStateRequestCallback {
      * @return The created FilePushResponse
      */
     protected FilePushResponse createResponse(long requestingChunk) {
-	return new FilePushResponse(
-		this.request.getExchangeId(),
-		new ClientDevice(this.client.getUser().getUserName(), this.client.getClientDeviceId(), this.client.getPeerAddress()),
-		this.request.getRelativeFilePath(),
-		new ClientLocation(this.request.getClientDevice().getClientDeviceId(), this.request.getClientDevice().getPeerAddress()),
-		requestingChunk
-	);
+        return new FilePushResponse(
+                this.request.getExchangeId(),
+                new ClientDevice(this.client.getUser().getUserName(), this.client.getClientDeviceId(), this.client.getPeerAddress()),
+                this.request.getRelativeFilePath(),
+                new ClientLocation(this.request.getClientDevice().getClientDeviceId(), this.request.getClientDevice().getPeerAddress()),
+                requestingChunk
+        );
     }
 
     /**
