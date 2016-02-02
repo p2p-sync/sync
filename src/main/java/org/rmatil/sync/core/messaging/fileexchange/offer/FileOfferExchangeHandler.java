@@ -16,8 +16,10 @@ import org.rmatil.sync.network.core.model.ClientLocation;
 import org.rmatil.sync.persistence.api.IStorageAdapter;
 import org.rmatil.sync.persistence.core.local.LocalPathElement;
 import org.rmatil.sync.persistence.exceptions.InputOutputException;
+import org.rmatil.sync.version.api.AccessType;
 import org.rmatil.sync.version.api.IObjectStore;
 import org.rmatil.sync.version.core.model.PathObject;
+import org.rmatil.sync.version.core.model.Sharer;
 import org.rmatil.sync.version.core.model.Version;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -159,18 +161,44 @@ public class FileOfferExchangeHandler extends ANetworkHandler<FileOfferExchangeH
             return;
         }
 
+        PathObject pathObject;
+
+        try {
+            pathObject = this.objectStore.getObjectManager().getObjectForPath(pathToCheck);
+        } catch (InputOutputException e) {
+            logger.error("Can not read path object from object store. Message: " + e.getMessage() + ". Aborting file offer exchange " + this.exchangeId);
+            return;
+        }
+
+        // send changes back to owner too, if we have write access
+        // and the owner is not the user from this client
+        if (! this.client.getUser().getUserName().equals(pathObject.getOwner()) && AccessType.WRITE.equals(pathObject.getAccessType())) {
+            // we got write permissions, so we send the changes also back to the original owner of the file
+            try {
+                clientLocations.addAll(this.clientManager.getClientLocations(pathObject.getOwner()));
+            } catch (InputOutputException e) {
+                logger.error("Could not fetch client locations of owner " + pathObject.getOwner() + " for file " + pathObject.getAbsolutePath() + ". Will therefore skip to notify his clients.");
+            }
+        }
+
+        for (Sharer entry : pathObject.getSharers()) {
+            try {
+                // ask sharer's clients to get the changes too
+                List<ClientLocation> sharerLocations = this.clientManager.getClientLocations(entry.getUsername());
+
+                // only add one client of the sharer. He may propagate the change then
+                // to his clients, and if a conflict occurs, there will be a new file
+                if (! sharerLocations.isEmpty()) {
+                    clientLocations.add(sharerLocations.get(0));
+                }
+            } catch (InputOutputException e) {
+                logger.error("Could not get client locations of sharer " + entry.getUsername() + ". Skipping this sharer's clients");
+            }
+        }
+
         Version versionBefore = null;
         // we check versions only for files
         if (! isDir) {
-            PathObject pathObject;
-
-            try {
-                pathObject = this.objectStore.getObjectManager().getObjectForPath(pathToCheck);
-            } catch (InputOutputException e) {
-                logger.error("Can not read versions from object store. Message: " + e.getMessage());
-                return;
-            }
-
             // get version before the one we got from the event to propagate
             for (Version entry : pathObject.getVersions()) {
                 if (entry.getHash().equals(this.eventToPropagate.getHash())) {
