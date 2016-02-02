@@ -8,6 +8,8 @@ import java.util.UUID;
 
 /**
  * A response to the corresponding {@link MasterElectionRequest}.
+ *
+ * @deprecated As of 0.1. Will be removed in future releases.
  */
 public class MasterElectionResponse extends AResponse {
 

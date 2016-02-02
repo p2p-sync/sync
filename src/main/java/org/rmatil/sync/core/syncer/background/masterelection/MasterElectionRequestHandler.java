@@ -20,6 +20,8 @@ import org.slf4j.LoggerFactory;
  * change in the future.
  *
  * @see MasterElectionExchangeHandler
+ *
+ * @deprecated As of 0.1. Will be removed in future releases.
  */
 public class MasterElectionRequestHandler implements ILocalStateRequestCallback {
 

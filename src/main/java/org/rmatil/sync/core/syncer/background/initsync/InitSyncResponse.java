@@ -10,6 +10,8 @@ import java.util.UUID;
  * The corresponding response to a {@link InitSyncRequest}
  *
  * @see InitSyncExchangeHandler
+ *
+ * @deprecated As of 0.1. Will be removed in future releases.
  */
 public class InitSyncResponse extends AResponse {
 

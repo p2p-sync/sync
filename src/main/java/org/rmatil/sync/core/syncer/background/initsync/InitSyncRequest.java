@@ -11,6 +11,8 @@ import java.util.UUID;
  * Initializes a sync of the object stores.
  *
  * @see InitSyncExchangeHandler
+ *
+ * @deprecated As of 0.1. Will be removed in future releases.
  */
 public class InitSyncRequest extends ARequest {
 

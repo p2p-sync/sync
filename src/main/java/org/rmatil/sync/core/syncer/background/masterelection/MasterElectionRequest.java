@@ -11,6 +11,8 @@ import java.util.UUID;
  * A request to start a master election
  *
  * @see MasterElectionExchangeHandler
+ *
+ * @deprecated As of 0.1. Will be removed in future releases.
  */
 public class MasterElectionRequest extends ARequest {
 

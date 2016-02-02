@@ -24,6 +24,8 @@ import java.util.UUID;
  * will become the master client.
  *
  * @see BlockingBackgroundSyncer
+ *
+ * @deprecated As of 0.1. Will be removed in future releases.
  */
 public class MasterElectionExchangeHandler extends ANetworkHandler<MasterElectionExchangeHandlerResult> {
 

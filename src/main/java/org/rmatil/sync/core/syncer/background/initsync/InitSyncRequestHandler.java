@@ -23,6 +23,8 @@ import org.slf4j.LoggerFactory;
  * using a {@link ObjectStoreSyncer}.
  *
  * @see InitSyncExchangeHandler
+ *
+ * @deprecated As of 0.1. Will be removed in future releases.
  */
 public class InitSyncRequestHandler implements IExtendedLocalStateRequestCallback {
 

@@ -9,6 +9,8 @@ import java.util.UUID;
 
 /**
  * The request containing the final merged and zipped object store
+ *
+ * @deprecated As of 0.1. Will be removed in future releases.
  */
 public class SyncResultRequest extends ARequest {
 

@@ -26,6 +26,8 @@ import java.util.UUID;
  * and forces them to update their object stores as well.
  *
  * @see BlockingBackgroundSyncer
+ *
+ * @deprecated As of 0.1. Will be removed in future releases.
  */
 public class SyncResultExchangeHandler extends ANetworkHandler<SyncResultExchangeHandlerResult> {
 

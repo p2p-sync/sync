@@ -36,6 +36,8 @@ import java.util.*;
  * made in the mean time to all clients.
  *
  * @see BlockingBackgroundSyncer
+ *
+ * @deprecated As of 0.1. Will be removed in future releases.
  */
 public class SyncCompleteExchangeHandler extends ANetworkHandler<SyncCompleteExchangeHandlerResult> {
 

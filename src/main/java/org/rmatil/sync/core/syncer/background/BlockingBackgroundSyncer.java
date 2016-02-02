@@ -54,6 +54,8 @@ import java.util.UUID;
  * the action of reconciling as described above.
  * <p>
  * {@inheritDoc}
+ *
+ * @deprecated As of 0.1. Use {@link NonBlockingBackgroundSyncer} instead.
  */
 public class BlockingBackgroundSyncer implements IBackgroundSyncer {
 

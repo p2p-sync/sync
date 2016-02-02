@@ -38,6 +38,8 @@ import java.util.Set;
  * made in the mean time to the synchronized folder.
  *
  * @see SyncCompleteExchangeHandler
+ *
+ * @deprecated As of 0.1. Will be removed in future releases.
  */
 public class SyncCompleteRequestHandler implements IExtendedLocalStateRequestCallback {
 

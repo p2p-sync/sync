@@ -5,6 +5,8 @@ import org.rmatil.sync.network.core.model.ClientDevice;
 /**
  * Contains the result of a master election as
  * handled in {@link MasterElectionExchangeHandler}
+ *
+ * @deprecated As of 0.1. Will be removed in future releases.
  */
 public class MasterElectionExchangeHandlerResult {
 

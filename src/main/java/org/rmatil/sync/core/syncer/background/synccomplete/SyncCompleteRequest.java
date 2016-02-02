@@ -10,6 +10,8 @@ import java.util.UUID;
 /**
  * A request to indicate that the sync of the object store has been
  * completed on all clients
+ *
+ * @deprecated As of 0.1. Will be removed in future releases.
  */
 public class SyncCompleteRequest extends ARequest {
 

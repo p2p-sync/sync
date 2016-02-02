@@ -5,6 +5,7 @@ import org.rmatil.sync.core.StringLengthComparator;
 import org.rmatil.sync.core.Zip;
 import org.rmatil.sync.core.eventbus.IBusEvent;
 import org.rmatil.sync.core.messaging.fileexchange.demand.FileDemandExchangeHandler;
+import org.rmatil.sync.core.syncer.background.NonBlockingBackgroundSyncer;
 import org.rmatil.sync.core.syncer.background.fetchobjectstore.FetchObjectStoreExchangeHandler;
 import org.rmatil.sync.core.syncer.background.fetchobjectstore.FetchObjectStoreExchangeHandlerResult;
 import org.rmatil.sync.core.syncer.background.synccomplete.SyncCompleteExchangeHandler;
@@ -48,6 +49,8 @@ import java.util.concurrent.TimeUnit;
  * <li>After having completed the synchronization on all
  * clients, the {@link ObjectStoreSyncer} will send a {@link SyncCompleteRequest} to all clients, which restart their event aggregator and publish changes made in the mean time</li>
  * </ol>
+ *
+ * @deprecated As of 0.1. Will be removed in future releases. Use {@link NonBlockingBackgroundSyncer} instead.
  */
 public class ObjectStoreSyncer implements Runnable {
 

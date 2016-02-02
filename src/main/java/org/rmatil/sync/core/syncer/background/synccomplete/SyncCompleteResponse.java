@@ -8,6 +8,8 @@ import java.util.UUID;
 
 /**
  * The response to the corresponding {@link SyncCompleteRequest}
+ *
+ * @deprecated As of 0.1. Will be removed in future releases.
  */
 public class SyncCompleteResponse extends AResponse {
 

@@ -34,6 +34,8 @@ import java.util.UUID;
  * the global state.
  *
  * @see SyncResultExchangeHandler
+ *
+ * @deprecated As of 0.1. Will be removed in future releases.
  */
 public class SyncResultRequestHandler implements IExtendedLocalStateRequestCallback {
 
