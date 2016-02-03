@@ -3,17 +3,18 @@ package org.rmatil.sync.core.syncer.file;
 import net.engio.mbassy.bus.MBassador;
 import net.engio.mbassy.listener.Handler;
 import org.rmatil.sync.core.ConflictHandler;
+import org.rmatil.sync.core.api.IFileSyncer;
 import org.rmatil.sync.core.eventbus.CreateBusEvent;
 import org.rmatil.sync.core.eventbus.IBusEvent;
 import org.rmatil.sync.core.eventbus.IgnoreBusEvent;
 import org.rmatil.sync.core.exception.SyncFailedException;
+import org.rmatil.sync.core.messaging.StatusCode;
 import org.rmatil.sync.core.messaging.fileexchange.delete.FileDeleteExchangeHandler;
 import org.rmatil.sync.core.messaging.fileexchange.move.FileMoveExchangeHandler;
 import org.rmatil.sync.core.messaging.fileexchange.offer.FileOfferExchangeHandler;
 import org.rmatil.sync.core.messaging.fileexchange.offer.FileOfferExchangeHandlerResult;
 import org.rmatil.sync.core.messaging.fileexchange.offer.FileOfferResponse;
 import org.rmatil.sync.core.messaging.fileexchange.push.FilePushExchangeHandler;
-import org.rmatil.sync.core.api.IFileSyncer;
 import org.rmatil.sync.event.aggregator.core.events.DeleteEvent;
 import org.rmatil.sync.event.aggregator.core.events.IEvent;
 import org.rmatil.sync.event.aggregator.core.events.ModifyEvent;
@@ -159,19 +160,19 @@ public class FileSyncer implements IFileSyncer {
         List<ClientLocation> acceptedAndInNeedClients = new ArrayList<>();
 
         for (FileOfferResponse response : result.getFileOfferResponses()) {
-            if (response.hasConflict()) {
+            if (StatusCode.CONFLICT.equals(response.getStatusCode())) {
                 hasConflictDetected = true;
                 // no need to check other responses too, we need a conflict file anyway
                 break;
             }
 
-            if (! response.hasAcceptedOffer()) {
+            if (StatusCode.DENIED.equals(response.getStatusCode())) {
                 hasOfferAccepted = false;
                 // we need to reschedule for all clients
                 break;
             }
 
-            if (! response.isRequestObsolete()) {
+            if (StatusCode.ACCEPTED.equals(response.getStatusCode())) {
                 // we need to send the request to this client
                 acceptedAndInNeedClients.add(new ClientLocation(
                         response.getClientDevice().getClientDeviceId(),
