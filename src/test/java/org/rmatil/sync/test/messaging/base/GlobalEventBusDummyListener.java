@@ -15,30 +15,30 @@ public class GlobalEventBusDummyListener {
     }
 
     @Handler
-    public void handleCreateBusEvent(CreateBusEvent createBusEvent) {
+    public synchronized void handleCreateBusEvent(CreateBusEvent createBusEvent) {
         this.receivedBusEvents.add(createBusEvent);
     }
 
     @Handler
-    public void handleIgnoreBusEvent(IgnoreBusEvent ignoreBusEvent) {
+    public synchronized void handleIgnoreBusEvent(IgnoreBusEvent ignoreBusEvent) {
         this.receivedBusEvents.add(ignoreBusEvent);
     }
 
     @Handler
-    public void handleIgnoreObjectStoreUpdateBusEvent(IgnoreObjectStoreUpdateBusEvent ignoreObjectStoreUpdateBusEvent) {
+    public synchronized void handleIgnoreObjectStoreUpdateBusEvent(IgnoreObjectStoreUpdateBusEvent ignoreObjectStoreUpdateBusEvent) {
         this.receivedBusEvents.add(ignoreObjectStoreUpdateBusEvent);
     }
 
     @Handler
-    public void handleAddSharerToObjectStoreBusEvent(AddSharerToObjectStoreBusEvent addSharerToObjectStoreBusEvent) {
+    public synchronized void handleAddSharerToObjectStoreBusEvent(AddSharerToObjectStoreBusEvent addSharerToObjectStoreBusEvent) {
         this.receivedBusEvents.add(addSharerToObjectStoreBusEvent);
     }
 
-    public void clear() {
+    public synchronized void clear() {
         this.receivedBusEvents.clear();
     }
 
-    public List<IBusEvent> getReceivedBusEvents() {
+    public synchronized List<IBusEvent> getReceivedBusEvents() {
         return this.receivedBusEvents;
     }
 }
