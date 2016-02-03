@@ -5,9 +5,7 @@ import org.rmatil.sync.core.Zip;
 import org.rmatil.sync.core.eventbus.IBusEvent;
 import org.rmatil.sync.core.init.client.ILocalStateRequestCallback;
 import org.rmatil.sync.core.messaging.StatusCode;
-import org.rmatil.sync.core.messaging.fileexchange.delete.FileDeleteRequest;
 import org.rmatil.sync.core.security.IAccessManager;
-import org.rmatil.sync.core.syncer.background.masterelection.MasterElectionRequest;
 import org.rmatil.sync.network.api.IClient;
 import org.rmatil.sync.network.api.IRequest;
 import org.rmatil.sync.network.core.model.ClientDevice;
@@ -79,7 +77,7 @@ public class FetchObjectStoreRequestHandler implements ILocalStateRequestCallbac
     @Override
     public void setRequest(IRequest iRequest) {
         if (! (iRequest instanceof FetchObjectStoreRequest)) {
-            throw new IllegalArgumentException("Got request " + iRequest.getClass().getName() + " but expected " + MasterElectionRequest.class.getName());
+            throw new IllegalArgumentException("Got request " + iRequest.getClass().getName() + " but expected " + FetchObjectStoreRequest.class.getName());
         }
 
         this.request = (FetchObjectStoreRequest) iRequest;
