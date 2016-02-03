@@ -4,6 +4,7 @@ import net.engio.mbassy.bus.MBassador;
 import org.rmatil.sync.core.eventbus.IBusEvent;
 import org.rmatil.sync.core.eventbus.IgnoreBusEvent;
 import org.rmatil.sync.core.init.client.ILocalStateRequestCallback;
+import org.rmatil.sync.core.messaging.StatusCode;
 import org.rmatil.sync.core.security.IAccessManager;
 import org.rmatil.sync.event.aggregator.core.events.MoveEvent;
 import org.rmatil.sync.network.api.IClient;
@@ -107,7 +108,7 @@ public class FileMoveRequestHandler implements ILocalStateRequestCallback {
 
             if (! this.client.getUser().getUserName().equals(this.request.getClientDevice().getUserName()) && ! this.accessManager.hasAccess(this.request.getClientDevice().getUserName(), AccessType.WRITE, this.request.getOldPath())) {
                 logger.warn("Moving path failed due to missing access rights on file " + this.request.getOldPath() + " for user " + this.request.getClientDevice().getUserName() + " on exchange " + this.request.getExchangeId());
-                this.sendResponse(false);
+                this.sendResponse(StatusCode.ACCESS_DENIED);
                 return;
             }
 
@@ -126,19 +127,34 @@ public class FileMoveRequestHandler implements ILocalStateRequestCallback {
                 logger.error("Could not move path " + this.request.getOldPath() + " to " + this.request.getNewPath() + ". Message: " + e.getMessage());
             }
 
-            this.sendResponse(true);
+            this.sendResponse(StatusCode.ACCEPTED);
         } catch (Exception e) {
             logger.error("Error in FileMoveRequestHandler thread for exchangeId " + this.request.getExchangeId() + ". Message: " + e.getMessage(), e);
         }
     }
 
-    protected void sendResponse(boolean hasAccepted) {
-        this.client.sendDirect(this.request.getClientDevice().getPeerAddress(), new FileMoveResponse(
-                this.request.getExchangeId(),
-                new ClientDevice(this.client.getUser().getUserName(), this.client.getClientDeviceId(), this.client.getPeerAddress()),
-                new ClientLocation(this.request.getClientDevice().getClientDeviceId(), this.request.getClientDevice().getPeerAddress()),
-                hasAccepted
-        ));
+    /**
+     * Send a response with the given status code back to the requesting client
+     *
+     * @param statusCode The status code to use in the response
+     */
+    protected void sendResponse(StatusCode statusCode) {
+        this.client.sendDirect(
+                this.request.getClientDevice().getPeerAddress(),
+                new FileMoveResponse(
+                        this.request.getExchangeId(),
+                        statusCode,
+                        new ClientDevice(
+                                this.client.getUser().getUserName(),
+                                this.client.getClientDeviceId(),
+                                this.client.getPeerAddress()
+                        ),
+                        new ClientLocation(
+                                this.request.getClientDevice().getClientDeviceId(),
+                                this.request.getClientDevice().getPeerAddress()
+                        )
+                )
+        );
     }
 
     /**

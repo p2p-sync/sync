@@ -4,6 +4,7 @@ import org.junit.Test;
 import org.rmatil.sync.core.messaging.fileexchange.move.FileMoveRequest;
 import org.rmatil.sync.network.core.model.ClientDevice;
 import org.rmatil.sync.network.core.model.ClientLocation;
+import org.rmatil.sync.test.base.BaseMessageTest;
 
 import java.util.UUID;
 
@@ -11,9 +12,8 @@ import static org.hamcrest.CoreMatchers.hasItem;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 
-public class FileMoveResponseTest {
+public class FileMoveResponseTest extends BaseMessageTest {
 
-    protected static final UUID           EXCHANGE_ID            = UUID.randomUUID();
     protected static final ClientDevice   CLIENT_DEVICE          = new ClientDevice("Inverness McKenzie", UUID.randomUUID(), null);
     protected static final String         OLD_RELATIVE_FILE_PATH = "path/to/some/file.txt";
     protected static final String         NEW_RELATIVE_FILE_PATH = "path/to/some/new/file.txt";
@@ -25,6 +25,7 @@ public class FileMoveResponseTest {
     public void test() {
         FileMoveRequest fileMoveRequest = new FileMoveRequest(
                 EXCHANGE_ID,
+                STATUS_CODE,
                 CLIENT_DEVICE,
                 RECEIVER_ADDRESS,
                 OLD_RELATIVE_FILE_PATH,
@@ -33,6 +34,7 @@ public class FileMoveResponseTest {
         );
 
         assertEquals("ExchangeId is not equal", EXCHANGE_ID, fileMoveRequest.getExchangeId());
+        assertEquals("StatusCode is not equal", STATUS_CODE, fileMoveRequest.getStatusCode());
         assertEquals("ClientDevice is not equal", CLIENT_DEVICE, fileMoveRequest.getClientDevice());
         assertEquals("OldRelativeFilePath is not equal", OLD_RELATIVE_FILE_PATH, fileMoveRequest.getOldPath());
         assertEquals("NewRelativeFilePath is not equal", NEW_RELATIVE_FILE_PATH, fileMoveRequest.getNewPath());
