@@ -17,7 +17,6 @@ import org.rmatil.sync.persistence.exceptions.InputOutputException;
 import org.rmatil.sync.test.messaging.base.BaseNetworkHandlerTest;
 import org.rmatil.sync.version.api.AccessType;
 import org.rmatil.sync.version.core.model.PathObject;
-import org.rmatil.sync.version.core.model.Sharer;
 
 import java.io.IOException;
 import java.io.RandomAccessFile;

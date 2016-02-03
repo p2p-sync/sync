@@ -1,5 +1,6 @@
 package org.rmatil.sync.core.messaging.sharingexchange.share;
 
+import org.rmatil.sync.core.messaging.StatusCode;
 import org.rmatil.sync.network.api.IClient;
 import org.rmatil.sync.network.api.IRequest;
 import org.rmatil.sync.network.api.IResponse;
@@ -194,6 +195,7 @@ public class ShareExchangeHandler extends ANetworkHandler<ShareExchangeHandlerRe
 
         IRequest request = new ShareRequest(
                 exchangeId,
+                StatusCode.NONE,
                 new ClientDevice(
                         super.client.getUser().getUserName(),
                         super.client.getClientDeviceId(),

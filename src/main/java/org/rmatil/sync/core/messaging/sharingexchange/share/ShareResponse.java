@@ -1,5 +1,6 @@
 package org.rmatil.sync.core.messaging.sharingexchange.share;
 
+import org.rmatil.sync.core.messaging.StatusCode;
 import org.rmatil.sync.core.messaging.base.AResponse;
 import org.rmatil.sync.network.core.model.ClientDevice;
 import org.rmatil.sync.network.core.model.ClientLocation;
@@ -20,12 +21,13 @@ public class ShareResponse extends AResponse {
 
     /**
      * @param exchangeId   The identifier of the file exchange
+     * @param statusCode   The status code of the response
      * @param clientDevice The client device which is requesting the file demand (i.e. this client)
      * @param fileId       The unique id of the file which should be returned
      * @param chunkCounter The chunk number which should returned in the corresponding response to this request
      */
-    public ShareResponse(UUID exchangeId, ClientDevice clientDevice, UUID fileId, ClientLocation receiverAddress, long chunkCounter) {
-        super(exchangeId, clientDevice, receiverAddress);
+    public ShareResponse(UUID exchangeId, StatusCode statusCode, ClientDevice clientDevice, UUID fileId, ClientLocation receiverAddress, long chunkCounter) {
+        super(exchangeId, statusCode, clientDevice, receiverAddress);
         this.fileId = fileId;
         this.chunkCounter = chunkCounter;
     }

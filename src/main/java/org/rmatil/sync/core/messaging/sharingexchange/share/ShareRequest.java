@@ -1,5 +1,6 @@
 package org.rmatil.sync.core.messaging.sharingexchange.share;
 
+import org.rmatil.sync.core.messaging.StatusCode;
 import org.rmatil.sync.core.messaging.base.ARequest;
 import org.rmatil.sync.network.core.model.ClientDevice;
 import org.rmatil.sync.network.core.model.ClientLocation;
@@ -66,6 +67,7 @@ public class ShareRequest extends ARequest {
 
     /**
      * @param exchangeId                 The exchange id
+     * @param statusCode                 The status code of the request
      * @param clientDevice               The client device sending this request
      * @param receiverAddress            The receiver of this request, i.e. the sharer
      * @param fileId                     The previously negotiated file id
@@ -78,8 +80,8 @@ public class ShareRequest extends ARequest {
      * @param data                       The actual chunk data
      * @param chunkSize                  The chunk size of the file exchange. MUST stay the same over the whole file exchange
      */
-    public ShareRequest(UUID exchangeId, ClientDevice clientDevice, ClientLocation receiverAddress, UUID fileId, AccessType accessType, String relativePathToSharedFolder, boolean isFile, long chunkCounter, long totalNrOfChunks, long totalFileSize, Data data, int chunkSize) {
-        super(exchangeId, clientDevice, new ArrayList<>());
+    public ShareRequest(UUID exchangeId, StatusCode statusCode, ClientDevice clientDevice, ClientLocation receiverAddress, UUID fileId, AccessType accessType, String relativePathToSharedFolder, boolean isFile, long chunkCounter, long totalNrOfChunks, long totalFileSize, Data data, int chunkSize) {
+        super(exchangeId, statusCode, clientDevice, new ArrayList<>());
         this.fileId = fileId;
         this.accessType = accessType;
         this.relativePathToSharedFolder = relativePathToSharedFolder;

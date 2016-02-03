@@ -9,6 +9,7 @@ import org.rmatil.sync.core.eventbus.IBusEvent;
 import org.rmatil.sync.core.eventbus.IgnoreBusEvent;
 import org.rmatil.sync.core.eventbus.IgnoreObjectStoreUpdateBusEvent;
 import org.rmatil.sync.core.init.client.ILocalStateRequestCallback;
+import org.rmatil.sync.core.messaging.StatusCode;
 import org.rmatil.sync.core.security.IAccessManager;
 import org.rmatil.sync.event.aggregator.core.events.CreateEvent;
 import org.rmatil.sync.event.aggregator.core.events.IEvent;
@@ -242,6 +243,7 @@ public class ShareRequestHandler implements ILocalStateRequestCallback {
 
             IResponse response = new ShareResponse(
                     this.request.getExchangeId(),
+                    StatusCode.ACCEPTED,
                     new ClientDevice(
                             this.client.getUser().getUserName(),
                             this.client.getClientDeviceId(),

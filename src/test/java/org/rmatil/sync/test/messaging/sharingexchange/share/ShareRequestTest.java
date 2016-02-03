@@ -5,6 +5,7 @@ import org.rmatil.sync.core.messaging.sharingexchange.share.ShareRequest;
 import org.rmatil.sync.network.core.model.ClientDevice;
 import org.rmatil.sync.network.core.model.ClientLocation;
 import org.rmatil.sync.network.core.model.Data;
+import org.rmatil.sync.test.base.BaseMessageTest;
 import org.rmatil.sync.version.api.AccessType;
 
 import java.util.UUID;
@@ -13,9 +14,8 @@ import static org.hamcrest.CoreMatchers.hasItem;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 
-public class ShareRequestTest {
+public class ShareRequestTest extends BaseMessageTest {
 
-    protected final static UUID           EXCHANGE_ID                    = UUID.randomUUID();
     protected final static UUID           FILE_ID                        = UUID.randomUUID();
     protected final static AccessType     ACCESS_TYPE                    = AccessType.WRITE;
     protected static final ClientDevice   CLIENT_DEVICE                  = new ClientDevice("Inverness McKenzie", UUID.randomUUID(), null);
@@ -32,6 +32,7 @@ public class ShareRequestTest {
     public void test() {
         ShareRequest shareRequest = new ShareRequest(
                 EXCHANGE_ID,
+                STATUS_CODE,
                 CLIENT_DEVICE,
                 RECEIVER_ADDRESS,
                 FILE_ID,
@@ -46,6 +47,7 @@ public class ShareRequestTest {
         );
 
         assertEquals("ExchangeId is not equal", EXCHANGE_ID, shareRequest.getExchangeId());
+        assertEquals("StatusCode is not equal", STATUS_CODE, shareRequest.getStatusCode());
         assertEquals("ClientDevice is not equal", CLIENT_DEVICE, shareRequest.getClientDevice());
         assertEquals("RelativeFilePath is not equal", RELATIVE_PATH_TO_SHARED_FOLDER, shareRequest.getRelativePathToSharedFolder());
         assertEquals("Is File is not equal", IS_FILE, shareRequest.isFile());
