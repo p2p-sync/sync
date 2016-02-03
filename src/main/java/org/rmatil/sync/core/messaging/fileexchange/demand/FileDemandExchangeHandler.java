@@ -149,7 +149,7 @@ public class FileDemandExchangeHandler extends ANetworkHandler<FileDemandExchang
 
         IPathElement localPathElement = new LocalPathElement(fileDemandResponse.getRelativeFilePath());
 
-        if (- 1 == fileDemandResponse.getChunkCounter() && -1 == fileDemandResponse.getTotalNrOfChunks()) {
+        if (StatusCode.DENIED.equals(fileDemandResponse.getStatusCode()) || StatusCode.FILE_MISSING.equals(fileDemandResponse.getStatusCode())) {
             // the other client does not have the file anymore or we do not have the correct access rights to fetch it...
             logger.error("The answering client (" + fileDemandResponse.getClientDevice().getPeerAddress().inetAddress().getHostName() + ":" + fileDemandResponse.getClientDevice().getPeerAddress().tcpPort() + ") does not have the requested file (anymore) or denied our request due to missing access rights. Aborting file demand " + this.exchangeId);
             super.onResponse(fileDemandResponse);
@@ -160,11 +160,9 @@ public class FileDemandExchangeHandler extends ANetworkHandler<FileDemandExchang
         // TODO: check whether the file isDeleted on each write, there might be a concurrent incoming delete request
         // -> affected FilePaths? in ObjectDataReply?
 
-        // if the chunk counter is greater than 0
-        // we only modify the existing file, so we generate an ignore modify event
         this.publishIgnoreEvents(fileDemandResponse, localPathElement);
 
-        if (fileDemandResponse.getChunkCounter() > - 1) {
+        if (StatusCode.ACCEPTED.equals(fileDemandResponse.getStatusCode())) {
             if (fileDemandResponse.isFile()) {
                 try {
                     this.storageAdapter.persist(StorageType.FILE, localPathElement, fileDemandResponse.getChunkCounter() * fileDemandResponse.getChunkSize(), fileDemandResponse.getData().getContent());
@@ -182,9 +180,8 @@ public class FileDemandExchangeHandler extends ANetworkHandler<FileDemandExchang
             }
         }
 
-        System.err.println("ChunkCounter: " + this.chunkCounter + ", totalNrOfChunks: " + fileDemandResponse.getTotalNrOfChunks());
-
-        if (this.chunkCounter == fileDemandResponse.getTotalNrOfChunks()) {
+        if (StatusCode.ACCEPTED.equals(fileDemandResponse.getStatusCode()) &&
+                this.chunkCounter == fileDemandResponse.getTotalNrOfChunks()) {
             // we received the last chunk needed
 
             // now check that we got the same checksum for the file
@@ -193,7 +190,7 @@ public class FileDemandExchangeHandler extends ANetworkHandler<FileDemandExchang
 
                 // only files may have a checksum
                 if (fileDemandResponse.isFile()) {
-                     checksum = this.storageAdapter.getChecksum(localPathElement);
+                    checksum = this.storageAdapter.getChecksum(localPathElement);
                 }
 
                 if (null == fileDemandResponse.getChecksum() || fileDemandResponse.getChecksum().equals(checksum)) {
@@ -219,7 +216,7 @@ public class FileDemandExchangeHandler extends ANetworkHandler<FileDemandExchang
                 this.receivedAllChunksCountDownLatch.countDown();
                 return;
             }
-        } else if (fileDemandResponse.getTotalNrOfChunks() < this.chunkCounter) {
+        } else if (StatusCode.FILE_CHANGED.equals(fileDemandResponse.getStatusCode())) {
             // the file changed while we are transferring it (i.e. it is shorter than before)
             this.chunkCounter = - 1;
             // delete all file contents fetched until now
@@ -269,6 +266,8 @@ public class FileDemandExchangeHandler extends ANetworkHandler<FileDemandExchang
     }
 
     protected void publishIgnoreEvents(FileDemandResponse fileDemandResponse, IPathElement localPathElement) {
+        // if the chunk counter is greater than 0
+        // we only modify the existing file, so we generate an ignore modify event
         if (fileDemandResponse.getChunkCounter() > 0) {
             this.globalEventBus.publish(new IgnoreBusEvent(
                     new ModifyEvent(
