@@ -6,6 +6,7 @@ import org.rmatil.sync.core.eventbus.CreateBusEvent;
 import org.rmatil.sync.core.eventbus.IBusEvent;
 import org.rmatil.sync.core.eventbus.IgnoreBusEvent;
 import org.rmatil.sync.core.init.client.ILocalStateRequestCallback;
+import org.rmatil.sync.core.messaging.StatusCode;
 import org.rmatil.sync.core.security.IAccessManager;
 import org.rmatil.sync.event.aggregator.core.events.CreateEvent;
 import org.rmatil.sync.event.aggregator.core.events.DeleteEvent;
@@ -119,38 +120,25 @@ public class FileOfferRequestHandler implements ILocalStateRequestCallback {
         try {
             if (! this.client.getUser().getUserName().equals(this.request.getClientDevice().getUserName()) && ! this.accessManager.hasAccess(this.request.getClientDevice().getUserName(), AccessType.WRITE, this.request.getEvent().getPath())) {
                 logger.warn("Failed to positively return the offer from user " + this.request.getClientDevice().getUserName() + " for file " + this.request.getEvent().getPath() + " due to missing access rights on exchange " + this.request.getExchangeId());
-                this.sendResponse(this.createResponse(
-                        false,
-                        false,
-                        true
-                ));
+                this.sendResponse(this.createResponse(StatusCode.ACCESS_DENIED));
                 return;
             }
 
             LocalPathElement pathElement = new LocalPathElement(this.request.getEvent().getPath());
 
-            boolean hasAccepted = false;
-            boolean hasConflict = false;
-            boolean isRequestObsolete = true;
+            StatusCode statusCode = StatusCode.ACCEPTED;
 
             switch (this.request.getEvent().getEventName()) {
                 case DeleteEvent.EVENT_NAME:
                     // create positive response if file or directory exists
                     try {
-                        if (this.request.getEvent().isFile() && this.storageAdapter.exists(StorageType.FILE, pathElement)) {
-                            hasAccepted = true;
-                            hasConflict = false;
-                            isRequestObsolete = false;
-                        } else if (this.storageAdapter.exists(StorageType.DIRECTORY, pathElement)) {
-                            hasAccepted = true;
-                            hasConflict = false;
-                            isRequestObsolete = false;
+                        if ((this.request.getEvent().isFile() && this.storageAdapter.exists(StorageType.FILE, pathElement)) ||
+                                this.storageAdapter.exists(StorageType.DIRECTORY, pathElement)) {
+                            statusCode = StatusCode.ACCEPTED;
                         }
                     } catch (InputOutputException e) {
                         logger.error("Could not check whether the path " + this.request.getEvent().getPath() + " exists or not. Message: " + e.getMessage() + ". Sending back an unaccepted offer");
-                        hasAccepted = false;
-                        hasConflict = false;
-                        isRequestObsolete = false;
+                        statusCode = StatusCode.DENIED;
                     }
                     break;
                 case MoveEvent.EVENT_NAME:
@@ -164,36 +152,25 @@ public class FileOfferRequestHandler implements ILocalStateRequestCallback {
                             // compare versions
                             CONFLICT_TYPE hasVersionConflict = this.hasVersionConflict(pathElement);
                             if (CONFLICT_TYPE.CONFLICT == hasVersionConflict) {
-                                hasAccepted = true;
-                                hasConflict = true;
-                                isRequestObsolete = false;
-
+                                statusCode = StatusCode.CONFLICT;
                                 this.createConflictFile(pathElement);
                             } else if (CONFLICT_TYPE.NO_CONFLICT_REQUEST_REQUIRED == hasVersionConflict) {
-                                hasAccepted = true;
-                                hasConflict = false;
-                                isRequestObsolete = false;
+                                statusCode = StatusCode.ACCEPTED;
                             } else {
-                                hasAccepted = true;
-                                hasConflict = false;
-                                isRequestObsolete = true;
+                                statusCode = StatusCode.REQUEST_OBSOLETE;
                             }
                         } else {
                             // we accept any offer if it is a directory, whether it exists or not
-                            hasAccepted = true;
-                            hasConflict = false;
-                            isRequestObsolete = false;
+                            statusCode = StatusCode.ACCEPTED;
                         }
                     } catch (InputOutputException e) {
                         logger.error("Could not check whether the file " + this.request.getEvent().getPath() + " exists or not. Message: " + e.getMessage() + ". Sending back a conflict file");
-                        hasAccepted = false;
-                        hasConflict = false;
-                        isRequestObsolete = false;
+                        statusCode = StatusCode.DENIED;
                     }
                     break;
             }
 
-            this.sendResponse(this.createResponse(hasAccepted, hasConflict, isRequestObsolete));
+            this.sendResponse(this.createResponse(statusCode));
         } catch (Exception e) {
             logger.error("Failed to handle file offer request " + this.request.getExchangeId() + ". Message: " + e.getMessage(), e);
         }
@@ -213,26 +190,20 @@ public class FileOfferRequestHandler implements ILocalStateRequestCallback {
     }
 
     /**
-     * Create a new FileOfferResponse
-     *
-     * @param hasAccepted       Whether this client has accepted the file offer request
-     * @param hasConflict       Whether this client has detected a conflict
-     * @param isRequestObsolete Whether a following up request is necessary for the offered action
+     * Creates a new FileOfferResponse with the given status code
      *
      * @return The FileOfferResponse representing the result of this client
      */
-    protected FileOfferResponse createResponse(boolean hasAccepted, boolean hasConflict, boolean isRequestObsolete) {
+    protected FileOfferResponse createResponse(StatusCode statusCode) {
         ClientDevice sendingClient = new ClientDevice(this.client.getUser().getUserName(), this.client.getClientDeviceId(), this.client.getPeerAddress());
         // the sender becomes the receiver
         ClientLocation receiver = new ClientLocation(this.request.getClientDevice().getClientDeviceId(), this.request.getClientDevice().getPeerAddress());
 
         return new FileOfferResponse(
                 this.request.getExchangeId(),
+                statusCode,
                 sendingClient,
-                receiver,
-                hasAccepted,
-                hasConflict,
-                isRequestObsolete
+                receiver
         );
     }
 

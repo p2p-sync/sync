@@ -4,6 +4,7 @@ import net.engio.mbassy.bus.MBassador;
 import org.rmatil.sync.core.eventbus.IBusEvent;
 import org.rmatil.sync.core.eventbus.IgnoreBusEvent;
 import org.rmatil.sync.core.init.client.ILocalStateResponseCallback;
+import org.rmatil.sync.core.messaging.StatusCode;
 import org.rmatil.sync.event.aggregator.core.events.IEvent;
 import org.rmatil.sync.event.aggregator.core.events.MoveEvent;
 import org.rmatil.sync.network.api.IClient;
@@ -212,6 +213,7 @@ public class FileOfferExchangeHandler extends ANetworkHandler<FileOfferExchangeH
 
         IRequest request = new FileOfferRequest(
                 this.exchangeId,
+                StatusCode.NONE,
                 this.clientDevice,
                 SerializableEvent.fromEvent(this.eventToPropagate, (null != versionBefore) ? versionBefore.getHash() : null, ! isDir),
                 clientLocations

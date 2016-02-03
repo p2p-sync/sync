@@ -1,6 +1,7 @@
 package org.rmatil.sync.test.messaging.fileexchange.offer;
 
 import org.junit.Test;
+import org.rmatil.sync.core.messaging.StatusCode;
 import org.rmatil.sync.core.messaging.fileexchange.offer.FileOfferExchangeHandlerResult;
 import org.rmatil.sync.core.messaging.fileexchange.offer.FileOfferResponse;
 import org.rmatil.sync.network.core.model.ClientLocation;
@@ -16,7 +17,7 @@ public class FileOfferExchangeHandlerResultTest {
     @Test
     public void test() {
         ClientLocation clientLocation = new ClientLocation(UUID.randomUUID(), null);
-        FileOfferResponse response = new FileOfferResponse(UUID.randomUUID(), null, clientLocation, true, true, true);
+        FileOfferResponse response = new FileOfferResponse(UUID.randomUUID(), StatusCode.ACCEPTED, null, clientLocation);
         List<FileOfferResponse> fileOfferResponses = new ArrayList<>();
         fileOfferResponses.add(response);
 

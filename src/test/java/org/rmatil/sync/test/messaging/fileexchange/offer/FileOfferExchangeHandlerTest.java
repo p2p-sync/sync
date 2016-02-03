@@ -2,6 +2,7 @@ package org.rmatil.sync.test.messaging.fileexchange.offer;
 
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.rmatil.sync.core.messaging.StatusCode;
 import org.rmatil.sync.core.messaging.fileexchange.offer.FileOfferExchangeHandler;
 import org.rmatil.sync.core.messaging.fileexchange.offer.FileOfferExchangeHandlerResult;
 import org.rmatil.sync.event.aggregator.core.events.DeleteEvent;
@@ -18,7 +19,8 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.UUID;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 public class FileOfferExchangeHandlerTest extends BaseNetworkHandlerTest {
 
@@ -32,11 +34,11 @@ public class FileOfferExchangeHandlerTest extends BaseNetworkHandlerTest {
     protected static Path TEST_FILE_5 = Paths.get("fileToDelete.txt");
     protected static Path TARGET_DIR  = Paths.get("targetDir");
 
-    protected static MoveEvent                moveDirEvent;
-    protected static MoveEvent                moveFileEvent;
-    protected static MoveEvent                moveConflictFileEvent;
-    protected static DeleteEvent              deleteDirEvent;
-    protected static DeleteEvent              deleteFileEvent;
+    protected static MoveEvent   moveDirEvent;
+    protected static MoveEvent   moveFileEvent;
+    protected static MoveEvent   moveConflictFileEvent;
+    protected static DeleteEvent deleteDirEvent;
+    protected static DeleteEvent deleteFileEvent;
 
     @BeforeClass
     public static void setUpChild()
@@ -162,9 +164,7 @@ public class FileOfferExchangeHandlerTest extends BaseNetworkHandlerTest {
         FileOfferExchangeHandlerResult result = dirOfferExchangeHandler.getResult();
 
         assertEquals("Only one client should have responded", 1, result.getFileOfferResponses().size());
-        assertTrue("Client2 should have accepted offer", result.getFileOfferResponses().get(0).hasAcceptedOffer());
-        assertFalse("Client2 should not have detected a conflict", result.getFileOfferResponses().get(0).hasConflict());
-        assertFalse("Client2 should be in need of the following up request", result.getFileOfferResponses().get(0).isRequestObsolete());
+        assertEquals("StatusCode should be equal", StatusCode.ACCEPTED, result.getFileOfferResponses().get(0).getStatusCode());
     }
 
     @Test
@@ -205,9 +205,7 @@ public class FileOfferExchangeHandlerTest extends BaseNetworkHandlerTest {
         FileOfferExchangeHandlerResult result = fileOfferExchangeHandler.getResult();
 
         assertEquals("Only one client should have responded", 1, result.getFileOfferResponses().size());
-        assertTrue("Client2 should have accepted offer", result.getFileOfferResponses().get(0).hasAcceptedOffer());
-        assertFalse("Client2 should not have detected a conflict", result.getFileOfferResponses().get(0).hasConflict());
-        assertFalse("Client2 should be in need of the following up request", result.getFileOfferResponses().get(0).isRequestObsolete());
+        assertEquals("StatusCode should be equal", StatusCode.ACCEPTED, result.getFileOfferResponses().get(0).getStatusCode());
     }
 
     @Test
@@ -253,9 +251,7 @@ public class FileOfferExchangeHandlerTest extends BaseNetworkHandlerTest {
         FileOfferExchangeHandlerResult result = conflictFileOfferExchangeHandler.getResult();
 
         assertEquals("Only one client should have responded", 1, result.getFileOfferResponses().size());
-        assertTrue("Client2 should have accepted offer", result.getFileOfferResponses().get(0).hasAcceptedOffer());
-        assertTrue("Client2 should have detected a conflict", result.getFileOfferResponses().get(0).hasConflict());
-        assertFalse("Client2 should be in need of the following up request", result.getFileOfferResponses().get(0).isRequestObsolete());
+        assertEquals("StatusCode should be equal", StatusCode.CONFLICT, result.getFileOfferResponses().get(0).getStatusCode());
     }
 
     @Test
@@ -297,9 +293,7 @@ public class FileOfferExchangeHandlerTest extends BaseNetworkHandlerTest {
         FileOfferExchangeHandlerResult result = deleteDirOfferExchangeHandler.getResult();
 
         assertEquals("Only one client should have responded", 1, result.getFileOfferResponses().size());
-        assertTrue("Client2 should have accepted offer", result.getFileOfferResponses().get(0).hasAcceptedOffer());
-        assertFalse("Client2 should not have detected a conflict", result.getFileOfferResponses().get(0).hasConflict());
-        assertFalse("Client2 should be in need of the following up request", result.getFileOfferResponses().get(0).isRequestObsolete());
+        assertEquals("StatusCode should be equal", StatusCode.ACCEPTED, result.getFileOfferResponses().get(0).getStatusCode());
     }
 
     @Test
@@ -341,8 +335,6 @@ public class FileOfferExchangeHandlerTest extends BaseNetworkHandlerTest {
         FileOfferExchangeHandlerResult result = deleteFileOfferExchangeHandler.getResult();
 
         assertEquals("Only one client should have responded", 1, result.getFileOfferResponses().size());
-        assertTrue("Client2 should have accepted offer", result.getFileOfferResponses().get(0).hasAcceptedOffer());
-        assertFalse("Client2 should not have detected a conflict", result.getFileOfferResponses().get(0).hasConflict());
-        assertFalse("Client2 should be in need of the following up request", result.getFileOfferResponses().get(0).isRequestObsolete());
+        assertEquals("StatusCode should be equal", StatusCode.ACCEPTED, result.getFileOfferResponses().get(0).getStatusCode());
     }
 }
