@@ -2,13 +2,14 @@ package org.rmatil.sync.core.messaging.base;
 
 import org.rmatil.sync.core.messaging.StatusCode;
 
+import java.io.Serializable;
 import java.util.UUID;
 
 /**
  * The common base class for a {@link ARequest} and
  * a {@link AResponse}
  */
-public abstract class AMessage {
+public abstract class AMessage implements Serializable {
 
     protected UUID exchangeId;
 
