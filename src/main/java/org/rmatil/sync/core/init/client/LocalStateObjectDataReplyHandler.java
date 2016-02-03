@@ -3,11 +3,10 @@ package org.rmatil.sync.core.init.client;
 import net.engio.mbassy.bus.MBassador;
 import net.tomp2p.peers.PeerAddress;
 import org.rmatil.sync.core.eventbus.IBusEvent;
+import org.rmatil.sync.core.messaging.StatusCode;
 import org.rmatil.sync.core.messaging.fileexchange.offer.FileOfferRequest;
 import org.rmatil.sync.core.messaging.fileexchange.offer.FileOfferResponse;
 import org.rmatil.sync.core.security.IAccessManager;
-import org.rmatil.sync.core.syncer.background.masterelection.MasterElectionRequest;
-import org.rmatil.sync.core.syncer.background.masterelection.MasterElectionResponse;
 import org.rmatil.sync.event.aggregator.api.IEventAggregator;
 import org.rmatil.sync.network.api.*;
 import org.rmatil.sync.network.core.messaging.ObjectDataReplyHandler;
@@ -27,9 +26,9 @@ public class LocalStateObjectDataReplyHandler extends ObjectDataReplyHandler {
     protected MBassador<IBusEvent> globalEventBus;
     protected IEventAggregator     eventAggregator;
     protected IClientManager       clientManager;
-    protected IAccessManager accessManager;
+    protected IAccessManager       accessManager;
 
-    protected Map<String, Set<UUID>> pathsInProgress           = new HashMap<>();
+    protected Map<String, Set<UUID>> pathsInProgress = new HashMap<>();
 
     public LocalStateObjectDataReplyHandler(IStorageAdapter storageAdapter, IObjectStore objectStore, IClient client, MBassador<IBusEvent> globalEventBus, IEventAggregator eventAggregator, IClientManager clientManager, IAccessManager accessManager, Map<UUID, IResponseCallback> responseCallbackHandlers, Map<Class<? extends IRequest>, Class<? extends IRequestCallback>> requestCallbackHandlers) {
         super(client, responseCallbackHandlers, requestCallbackHandlers);
@@ -119,25 +118,6 @@ public class LocalStateObjectDataReplyHandler extends ObjectDataReplyHandler {
         // forward the request to the correct data reply instance
         if (request instanceof IRequest) {
 
-            if (request instanceof MasterElectionRequest) {
-                if (super.isMasterElected) {
-                    logger.info("A master is already selected and a sync in progress. Denying a master election request");
-                    // we deny the incoming request
-                    this.client.sendDirect(
-                            ((IRequest) request).getClientDevice().getPeerAddress(),
-                            new MasterElectionResponse(
-                                    ((IRequest) request).getExchangeId(),
-                                    new ClientDevice(this.client.getUser().getUserName(), this.client.getClientDeviceId(), this.client.getPeerAddress()),
-                                    new ClientLocation(
-                                            ((IRequest) request).getClientDevice().getClientDeviceId(),
-                                            ((IRequest) request).getClientDevice().getPeerAddress()
-                                    ),
-                                    false
-                            )
-                    );
-                }
-            }
-
             // check if any other exchange is in progress
             if (request instanceof FileOfferRequest &&
                     ! this.exchangeInProgress((FileOfferRequest) request) &&
@@ -149,14 +129,12 @@ public class LocalStateObjectDataReplyHandler extends ObjectDataReplyHandler {
                         ((IRequest) request).getClientDevice().getPeerAddress(),
                         new FileOfferResponse(
                                 ((IRequest) request).getExchangeId(),
+                                StatusCode.DENIED,
                                 new ClientDevice(this.client.getUser().getUserName(), this.client.getClientDeviceId(), this.client.getPeerAddress()),
                                 new ClientLocation(
                                         ((IRequest) request).getClientDevice().getClientDeviceId(),
                                         ((IRequest) request).getClientDevice().getPeerAddress()
-                                ),
-                                false,
-                                false,
-                                false
+                                )
                         )
                 );
 

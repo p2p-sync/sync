@@ -34,14 +34,6 @@ import org.rmatil.sync.core.model.RemoteClientLocation;
 import org.rmatil.sync.core.security.AccessManager;
 import org.rmatil.sync.core.syncer.background.fetchobjectstore.FetchObjectStoreRequest;
 import org.rmatil.sync.core.syncer.background.fetchobjectstore.FetchObjectStoreRequestHandler;
-import org.rmatil.sync.core.syncer.background.initsync.InitSyncRequest;
-import org.rmatil.sync.core.syncer.background.initsync.InitSyncRequestHandler;
-import org.rmatil.sync.core.syncer.background.masterelection.MasterElectionRequest;
-import org.rmatil.sync.core.syncer.background.masterelection.MasterElectionRequestHandler;
-import org.rmatil.sync.core.syncer.background.synccomplete.SyncCompleteRequest;
-import org.rmatil.sync.core.syncer.background.synccomplete.SyncCompleteRequestHandler;
-import org.rmatil.sync.core.syncer.background.syncresult.SyncResultRequest;
-import org.rmatil.sync.core.syncer.background.syncresult.SyncResultRequestHandler;
 import org.rmatil.sync.core.syncer.file.FileSyncer;
 import org.rmatil.sync.core.syncer.file.SyncFileChangeListener;
 import org.rmatil.sync.event.aggregator.api.IEventAggregator;
@@ -283,12 +275,8 @@ public abstract class BaseNetworkHandlerTest extends BaseTest {
         objectDataReplyHandler.addRequestCallbackHandler(FilePushRequest.class, FilePushRequestHandler.class);
         objectDataReplyHandler.addRequestCallbackHandler(FileDeleteRequest.class, FileDeleteRequestHandler.class);
         objectDataReplyHandler.addRequestCallbackHandler(FileMoveRequest.class, FileMoveRequestHandler.class);
-        objectDataReplyHandler.addRequestCallbackHandler(MasterElectionRequest.class, MasterElectionRequestHandler.class);
-        objectDataReplyHandler.addRequestCallbackHandler(InitSyncRequest.class, InitSyncRequestHandler.class);
         objectDataReplyHandler.addRequestCallbackHandler(FetchObjectStoreRequest.class, FetchObjectStoreRequestHandler.class);
-        objectDataReplyHandler.addRequestCallbackHandler(SyncResultRequest.class, SyncResultRequestHandler.class);
         objectDataReplyHandler.addRequestCallbackHandler(FileDemandRequest.class, FileDemandRequestHandler.class);
-        objectDataReplyHandler.addRequestCallbackHandler(SyncCompleteRequest.class, SyncCompleteRequestHandler.class);
 
         // file sharing
         objectDataReplyHandler.addRequestCallbackHandler(ShareRequest.class, ShareRequestHandler.class);
