@@ -1,5 +1,6 @@
 package org.rmatil.sync.core.messaging.sharingexchange.unshare;
 
+import org.rmatil.sync.core.messaging.StatusCode;
 import org.rmatil.sync.network.api.IClient;
 import org.rmatil.sync.network.api.IResponse;
 import org.rmatil.sync.network.core.ANetworkHandler;
@@ -40,6 +41,7 @@ public class UnshareExchangeHandler extends ANetworkHandler<UnshareExchangeHandl
 
             UnshareRequest unshareRequest = new UnshareRequest(
                     this.exchangeId,
+                    StatusCode.NONE,
                     new ClientDevice(
                             super.client.getUser().getUserName(),
                             super.client.getClientDeviceId(),

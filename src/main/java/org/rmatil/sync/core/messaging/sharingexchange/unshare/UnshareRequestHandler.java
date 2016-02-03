@@ -3,6 +3,7 @@ package org.rmatil.sync.core.messaging.sharingexchange.unshare;
 import net.engio.mbassy.bus.MBassador;
 import org.rmatil.sync.core.eventbus.IBusEvent;
 import org.rmatil.sync.core.init.client.ILocalStateRequestCallback;
+import org.rmatil.sync.core.messaging.StatusCode;
 import org.rmatil.sync.core.security.IAccessManager;
 import org.rmatil.sync.network.api.IClient;
 import org.rmatil.sync.network.api.IRequest;
@@ -108,24 +109,25 @@ public class UnshareRequestHandler implements ILocalStateRequestCallback {
             // remove the file
             this.storageAdapter.delete(new LocalPathElement(sharedObject.getAbsolutePath()));
 
-            this.sendResponse(true);
+            this.sendResponse(StatusCode.ACCEPTED);
         } catch (Exception e) {
             logger.error("Got exception in UnshareRequestHandler. Message: " + e.getMessage(), e);
         }
     }
 
     /**
-     * Sends the given response back to the client
+     * Sends a response with the given status code back to the requesting client
      *
-     * @param hasAccepted Whether the client has accepted the shared request
+     * @param statusCode The status code of the response
      */
-    public void sendResponse(boolean hasAccepted) {
+    protected void sendResponse(StatusCode statusCode) {
         if (null == this.client) {
             throw new IllegalStateException("A client instance is required to send a response back");
         }
 
         IResponse response = new UnshareResponse(
                 this.request.getExchangeId(),
+                statusCode,
                 new ClientDevice(
                         this.client.getUser().getUserName(),
                         this.client.getClientDeviceId(),
@@ -134,8 +136,7 @@ public class UnshareRequestHandler implements ILocalStateRequestCallback {
                 new ClientLocation(
                         this.request.getClientDevice().getClientDeviceId(),
                         this.request.getClientDevice().getPeerAddress()
-                ),
-                hasAccepted
+                )
         );
 
         this.client.sendDirect(response.getReceiverAddress().getPeerAddress(), response);
