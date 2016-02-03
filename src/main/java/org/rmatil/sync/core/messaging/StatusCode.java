@@ -14,6 +14,8 @@ public enum StatusCode {
 
     DENIED,
 
+    FILE_CHANGED,
+
     FILE_CORRUPT,
 
     FILE_MISSING

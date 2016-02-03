@@ -3,6 +3,7 @@ package org.rmatil.sync.core.messaging.fileexchange.demand;
 import net.engio.mbassy.bus.MBassador;
 import org.rmatil.sync.core.eventbus.IBusEvent;
 import org.rmatil.sync.core.init.client.ILocalStateRequestCallback;
+import org.rmatil.sync.core.messaging.StatusCode;
 import org.rmatil.sync.core.security.IAccessManager;
 import org.rmatil.sync.network.api.IClient;
 import org.rmatil.sync.network.api.IRequest;
@@ -108,7 +109,7 @@ public class FileDemandRequestHandler implements ILocalStateRequestCallback {
 
             if (! this.client.getUser().getUserName().equals(this.request.getClientDevice().getUserName()) && ! this.accessManager.hasAccess(this.request.getClientDevice().getUserName(), AccessType.READ, this.request.getRelativeFilePath())) {
                 logger.warn("Failed to get requested chunk due to missing access rights on file " + this.request.getRelativeFilePath() + " for user " + this.request.getClientDevice().getUserName() + " on exchange " + this.request.getExchangeId());
-                this.sendResponse(this.createErrorResponse(-1, -1));
+                this.sendResponse(this.createErrorResponse(StatusCode.ACCESS_DENIED, -1, -1));
                 return;
             }
 
@@ -119,7 +120,7 @@ public class FileDemandRequestHandler implements ILocalStateRequestCallback {
             } catch (InputOutputException e) {
                 logger.error("Could not fetch meta information about " + pathElement.getPath() + ". Message: " + e.getMessage());
 
-                this.sendResponse(this.createErrorResponse(-1, -1));
+                this.sendResponse(this.createErrorResponse(StatusCode.FILE_MISSING, -1, -1));
                 return;
             }
 
@@ -133,7 +134,7 @@ public class FileDemandRequestHandler implements ILocalStateRequestCallback {
                 // maybe due to a rewrite of the file content while syncing
                 if (totalNrOfChunks < this.request.getChunkCounter()) {
                     // no chunk anymore, fileDemandExchangeHandler is then forced to check checksum -> re-download if not matching
-                    this.sendResponse(this.createErrorResponse(-1, totalNrOfChunks));
+                    this.sendResponse(this.createErrorResponse(StatusCode.FILE_CHANGED, -1, totalNrOfChunks));
                     return;
                 }
 
@@ -167,6 +168,7 @@ public class FileDemandRequestHandler implements ILocalStateRequestCallback {
 
             IResponse response = new FileDemandResponse(
                     this.request.getExchangeId(),
+                    StatusCode.ACCEPTED,
                     new ClientDevice(this.client.getUser().getUserName(), this.client.getClientDeviceId(), this.client.getPeerAddress()),
                     checksum,
                     this.request.getRelativeFilePath(),
@@ -187,9 +189,10 @@ public class FileDemandRequestHandler implements ILocalStateRequestCallback {
         }
     }
 
-    protected FileDemandResponse createErrorResponse(long chunkCounter, long totalNrOfChunks) {
+    protected FileDemandResponse createErrorResponse(StatusCode statusCode, long chunkCounter, long totalNrOfChunks) {
         return new FileDemandResponse(
                 this.request.getExchangeId(),
+                statusCode,
                 new ClientDevice(this.client.getUser().getUserName(), this.client.getClientDeviceId(), this.client.getPeerAddress()),
                 "",
                 this.request.getRelativeFilePath(),

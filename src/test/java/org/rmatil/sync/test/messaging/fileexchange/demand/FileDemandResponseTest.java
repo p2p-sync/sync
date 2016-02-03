@@ -5,15 +5,15 @@ import org.rmatil.sync.core.messaging.fileexchange.demand.FileDemandResponse;
 import org.rmatil.sync.network.core.model.ClientDevice;
 import org.rmatil.sync.network.core.model.ClientLocation;
 import org.rmatil.sync.network.core.model.Data;
+import org.rmatil.sync.test.base.BaseMessageTest;
 
 import java.util.HashSet;
 import java.util.UUID;
 
 import static org.junit.Assert.assertEquals;
 
-public class FileDemandResponseTest {
+public class FileDemandResponseTest extends BaseMessageTest {
 
-    protected static final UUID           EXCHANGE_ID        = UUID.randomUUID();
     protected static final ClientDevice   CLIENT_DEVICE      = new ClientDevice("Inverness McKenzie", UUID.randomUUID(), null);
     protected static final String         CHECKSUM           = "someHash";
     protected static final String         RELATIVE_FILE_PATH = "path/to/some/file.txt";
@@ -29,6 +29,7 @@ public class FileDemandResponseTest {
     public void test() {
         FileDemandResponse filePushRequest = new FileDemandResponse(
                 EXCHANGE_ID,
+                STATUS_CODE,
                 CLIENT_DEVICE,
                 CHECKSUM,
                 RELATIVE_FILE_PATH,
@@ -43,6 +44,7 @@ public class FileDemandResponseTest {
         );
 
         assertEquals("ExchangeId is not equal", EXCHANGE_ID, filePushRequest.getExchangeId());
+        assertEquals("StatusCode is not equal", STATUS_CODE, filePushRequest.getStatusCode());
         assertEquals("ClientDevice is not equal", CLIENT_DEVICE, filePushRequest.getClientDevice());
         assertEquals("Checksum is not equal", CHECKSUM, filePushRequest.getChecksum());
         assertEquals("RelativeFilePath is not equal", RELATIVE_FILE_PATH, filePushRequest.getRelativeFilePath());

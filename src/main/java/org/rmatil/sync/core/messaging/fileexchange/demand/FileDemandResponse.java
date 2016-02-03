@@ -1,6 +1,7 @@
 package org.rmatil.sync.core.messaging.fileexchange.demand;
 
 
+import org.rmatil.sync.core.messaging.StatusCode;
 import org.rmatil.sync.core.messaging.base.AResponse;
 import org.rmatil.sync.network.core.model.ClientDevice;
 import org.rmatil.sync.network.core.model.ClientLocation;
@@ -69,6 +70,7 @@ public class FileDemandResponse extends AResponse {
 
     /**
      * @param exchangeId       The exchange id of the request
+     * @param statusCode       The status code of the response
      * @param clientDevice     The client device which is sending this request
      * @param checksum         The checksum of the complete file
      * @param relativeFilePath The relative path to the file which should be created
@@ -82,8 +84,8 @@ public class FileDemandResponse extends AResponse {
      * @param receiverAddress  The receiver of this request
      * @param sharers          All sharers of this file
      */
-    public FileDemandResponse(UUID exchangeId, ClientDevice clientDevice, String checksum, String relativeFilePath, boolean isFile, long chunkCounter, int chunkSize, long totalNrOfChunks, long totalFileSize, Data data, ClientLocation receiverAddress, Set<Sharer> sharers) {
-        super(exchangeId, clientDevice, receiverAddress);
+    public FileDemandResponse(UUID exchangeId, StatusCode statusCode, ClientDevice clientDevice, String checksum, String relativeFilePath, boolean isFile, long chunkCounter, int chunkSize, long totalNrOfChunks, long totalFileSize, Data data, ClientLocation receiverAddress, Set<Sharer> sharers) {
+        super(exchangeId, statusCode, clientDevice, receiverAddress);
         this.checksum = checksum;
         this.relativeFilePath = relativeFilePath;
         this.isFile = isFile;

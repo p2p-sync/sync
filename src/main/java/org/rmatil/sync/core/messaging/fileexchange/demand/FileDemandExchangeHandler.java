@@ -4,6 +4,7 @@ import net.engio.mbassy.bus.MBassador;
 import org.rmatil.sync.core.eventbus.AddSharerToObjectStoreBusEvent;
 import org.rmatil.sync.core.eventbus.IBusEvent;
 import org.rmatil.sync.core.eventbus.IgnoreBusEvent;
+import org.rmatil.sync.core.messaging.StatusCode;
 import org.rmatil.sync.event.aggregator.core.events.CreateEvent;
 import org.rmatil.sync.event.aggregator.core.events.ModifyEvent;
 import org.rmatil.sync.network.api.IClient;
@@ -118,6 +119,7 @@ public class FileDemandExchangeHandler extends ANetworkHandler<FileDemandExchang
 
             FileDemandRequest fileDemandRequest = new FileDemandRequest(
                     this.exchangeId,
+                    StatusCode.NONE,
                     clientDevice,
                     this.pathToFetch,
                     receiverAddresses,
