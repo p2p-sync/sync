@@ -4,6 +4,7 @@ import org.junit.Test;
 import org.rmatil.sync.core.messaging.sharingexchange.shared.SharedRequest;
 import org.rmatil.sync.network.core.model.ClientDevice;
 import org.rmatil.sync.network.core.model.ClientLocation;
+import org.rmatil.sync.test.base.BaseMessageTest;
 import org.rmatil.sync.version.api.AccessType;
 
 import java.util.ArrayList;
@@ -12,9 +13,8 @@ import java.util.UUID;
 
 import static org.junit.Assert.assertEquals;
 
-public class SharedRequestTest {
+public class SharedRequestTest extends BaseMessageTest {
 
-    protected static final UUID           EXCHANGE_ID      = UUID.randomUUID();
     protected static final ClientDevice   CLIENT_DEVICE    = new ClientDevice("Inverness McKenzie", UUID.randomUUID(), null);
     protected static final ClientLocation RECEIVER_ADDRESS = new ClientLocation(UUID.randomUUID(), null);
     protected static final String         USERNAME         = "John Doe";
@@ -29,6 +29,7 @@ public class SharedRequestTest {
 
         SharedRequest request = new SharedRequest(
                 EXCHANGE_ID,
+                STATUS_CODE,
                 CLIENT_DEVICE,
                 receiver,
                 USERNAME,
@@ -37,6 +38,7 @@ public class SharedRequestTest {
         );
 
         assertEquals("ExchangeId is not equal", EXCHANGE_ID, request.getExchangeId());
+        assertEquals("StatusCode is not equal", STATUS_CODE, request.getStatusCode());
         assertEquals("ClientDevice is not equal", CLIENT_DEVICE, request.getClientDevice());
         assertEquals("ReceiverAddress is not equal", receiver, request.getReceiverAddresses());
         assertEquals("Username is not equal", USERNAME, request.getSharer());

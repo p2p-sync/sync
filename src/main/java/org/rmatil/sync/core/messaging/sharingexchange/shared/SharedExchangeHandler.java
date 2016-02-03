@@ -1,5 +1,6 @@
 package org.rmatil.sync.core.messaging.sharingexchange.shared;
 
+import org.rmatil.sync.core.messaging.StatusCode;
 import org.rmatil.sync.network.api.IClient;
 import org.rmatil.sync.network.api.IClientManager;
 import org.rmatil.sync.network.api.IResponse;
@@ -8,16 +9,13 @@ import org.rmatil.sync.network.core.model.ClientDevice;
 import org.rmatil.sync.network.core.model.ClientLocation;
 import org.rmatil.sync.persistence.exceptions.InputOutputException;
 import org.rmatil.sync.version.api.AccessType;
-import org.rmatil.sync.version.api.IObjectManager;
 import org.rmatil.sync.version.api.IObjectStore;
-import org.rmatil.sync.version.core.model.PathObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 
 public class SharedExchangeHandler extends ANetworkHandler<SharedExchangeHandlerResult> {
 
@@ -63,6 +61,7 @@ public class SharedExchangeHandler extends ANetworkHandler<SharedExchangeHandler
             // exchange file id and sharer among all clients
             SharedRequest request = new SharedRequest(
                     this.exchangeId,
+                    StatusCode.NONE,
                     new ClientDevice(
                             super.client.getUser().getUserName(),
                             super.client.getClientDeviceId(),
@@ -115,7 +114,7 @@ public class SharedExchangeHandler extends ANetworkHandler<SharedExchangeHandler
         boolean hasAccepted = true;
 
         for (SharedResponse response : this.respondedClients) {
-            if (! response.hasAccepted()) {
+            if (! StatusCode.ACCEPTED.equals(response.getStatusCode())) {
                 hasAccepted = false;
                 logger.info("Client " + response.getClientDevice() + " (" + response.getClientDevice().getPeerAddress().inetAddress().getHostName() + ":" + response.getClientDevice().getPeerAddress().tcpPort() + " has not accepted the SharedOffer " + response.getExchangeId());
             }
