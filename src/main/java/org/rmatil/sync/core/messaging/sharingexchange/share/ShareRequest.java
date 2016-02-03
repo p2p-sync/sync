@@ -21,6 +21,11 @@ public class ShareRequest extends ARequest {
     protected UUID fileId;
 
     /**
+     * The checksum of the whole file
+     */
+    protected String checksum;
+
+    /**
      * The access type which should be granted to the receiving client
      */
     protected AccessType accessType;
@@ -71,6 +76,7 @@ public class ShareRequest extends ARequest {
      * @param clientDevice               The client device sending this request
      * @param receiverAddress            The receiver of this request, i.e. the sharer
      * @param fileId                     The previously negotiated file id
+     * @param checksum                   The checksum of the whole file
      * @param accessType                 The access type which should be granted to the sharer
      * @param relativePathToSharedFolder The relative path to the folder / file which is actually shared (if it is the same, the relative path is "")
      * @param isFile                     Whether the path is a file
@@ -80,9 +86,10 @@ public class ShareRequest extends ARequest {
      * @param data                       The actual chunk data
      * @param chunkSize                  The chunk size of the file exchange. MUST stay the same over the whole file exchange
      */
-    public ShareRequest(UUID exchangeId, StatusCode statusCode, ClientDevice clientDevice, ClientLocation receiverAddress, UUID fileId, AccessType accessType, String relativePathToSharedFolder, boolean isFile, long chunkCounter, long totalNrOfChunks, long totalFileSize, Data data, int chunkSize) {
+    public ShareRequest(UUID exchangeId, StatusCode statusCode, ClientDevice clientDevice, ClientLocation receiverAddress, UUID fileId, String checksum, AccessType accessType, String relativePathToSharedFolder, boolean isFile, long chunkCounter, long totalNrOfChunks, long totalFileSize, Data data, int chunkSize) {
         super(exchangeId, statusCode, clientDevice, new ArrayList<>());
         this.fileId = fileId;
+        this.checksum = checksum;
         this.accessType = accessType;
         this.relativePathToSharedFolder = relativePathToSharedFolder;
         this.isFile = isFile;
@@ -102,6 +109,15 @@ public class ShareRequest extends ARequest {
      */
     public UUID getFileId() {
         return fileId;
+    }
+
+    /**
+     * Returns the checksum of the whole file
+     *
+     * @return The checksum of the whole file
+     */
+    public String getChecksum() {
+        return checksum;
     }
 
     /**

@@ -1,22 +1,23 @@
 package org.rmatil.sync.core.messaging.sharingexchange.share;
 
 import org.rmatil.sync.core.messaging.StatusCode;
+import org.rmatil.sync.core.messaging.chunk.Chunk;
+import org.rmatil.sync.core.messaging.chunk.ChunkProvider;
 import org.rmatil.sync.network.api.IClient;
 import org.rmatil.sync.network.api.IRequest;
 import org.rmatil.sync.network.api.IResponse;
 import org.rmatil.sync.network.core.ANetworkHandler;
 import org.rmatil.sync.network.core.model.ClientDevice;
 import org.rmatil.sync.network.core.model.ClientLocation;
-import org.rmatil.sync.network.core.model.Data;
-import org.rmatil.sync.persistence.api.IFileMetaInfo;
-import org.rmatil.sync.persistence.api.IPathElement;
 import org.rmatil.sync.persistence.api.IStorageAdapter;
 import org.rmatil.sync.persistence.core.local.LocalPathElement;
 import org.rmatil.sync.persistence.exceptions.InputOutputException;
 import org.rmatil.sync.version.api.AccessType;
+import org.rmatil.sync.version.api.IObjectStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.HashSet;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -44,6 +45,11 @@ public class ShareExchangeHandler extends ANetworkHandler<ShareExchangeHandlerRe
      * The storage adapter to read the file chunks from
      */
     protected IStorageAdapter storageAdapter;
+
+    /**
+     * The object store
+     */
+    protected IObjectStore objectStore;
 
     /**
      * The file id.
@@ -84,9 +90,15 @@ public class ShareExchangeHandler extends ANetworkHandler<ShareExchangeHandlerRe
     protected CountDownLatch chunkCountDownLatch;
 
     /**
+     * Provides chunk from a file
+     */
+    protected ChunkProvider chunkProvider;
+
+    /**
      * @param client                         The client to send messages
      * @param receiverAddress                The receiver address, i.e. the sharers location
      * @param storageAdapter                 The storage adapter to read the chunks
+     * @param objectStore                    The object store
      * @param relativeFilePath               The relative file path on our disk
      * @param relativeFilePathToSharedFolder The relative path to the folder / file which is actually shared (if it is the same, the relative path is "")
      * @param accessType                     The access type which should be granted to the sharer
@@ -94,10 +106,11 @@ public class ShareExchangeHandler extends ANetworkHandler<ShareExchangeHandlerRe
      * @param isFile                         Whether the path represents a file or directory
      * @param exchangeId                     The exchangeId
      */
-    public ShareExchangeHandler(IClient client, ClientLocation receiverAddress, IStorageAdapter storageAdapter, String relativeFilePath, String relativeFilePathToSharedFolder, AccessType accessType, UUID fileId, boolean isFile, UUID exchangeId) {
+    public ShareExchangeHandler(IClient client, ClientLocation receiverAddress, IStorageAdapter storageAdapter, IObjectStore objectStore, String relativeFilePath, String relativeFilePathToSharedFolder, AccessType accessType, UUID fileId, boolean isFile, UUID exchangeId) {
         super(client);
         this.receiverAddress = receiverAddress;
         this.storageAdapter = storageAdapter;
+        this.objectStore = objectStore;
         this.relativeFilePath = relativeFilePath;
         this.relativeFilePathToSharedFolder = relativeFilePathToSharedFolder;
         this.accessType = accessType;
@@ -105,6 +118,12 @@ public class ShareExchangeHandler extends ANetworkHandler<ShareExchangeHandlerRe
         this.isFile = isFile;
         this.exchangeId = exchangeId;
         this.chunkCountDownLatch = new CountDownLatch(1);
+
+        this.chunkProvider = new ChunkProvider(
+                this.storageAdapter,
+                this.objectStore,
+                new LocalPathElement(relativeFilePath)
+        );
     }
 
     @Override
@@ -165,37 +184,39 @@ public class ShareExchangeHandler extends ANetworkHandler<ShareExchangeHandlerRe
     }
 
     protected void sendChunk(long chunkCounter, UUID exchangeId, ClientLocation sharer) {
-        IPathElement pathElement = new LocalPathElement(this.relativeFilePath);
-        IFileMetaInfo fileMetaInfo;
+        Chunk chunk = new Chunk(
+                "",
+                "",
+                new HashSet<>(),
+                true,
+                AccessType.WRITE,
+                - 1,
+                - 1,
+                - 1,
+                null
+        );
+
         try {
-            fileMetaInfo = this.storageAdapter.getMetaInformation(pathElement);
+            chunk = this.chunkProvider.getChunk(chunkCounter, CHUNK_SIZE);
         } catch (InputOutputException e) {
-            logger.error("Could not fetch meta information about " + pathElement.getPath() + ". Message: " + e.getMessage());
+            logger.error("Failed to read the chunk " + chunkCounter + " of file " + this.relativeFilePath + " for exchange " + this.exchangeId + ". Aborting share exchange. Message: " + e.getMessage());
             return;
-        }
-
-        int totalNrOfChunks = 0;
-        Data data = null;
-        if (fileMetaInfo.isFile()) {
-            // should round to the next bigger int value anyway
-            totalNrOfChunks = (int) Math.ceil(fileMetaInfo.getTotalFileSize() / CHUNK_SIZE);
-            long fileChunkStartOffset = chunkCounter * CHUNK_SIZE;
-
-            // storage adapter trims requests for a too large chunk
-            byte[] content;
+        } catch (IllegalArgumentException e) {
+            // requested chunk does not exist anymore
+            logger.info("Detected file change during push exchange " + this.exchangeId + ". Starting to push again at chunk 0");
             try {
-                content = this.storageAdapter.read(pathElement, fileChunkStartOffset, CHUNK_SIZE);
-            } catch (InputOutputException e) {
-                logger.error("Could not read file contents of " + pathElement.getPath() + " at offset " + fileChunkStartOffset + " bytes with chunk size of " + CHUNK_SIZE + " bytes");
-                return;
+                chunk = this.chunkProvider.getChunk(0, CHUNK_SIZE);
+            } catch (InputOutputException e1) {
+                logger.error("Failed to read the chunk " + chunkCounter + " of file " + this.relativeFilePath + " for exchange " + this.exchangeId + " after detected file change. Aborting share exchange. Message: " + e.getMessage());
             }
-
-            data = new Data(content, false);
         }
+
+        // check whether the chunk counter has changed
+        StatusCode statusCode = (chunkCounter == chunk.getChunkCounter()) ? StatusCode.NONE : StatusCode.FILE_CHANGED;
 
         IRequest request = new ShareRequest(
                 exchangeId,
-                StatusCode.NONE,
+                statusCode,
                 new ClientDevice(
                         super.client.getUser().getUserName(),
                         super.client.getClientDeviceId(),
@@ -203,17 +224,18 @@ public class ShareExchangeHandler extends ANetworkHandler<ShareExchangeHandlerRe
                 ),
                 sharer,
                 this.fileId,
+                chunk.getChecksum(),
                 this.accessType,
                 this.relativeFilePathToSharedFolder,
-                fileMetaInfo.isFile(),
-                chunkCounter,
-                totalNrOfChunks,
-                fileMetaInfo.getTotalFileSize(),
-                data,
+                chunk.isFile(),
+                chunk.getChunkCounter(),
+                chunk.getTotalNrOfChunks(),
+                chunk.getTotalFileSize(),
+                chunk.getData(),
                 CHUNK_SIZE
         );
 
-        logger.info("Sending chunk " + chunkCounter + " to sharer " + sharer.getPeerAddress().inetAddress().getHostAddress() + ":" + sharer.getPeerAddress().tcpPort());
+        logger.info("Sending chunk " + chunk.getChunkCounter() + " to sharer " + sharer.getPeerAddress().inetAddress().getHostAddress() + ":" + sharer.getPeerAddress().tcpPort());
 
         super.sendRequest(request);
     }

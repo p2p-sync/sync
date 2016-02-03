@@ -17,6 +17,7 @@ import static org.junit.Assert.assertThat;
 public class ShareRequestTest extends BaseMessageTest {
 
     protected final static UUID           FILE_ID                        = UUID.randomUUID();
+    protected final static String         CHECKSUM                       = "checksum";
     protected final static AccessType     ACCESS_TYPE                    = AccessType.WRITE;
     protected static final ClientDevice   CLIENT_DEVICE                  = new ClientDevice("Inverness McKenzie", UUID.randomUUID(), null);
     protected static final String         RELATIVE_PATH_TO_SHARED_FOLDER = "path/to/some/file.txt";
@@ -36,6 +37,7 @@ public class ShareRequestTest extends BaseMessageTest {
                 CLIENT_DEVICE,
                 RECEIVER_ADDRESS,
                 FILE_ID,
+                CHECKSUM,
                 ACCESS_TYPE,
                 RELATIVE_PATH_TO_SHARED_FOLDER,
                 IS_FILE,
@@ -50,6 +52,7 @@ public class ShareRequestTest extends BaseMessageTest {
         assertEquals("StatusCode is not equal", STATUS_CODE, shareRequest.getStatusCode());
         assertEquals("ClientDevice is not equal", CLIENT_DEVICE, shareRequest.getClientDevice());
         assertEquals("RelativeFilePath is not equal", RELATIVE_PATH_TO_SHARED_FOLDER, shareRequest.getRelativePathToSharedFolder());
+        assertEquals("Checksum is not equal", CHECKSUM, shareRequest.getChecksum());
         assertEquals("Is File is not equal", IS_FILE, shareRequest.isFile());
         assertEquals("ChunkCounter is not equal", CHUNK_COUNTER, shareRequest.getChunkCounter());
         assertEquals("ChunkSize is not equal", CHUNK_SIZE, shareRequest.getChunkSize());

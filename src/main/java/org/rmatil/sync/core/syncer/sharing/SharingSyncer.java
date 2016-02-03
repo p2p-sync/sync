@@ -142,6 +142,7 @@ public class SharingSyncer implements ISharingSyncer {
                 this.client,
                 sharerLocation,
                 this.storageAdapter,
+                this.objectStore,
                 sharingEvent.getRelativePath().toString(),
                 relativePathToSharedFolder,
                 sharingEvent.getAccessType(),

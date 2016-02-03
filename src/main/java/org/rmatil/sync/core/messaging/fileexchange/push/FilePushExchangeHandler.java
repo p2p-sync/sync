@@ -2,6 +2,8 @@ package org.rmatil.sync.core.messaging.fileexchange.push;
 
 import org.rmatil.sync.core.init.client.ILocalStateResponseCallback;
 import org.rmatil.sync.core.messaging.StatusCode;
+import org.rmatil.sync.core.messaging.chunk.Chunk;
+import org.rmatil.sync.core.messaging.chunk.ChunkProvider;
 import org.rmatil.sync.core.messaging.fileexchange.offer.FileOfferExchangeHandler;
 import org.rmatil.sync.network.api.IClient;
 import org.rmatil.sync.network.api.IClientManager;
@@ -10,20 +12,18 @@ import org.rmatil.sync.network.api.IResponse;
 import org.rmatil.sync.network.core.ANetworkHandler;
 import org.rmatil.sync.network.core.model.ClientDevice;
 import org.rmatil.sync.network.core.model.ClientLocation;
-import org.rmatil.sync.network.core.model.Data;
-import org.rmatil.sync.persistence.api.IFileMetaInfo;
-import org.rmatil.sync.persistence.api.IPathElement;
 import org.rmatil.sync.persistence.api.IStorageAdapter;
 import org.rmatil.sync.persistence.core.local.LocalPathElement;
 import org.rmatil.sync.persistence.exceptions.InputOutputException;
 import org.rmatil.sync.version.api.AccessType;
 import org.rmatil.sync.version.api.IObjectStore;
-import org.rmatil.sync.version.core.model.PathObject;
-import org.rmatil.sync.version.core.model.Sharer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
@@ -78,7 +78,15 @@ public class FilePushExchangeHandler extends ANetworkHandler<FilePushExchangeHan
      */
     protected CountDownLatch chunkCountDownLatch;
 
+    /**
+     * A list of client locations which should receive file push requests
+     */
     protected List<ClientLocation> receivers;
+
+    /**
+     * The chunk provider
+     */
+    protected ChunkProvider chunkProvider;
 
     public FilePushExchangeHandler(UUID exchangeId, ClientDevice clientDevice, IStorageAdapter storageAdapter, IClientManager clientManager, IClient client, IObjectStore objectStore, List<ClientLocation> receivers, String relativeFilePath) {
         super(client);
@@ -89,6 +97,12 @@ public class FilePushExchangeHandler extends ANetworkHandler<FilePushExchangeHan
         this.objectStore = objectStore;
         this.receivers = receivers;
         this.relativeFilePath = relativeFilePath;
+
+        this.chunkProvider = new ChunkProvider(
+                this.storageAdapter,
+                this.objectStore,
+                new LocalPathElement(relativeFilePath)
+        );
     }
 
     @Override
@@ -113,7 +127,6 @@ public class FilePushExchangeHandler extends ANetworkHandler<FilePushExchangeHan
             }
 
             // the owner of a file is only added on a share request
-
             for (ClientLocation location : this.receivers) {
                 UUID uuid = UUID.randomUUID();
                 logger.info("Sending first chunk as subRequest of " + this.exchangeId + " with id " + uuid + " to client " + location.getPeerAddress().inetAddress().getHostName() + ":" + location.getPeerAddress().tcpPort());
@@ -186,84 +199,51 @@ public class FilePushExchangeHandler extends ANetworkHandler<FilePushExchangeHan
      * @param receiver     The receiver which should get the chunk
      */
     protected void sendChunk(long chunkCounter, UUID exchangeId, ClientLocation receiver) {
-        IPathElement pathElement = new LocalPathElement(this.relativeFilePath);
-        IFileMetaInfo fileMetaInfo;
+        Chunk chunk = new Chunk(
+                "",
+                "",
+                new HashSet<>(),
+                true,
+                AccessType.WRITE,
+                - 1,
+                - 1,
+                - 1,
+                null
+        );
+
         try {
-            fileMetaInfo = this.storageAdapter.getMetaInformation(pathElement);
+            chunk = this.chunkProvider.getChunk(chunkCounter, CHUNK_SIZE);
         } catch (InputOutputException e) {
-            logger.error("Could not fetch meta information about " + pathElement.getPath() + ". Message: " + e.getMessage());
+            logger.error("Failed to read the chunk " + chunkCounter + " of file " + this.relativeFilePath + " for exchange " + this.exchangeId + ". Aborting file push exchange. Message: " + e.getMessage());
             return;
-        }
-
-        int totalNrOfChunks = 0;
-        Data data = null;
-        if (fileMetaInfo.isFile()) {
-            // should round to the next bigger int value anyway
-            totalNrOfChunks = (int) Math.ceil(fileMetaInfo.getTotalFileSize() / CHUNK_SIZE);
-
-            // restart the exchange, if the requested chunk counter is bigger than expected
-            if (totalNrOfChunks < chunkCounter) {
-                chunkCounter = 0;
-            }
-
-            long fileChunkStartOffset = chunkCounter * CHUNK_SIZE;
-
-            // storage adapter trims requests for a too large chunk
-            byte[] content;
+        } catch (IllegalArgumentException e) {
+            // requested chunk does not exist anymore
+            logger.info("Detected file change during push exchange " + this.exchangeId + ". Starting to push again at chunk 0");
             try {
-                content = this.storageAdapter.read(pathElement, fileChunkStartOffset, CHUNK_SIZE);
-            } catch (InputOutputException e) {
-                logger.error("Could not read file contents of " + pathElement.getPath() + " at offset " + fileChunkStartOffset + " bytes with chunk size of " + CHUNK_SIZE + " bytes");
-                return;
+                chunk = this.chunkProvider.getChunk(0, CHUNK_SIZE);
+            } catch (InputOutputException e1) {
+                logger.error("Failed to read the chunk " + chunkCounter + " of file " + this.relativeFilePath + " for exchange " + this.exchangeId + " after detected file change. Aborting file push exchange. Message: " + e.getMessage());
             }
-
-            data = new Data(content, false);
         }
 
-        Set<Sharer> sharers = new HashSet<>();
-        try {
-            sharers = this.objectStore.getSharerManager().getSharer(this.relativeFilePath);
-        } catch (InputOutputException e) {
-            logger.error("Failed to read the sharers for file " + this.relativeFilePath + ". Sending an empty sharer set. Message: " + e.getMessage());
-        }
-
-        AccessType accessType = AccessType.WRITE;
-        String owner = null;
-        try {
-            PathObject pathObject = this.objectStore.getObjectManager().getObjectForPath(this.relativeFilePath);
-            accessType = pathObject.getAccessType();
-            owner = pathObject.getOwner();
-        } catch (InputOutputException e) {
-            logger.error("Failed to get AccessType for file " + this.relativeFilePath + " Sending access type write. Message: " + e.getMessage());
-        }
-
-        String checksum = null;
-        try {
-            if (fileMetaInfo.isFile()) {
-                checksum = this.storageAdapter.getChecksum(pathElement);
-            } else {
-                // dirs may not have checksums
-                checksum = "";
-            }
-        } catch (InputOutputException e) {
-            logger.error("Could not generate checksum. Message: " + e.getMessage(), e);
-        }
+        // check whether the chunk counter has changed
+        StatusCode statusCode = (chunkCounter == chunk.getChunkCounter()) ? StatusCode.NONE : StatusCode.FILE_CHANGED;
 
         IRequest request = new FilePushRequest(
                 exchangeId,
-                StatusCode.NONE,
+                statusCode,
                 this.clientDevice,
-                checksum,
-                owner,
-                accessType,
-                sharers,
+                chunk.getChecksum(),
+                chunk.getOwner(),
+                chunk.getAccessType(),
+                chunk.getSharers(),
                 this.relativeFilePath,
-                fileMetaInfo.isFile(),
-                chunkCounter,
+                chunk.isFile(),
+                chunk.getChunkCounter(),
                 CHUNK_SIZE,
-                totalNrOfChunks,
-                fileMetaInfo.getTotalFileSize(),
-                data,
+                chunk.getTotalNrOfChunks(),
+                chunk.getTotalFileSize(),
+                chunk.getData(),
                 receiver
         );
 

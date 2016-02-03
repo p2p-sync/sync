@@ -107,136 +107,168 @@ public class ShareRequestHandler implements ILocalStateRequestCallback {
             logger.info("Writing chunk " + this.request.getChunkCounter() + " for file " + this.request.getFileId() + " (" + this.request.getRelativePathToSharedFolder() + ") for exchangeId " + this.request.getExchangeId());
 
             IPathElement pathElement;
+            PathObject pathObject;
 
-            // if the chunk counter is greater than 0
-            // we only modify the existing file, so we generate an ignore modify event
-            if (this.request.getChunkCounter() > 0) {
-                PathObject pathObject = this.objectStore.getObjectManager().getObjectForPath(
-                        this.client.getIdentifierManager().getKey(this.request.getFileId())
-                );
+            // check if a file already exists in the DHT for the fileId,
+            // maybe the file just changed while transmitting
+            String relativePath = this.client.getIdentifierManager().getKey(this.request.getFileId());
 
-                pathElement = new LocalPathElement(pathObject.getAbsolutePath());
+            // setup shared folder and object store if the file does not exist yet
+            if (0 == this.request.getChunkCounter() && null == relativePath) {
+                // create shared dirs, if not exists
+                this.createSharedDirs();
 
-                IEvent modifyEvent = new ModifyEvent(
-                        Paths.get(pathObject.getAbsolutePath()),
-                        Paths.get(pathObject.getAbsolutePath()).getFileName().toString(),
-                        "weIgnoreTheHash",
-                        System.currentTimeMillis()
-                );
-
-                // ignore syncing of file event
-                this.globalEventBus.publish(new IgnoreBusEvent(modifyEvent));
-            } else {
-
+                // make a local relative path for the file
                 String relPathToSyncedFolder;
-
-                if (! this.storageAdapter.exists(StorageType.DIRECTORY, new LocalPathElement(Config.DEFAULT.getSharedWithOthersReadOnlyFolderName()))) {
-                    this.storageAdapter.persist(StorageType.DIRECTORY, new LocalPathElement(Config.DEFAULT.getSharedWithOthersReadOnlyFolderName()), null);
-                }
-
-                if (! this.storageAdapter.exists(StorageType.DIRECTORY, new LocalPathElement(Config.DEFAULT.getSharedWithOthersReadWriteFolderName()))) {
-                    this.storageAdapter.persist(StorageType.DIRECTORY, new LocalPathElement(Config.DEFAULT.getSharedWithOthersReadWriteFolderName()), null);
-                }
-
                 if (AccessType.WRITE == this.request.getAccessType()) {
                     relPathToSyncedFolder = Config.DEFAULT.getSharedWithOthersReadWriteFolderName() + "/" + this.request.getRelativePathToSharedFolder();
                 } else {
                     relPathToSyncedFolder = Config.DEFAULT.getSharedWithOthersReadOnlyFolderName() + "/" + this.request.getRelativePathToSharedFolder();
                 }
 
-                String uniqueFilePath = this.getUniqueFileName(relPathToSyncedFolder, this.request.isFile());
-
-                pathElement = new LocalPathElement(uniqueFilePath);
+                // create a unique file name in the shared folder
+                relativePath = this.getUniqueFileName(relPathToSyncedFolder, this.request.isFile());
 
                 // add the fileId so that each client can fetch it from the original
-                this.client.getIdentifierManager().addIdentifier(uniqueFilePath, this.request.getFileId());
+                this.client.getIdentifierManager().addIdentifier(relativePath, this.request.getFileId());
 
-                try {
-                    this.objectStore.onCreateFile(uniqueFilePath, null);
+                this.objectStore.onCreateFile(relativePath, null);
+                // adds the owner to the file but not as sharer
+                // since we did not share the file with anyone yet
+                this.objectStore.getSharerManager().addOwner(
+                        this.request.getClientDevice().getUserName(),
+                        relativePath
+                );
 
-                    // adds the owner to the file but not as sharer
-                    // since we did not share the file with anyone yet
-                    this.objectStore.getSharerManager().addOwner(
-                            this.request.getClientDevice().getUserName(),
-                            uniqueFilePath
-                    );
+                // also set the access type
+                pathObject = this.objectStore.getObjectManager().getObjectForPath(relativePath);
+                pathObject.setAccessType(this.request.getAccessType());
+                this.objectStore.getObjectManager().writeObject(pathObject);
 
-                    // also set the access type
-                    PathObject pathObject = this.objectStore.getObjectManager().getObjectForPath(uniqueFilePath);
-                    pathObject.setAccessType(this.request.getAccessType());
-                    this.objectStore.getObjectManager().writeObject(pathObject);
+                // since we generated an unique filename, the file is guaranteed to not exist
+                // and therefore, we ignore a create event until the whole file is written
+                IEvent createEvent = new CreateEvent(
+                        Paths.get(relativePath),
+                        Paths.get(relativePath).getFileName().toString(),
+                        "weIgnoreTheHash",
+                        System.currentTimeMillis()
+                );
 
-                    // since we generated an unique filename, the file is guaranteed to not exist
-                    // and therefore, we ignore a create event until the whole file is written
-                    IEvent createEvent = new CreateEvent(
-                            Paths.get(uniqueFilePath),
-                            Paths.get(uniqueFilePath).getFileName().toString(),
+                // ignore syncing of file event
+                this.globalEventBus.publish(new IgnoreBusEvent(createEvent));
+                // ignore updating of the object store since we created the entry manually...
+                this.globalEventBus.publish(new IgnoreObjectStoreUpdateBusEvent(createEvent));
+
+
+                pathElement = new LocalPathElement(relativePath);
+            } else {
+                // we have written a chunk of the file already -> get the file name
+                pathObject = this.objectStore.getObjectManager().getObjectForPath(
+                        this.client.getIdentifierManager().getKey(this.request.getFileId())
+                );
+
+                pathElement = new LocalPathElement(pathObject.getAbsolutePath());
+
+                StorageType storageType = this.request.isFile() ? StorageType.FILE : StorageType.DIRECTORY;
+                if (this.request.isFile() && StatusCode.FILE_CHANGED.equals(this.request.getStatusCode())) {
+                    // we have to clean up the file again to prevent the
+                    // file being larger than expected after the change
+                    this.storageAdapter.persist(storageType, pathElement, new byte[0]);
+
+                    IEvent modifyEvent = new ModifyEvent(
+                            Paths.get(pathObject.getAbsolutePath()),
+                            Paths.get(pathObject.getAbsolutePath()).getFileName().toString(),
                             "weIgnoreTheHash",
                             System.currentTimeMillis()
                     );
 
                     // ignore syncing of file event
-                    this.globalEventBus.publish(new IgnoreBusEvent(createEvent));
-                    // ignore updating of the object store since we created the entry manually...
-                    this.globalEventBus.publish(new IgnoreObjectStoreUpdateBusEvent(createEvent));
-
-                } catch (InputOutputException e) {
-                    logger.error("Can not create a unique filename for file " + this.request.getFileId() + ". Message: " + e.getMessage() + ". Just checking the chunk counters...");
+                    this.globalEventBus.publish(new IgnoreBusEvent(modifyEvent));
                 }
             }
 
-            // actually write the file
+            IEvent modifyEvent = new ModifyEvent(
+                    Paths.get(pathObject.getAbsolutePath()),
+                    Paths.get(pathObject.getAbsolutePath()).getFileName().toString(),
+                    "weIgnoreTheHash",
+                    System.currentTimeMillis()
+            );
+
+            // ignore syncing of file event
+            this.globalEventBus.publish(new IgnoreBusEvent(modifyEvent));
+
+            // now actually write the file
             if (this.request.isFile()) {
                 try {
-                    this.storageAdapter.persist(
-                            StorageType.FILE,
-                            pathElement,
-                            this.request.getChunkCounter() * this.request.getChunkSize(),
-                            this.request.getData().getContent()
-                    );
+                    this.storageAdapter.persist(StorageType.FILE, pathElement, this.request.getChunkCounter() * this.request.getChunkSize(), this.request.getData().getContent());
                 } catch (InputOutputException e) {
-                    logger.error("Could not write chunk " + this.request.getChunkCounter() + " for shared file " + pathElement.getPath() + ". Message: " + e.getMessage(), e);
+                    logger.error("Could not write chunk " + this.request.getChunkCounter() + " of file " + relativePath + ". Message: " + e.getMessage(), e);
                 }
             } else {
                 try {
                     if (! this.storageAdapter.exists(StorageType.DIRECTORY, pathElement)) {
                         this.storageAdapter.persist(StorageType.DIRECTORY, pathElement, null);
                     }
-
                 } catch (InputOutputException e) {
-                    logger.error("Could not create shared directory " + pathElement.getPath() + ". Message: " + e.getMessage());
+                    logger.error("Could not create directory " + pathElement.getPath() + ". Message: " + e.getMessage());
                 }
             }
 
+            StorageType storageType = this.request.isFile() ? StorageType.FILE : StorageType.DIRECTORY;
 
             long requestingChunk = this.request.getChunkCounter();
             if (this.request.getChunkCounter() == this.request.getTotalNrOfChunks()) {
-                // indicate we got all chunks and do not expect any further updates
-                requestingChunk = - 1;
+                // now check that we got the same checksum for the file
+                try {
+                    String checksum = "";
 
-                // once we completed the file transfer, we can create the hash
-                // and omit a CreateEvent to propagate the new file to all other own clients
-                PathObject pathObject = this.objectStore.getObjectManager().getObjectForPath(pathElement.getPath());
-                String hash = Hash.hash(
-                        org.rmatil.sync.event.aggregator.config.Config.DEFAULT.getHashingAlgorithm(),
-                        this.storageAdapter.read(pathElement)
-                );
-                pathObject.getVersions().add(new Version(hash));
+                    // dirs may not have a checksum
+                    if (this.request.isFile()) {
+                        checksum = this.storageAdapter.getChecksum(pathElement);
+                    }
 
-                // now write the updated path object
-                this.objectStore.getObjectManager().writeObject(pathObject);
-                // omit a file create event to the file syncer
-                this.globalEventBus.publish(
-                        new CreateBusEvent(
-                                new CreateEvent(
-                                        Paths.get(pathElement.getPath()),
-                                        Paths.get(pathElement.getPath()).getFileName().toString(),
-                                        "weIgnoreTheHash",
-                                        System.currentTimeMillis()
+                    if (null == this.request.getChecksum() || this.request.getChecksum().equals(checksum)) {
+                        logger.info("Checksums match. Stopping share exchange " + this.request.getExchangeId());
+                        // checksums match or the other side failed to compute one
+                        // -> indicate we got all chunks
+                        requestingChunk = - 1;
+
+                        // once we completed the file transfer, we can create the hash
+                        // and omit a CreateEvent to propagate the new file to all other own clients
+                        String hash = Hash.hash(
+                                org.rmatil.sync.event.aggregator.config.Config.DEFAULT.getHashingAlgorithm(),
+                                this.storageAdapter.read(pathElement)
+                        );
+                        pathObject.getVersions().add(new Version(hash));
+
+                        // now write the updated path object
+                        this.objectStore.getObjectManager().writeObject(pathObject);
+                        // omit a file create event to the file syncer
+                        this.globalEventBus.publish(
+                                new CreateBusEvent(
+                                        new CreateEvent(
+                                                Paths.get(pathElement.getPath()),
+                                                Paths.get(pathElement.getPath()).getFileName().toString(),
+                                                "weIgnoreTheHash",
+                                                System.currentTimeMillis()
+                                        )
                                 )
-                        )
-                );
+                        );
 
+                    } else {
+                        logger.info("Checksums do not match. Restarting share exchange " + this.request.getExchangeId());
+                        // restart to fetch the whole file
+                        requestingChunk = 0;
+
+                        // ignore again the syncing of the reset
+                        this.globalEventBus.publish(new IgnoreBusEvent(modifyEvent));
+
+                        this.storageAdapter.persist(storageType, pathElement, new byte[0]);
+                    }
+                } catch (InputOutputException e) {
+                    logger.error("Failed to generate the checksum for file " + pathElement.getPath() + " on exchange " + this.request.getExchangeId() + ". Accepting the file. Message: " + e.getMessage());
+                    requestingChunk = - 1;
+                }
             } else {
                 requestingChunk++;
             }
@@ -258,8 +290,29 @@ public class ShareRequestHandler implements ILocalStateRequestCallback {
             );
 
             this.sendResponse(response);
+
         } catch (Exception e) {
-            logger.error("Error in ShareRequestHandler for exchangeId " + this.request.getExchangeId() + ". Message: " + e.getMessage(), e);
+            logger.error("Got exception in ShareRequestHandler for exchange " + this.request.getExchangeId() + ". Message: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Create the sharedWithOthers (read/write) or sharedWithOthers (read) folders
+     * if the do not exist yet.
+     *
+     * @throws InputOutputException If creating the dirs failed
+     */
+    protected void createSharedDirs()
+            throws InputOutputException {
+        IPathElement readOnlySharedFolder = new LocalPathElement(Config.DEFAULT.getSharedWithOthersReadOnlyFolderName());
+        IPathElement readWriteSharedFolder = new LocalPathElement(Config.DEFAULT.getSharedWithOthersReadWriteFolderName());
+
+        if (! this.storageAdapter.exists(StorageType.DIRECTORY, readOnlySharedFolder)) {
+            this.storageAdapter.persist(StorageType.DIRECTORY, readOnlySharedFolder, null);
+        }
+
+        if (! this.storageAdapter.exists(StorageType.DIRECTORY, readWriteSharedFolder)) {
+            this.storageAdapter.persist(StorageType.DIRECTORY, readWriteSharedFolder, null);
         }
     }
 
@@ -286,7 +339,7 @@ public class ShareRequestHandler implements ILocalStateRequestCallback {
      *
      * @throws InputOutputException If checking whether the path exists or not fails
      */
-    protected String getUniqueFileName(String relativePath, boolean isFile)
+    public String getUniqueFileName(String relativePath, boolean isFile)
             throws InputOutputException {
         String oldFileName = Paths.get(relativePath).getFileName().toString();
         String newFileName = oldFileName;
@@ -302,11 +355,11 @@ public class ShareRequestHandler implements ILocalStateRequestCallback {
             if (- 1 != firstIndexOfDot) {
                 // myFile.rar.zip
                 // tmpFileName := myFile
-                String tmpFileName = oldFileName.substring(0, Math.max(0, firstIndexOfDot - 1));
+                String tmpFileName = oldFileName.substring(0, Math.max(0, firstIndexOfDot));
                 // tmpFileName := myFile (1)
                 tmpFileName = tmpFileName + " (" + ctr + ")";
                 // tmpfileName := myFile (1).rar.zip
-                tmpFileName = tmpFileName.concat(oldFileName.substring(firstIndexOfDot + 1, oldFileName.length()));
+                tmpFileName = tmpFileName.concat(oldFileName.substring(firstIndexOfDot, oldFileName.length()));
 
                 newFileName = tmpFileName;
             } else {
@@ -314,8 +367,8 @@ public class ShareRequestHandler implements ILocalStateRequestCallback {
                 newFileName = oldFileName + " (" + ctr + ")";
             }
 
+            ctr++;
         }
-
 
         // replace the **last** occurrence of the filename
         int lastIndex = relativePath.lastIndexOf(oldFileName);

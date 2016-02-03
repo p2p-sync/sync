@@ -111,54 +111,14 @@ public class FilePushRequestHandler implements ILocalStateRequestCallback {
             // TODO: check whether the file isDeleted on each write, there might be a concurrent incoming delete request
             // -> affected FilePaths? in ObjectDataReply?
 
-            // if the chunk counter is greater than 0
-            // we only modify the existing file, so we generate an ignore modify event
-            if (this.request.getChunkCounter() > 0) {
-                this.globalEventBus.publish(new IgnoreBusEvent(
-                        new ModifyEvent(
-                                Paths.get(this.request.getRelativeFilePath()),
-                                Paths.get(this.request.getRelativeFilePath()).getFileName().toString(),
-                                "weIgnoreTheHash",
-                                System.currentTimeMillis()
-                        )
-                ));
-            } else {
-                // we check for local existence, if the file already exists, we just ignore the
-                // modify event, otherwise we ignore the create event
-                try {
-                    if (this.storageAdapter.exists(StorageType.FILE, localPathElement) || this.storageAdapter.exists(StorageType.DIRECTORY, localPathElement)) {
-                        this.globalEventBus.publish(new IgnoreBusEvent(
-                                new ModifyEvent(
-                                        Paths.get(this.request.getRelativeFilePath()),
-                                        Paths.get(this.request.getRelativeFilePath()).getFileName().toString(),
-                                        "weIgnoreTheHash",
-                                        System.currentTimeMillis()
-                                )
-                        ));
-                    } else {
-                        this.globalEventBus.publish(new IgnoreBusEvent(
-                                new CreateEvent(
-                                        Paths.get(this.request.getRelativeFilePath()),
-                                        Paths.get(this.request.getRelativeFilePath()).getFileName().toString(),
-                                        "weIgnoreTheHash",
-                                        System.currentTimeMillis()
-                                )
-                        ));
+            StorageType storageType = this.request.isFile() ? StorageType.FILE : StorageType.DIRECTORY;
 
-                        this.globalEventBus.publish(new AddSharerToObjectStoreBusEvent(
-                                this.request.getRelativeFilePath(),
-                                this.request.getSharers()
-                        ));
+            this.publishIgnoreEvents(localPathElement);
 
-                        this.globalEventBus.publish(new AddOwnerAndAccessTypeToObjectStoreBusEvent(
-                                this.request.getOwner(),
-                                this.request.getAccessType(),
-                                this.request.getRelativeFilePath()
-                        ));
-                    }
-                } catch (InputOutputException e) {
-                    logger.error("Can not determine whether the file " + localPathElement.getPath() + " exists. Message: " + e.getMessage() + ". Just checking the chunk counters...");
-                }
+            if (this.request.isFile() && StatusCode.FILE_CHANGED.equals(this.request.getStatusCode())) {
+                // we have to clean up the file again to prevent the
+                // file being larger than expected after the change
+                this.storageAdapter.persist(storageType, localPathElement, new byte[0]);
             }
 
             if (this.request.isFile()) {
@@ -177,7 +137,6 @@ public class FilePushRequestHandler implements ILocalStateRequestCallback {
                 }
             }
 
-
             long requestingChunk = this.request.getChunkCounter();
             if (this.request.getChunkCounter() == this.request.getTotalNrOfChunks()) {
                 // now check that we got the same checksum for the file
@@ -185,7 +144,7 @@ public class FilePushRequestHandler implements ILocalStateRequestCallback {
                     String checksum = "";
 
                     // dirs may not have a checksum
-                    if (this.request.isFile) {
+                    if (this.request.isFile()) {
                         checksum = this.storageAdapter.getChecksum(localPathElement);
                     }
 
@@ -198,6 +157,8 @@ public class FilePushRequestHandler implements ILocalStateRequestCallback {
                         logger.info("Checksums do not match. Restarting to push file for exchange " + this.request.getExchangeId());
                         // restart to fetch the whole file
                         requestingChunk = 0;
+
+                        this.storageAdapter.persist(storageType, localPathElement, new byte[0]);
                     }
                 } catch (InputOutputException e) {
                     logger.error("Failed to generate the checksum for file " + localPathElement.getPath() + " on exchange " + this.request.getExchangeId() + ". Accepting the file. Message: " + e.getMessage());
@@ -242,5 +203,62 @@ public class FilePushRequestHandler implements ILocalStateRequestCallback {
         }
 
         this.client.sendDirect(iResponse.getReceiverAddress().getPeerAddress(), iResponse);
+    }
+
+    /**
+     * Publish ignore events based on the request
+     *
+     * @param localPathElement The path element for which to publish ignore events
+     */
+    protected void publishIgnoreEvents(IPathElement localPathElement) {
+        // if the chunk counter is greater than 0
+        // we only modify the existing file, so we generate an ignore modify event
+        if (this.request.getChunkCounter() > 0) {
+            this.globalEventBus.publish(new IgnoreBusEvent(
+                    new ModifyEvent(
+                            Paths.get(this.request.getRelativeFilePath()),
+                            Paths.get(this.request.getRelativeFilePath()).getFileName().toString(),
+                            "weIgnoreTheHash",
+                            System.currentTimeMillis()
+                    )
+            ));
+        } else {
+            // we check for local existence, if the file already exists, we just ignore the
+            // modify event, otherwise we ignore the create event
+            try {
+                if (this.storageAdapter.exists(StorageType.FILE, localPathElement) || this.storageAdapter.exists(StorageType.DIRECTORY, localPathElement)) {
+                    this.globalEventBus.publish(new IgnoreBusEvent(
+                            new ModifyEvent(
+                                    Paths.get(this.request.getRelativeFilePath()),
+                                    Paths.get(this.request.getRelativeFilePath()).getFileName().toString(),
+                                    "weIgnoreTheHash",
+                                    System.currentTimeMillis()
+                            )
+                    ));
+                } else {
+                    this.globalEventBus.publish(new IgnoreBusEvent(
+                            new CreateEvent(
+                                    Paths.get(this.request.getRelativeFilePath()),
+                                    Paths.get(this.request.getRelativeFilePath()).getFileName().toString(),
+                                    "weIgnoreTheHash",
+                                    System.currentTimeMillis()
+                            )
+                    ));
+
+                    this.globalEventBus.publish(new AddSharerToObjectStoreBusEvent(
+                            this.request.getRelativeFilePath(),
+                            this.request.getSharers()
+                    ));
+
+                    this.globalEventBus.publish(new AddOwnerAndAccessTypeToObjectStoreBusEvent(
+                            this.request.getOwner(),
+                            this.request.getAccessType(),
+                            this.request.getRelativeFilePath()
+                    ));
+                }
+            } catch (InputOutputException e) {
+                logger.error("Can not determine whether the file " + localPathElement.getPath() + " exists. Message: " + e.getMessage() + ". Just checking the chunk counters...");
+            }
+        }
     }
 }
