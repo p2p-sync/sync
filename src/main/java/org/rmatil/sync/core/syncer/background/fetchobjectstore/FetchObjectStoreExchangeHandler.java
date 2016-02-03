@@ -1,5 +1,6 @@
 package org.rmatil.sync.core.syncer.background.fetchobjectstore;
 
+import org.rmatil.sync.core.messaging.StatusCode;
 import org.rmatil.sync.network.api.IClient;
 import org.rmatil.sync.network.api.IClientManager;
 import org.rmatil.sync.network.api.IResponse;
@@ -62,6 +63,7 @@ public class FetchObjectStoreExchangeHandler extends ANetworkHandler<FetchObject
 
             FetchObjectStoreRequest syncObjectStoreRequest = new FetchObjectStoreRequest(
                     this.exchangeId,
+                    StatusCode.NONE,
                     new ClientDevice(super.client.getUser().getUserName(), super.client.getClientDeviceId(), super.client.getPeerAddress()),
                     clientLocations
             );

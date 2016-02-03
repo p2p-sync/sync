@@ -4,6 +4,7 @@ import net.engio.mbassy.bus.MBassador;
 import org.rmatil.sync.core.Zip;
 import org.rmatil.sync.core.eventbus.IBusEvent;
 import org.rmatil.sync.core.init.client.ILocalStateRequestCallback;
+import org.rmatil.sync.core.messaging.StatusCode;
 import org.rmatil.sync.core.messaging.fileexchange.delete.FileDeleteRequest;
 import org.rmatil.sync.core.security.IAccessManager;
 import org.rmatil.sync.core.syncer.background.masterelection.MasterElectionRequest;
@@ -93,6 +94,7 @@ public class FetchObjectStoreRequestHandler implements ILocalStateRequestCallbac
             // send zip
             FetchObjectStoreResponse syncObjectStoreResponse = new FetchObjectStoreResponse(
                     this.request.getExchangeId(),
+                    StatusCode.ACCEPTED,
                     new ClientDevice(this.client.getUser().getUserName(), this.client.getClientDeviceId(), this.client.getPeerAddress()),
                     new ClientLocation(this.request.getClientDevice().getClientDeviceId(), this.request.getClientDevice().getPeerAddress()),
                     zipFile

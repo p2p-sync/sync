@@ -1,5 +1,6 @@
 package org.rmatil.sync.core.syncer.background.fetchobjectstore;
 
+import org.rmatil.sync.core.messaging.StatusCode;
 import org.rmatil.sync.core.messaging.base.ARequest;
 import org.rmatil.sync.network.core.model.ClientDevice;
 import org.rmatil.sync.network.core.model.ClientLocation;
@@ -15,10 +16,11 @@ public class FetchObjectStoreRequest extends ARequest {
 
     /**
      * @param exchangeId        The id of the exchange to which this request belongs
+     * @param statusCode        The status code of the request
      * @param clientDevice      The client device which sends this request
      * @param receiverAddresses All client locations which should receive this requeust
      */
-    public FetchObjectStoreRequest(UUID exchangeId, ClientDevice clientDevice, List<ClientLocation> receiverAddresses) {
-        super(exchangeId, clientDevice, receiverAddresses);
+    public FetchObjectStoreRequest(UUID exchangeId, StatusCode statusCode, ClientDevice clientDevice, List<ClientLocation> receiverAddresses) {
+        super(exchangeId, statusCode, clientDevice, receiverAddresses);
     }
 }
