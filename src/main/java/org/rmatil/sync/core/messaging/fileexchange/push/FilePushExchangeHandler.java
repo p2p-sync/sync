@@ -1,6 +1,7 @@
 package org.rmatil.sync.core.messaging.fileexchange.push;
 
 import org.rmatil.sync.core.init.client.ILocalStateResponseCallback;
+import org.rmatil.sync.core.messaging.StatusCode;
 import org.rmatil.sync.core.messaging.fileexchange.offer.FileOfferExchangeHandler;
 import org.rmatil.sync.network.api.IClient;
 import org.rmatil.sync.network.api.IClientManager;
@@ -250,6 +251,7 @@ public class FilePushExchangeHandler extends ANetworkHandler<FilePushExchangeHan
 
         IRequest request = new FilePushRequest(
                 exchangeId,
+                StatusCode.NONE,
                 this.clientDevice,
                 checksum,
                 owner,

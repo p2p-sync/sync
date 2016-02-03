@@ -1,5 +1,6 @@
 package org.rmatil.sync.core.messaging.fileexchange.push;
 
+import org.rmatil.sync.core.messaging.StatusCode;
 import org.rmatil.sync.core.messaging.base.ARequest;
 import org.rmatil.sync.network.core.model.ClientDevice;
 import org.rmatil.sync.network.core.model.ClientLocation;
@@ -20,7 +21,7 @@ public class FilePushRequest extends ARequest {
     /**
      * A checksum over the content from the complete file,
      * i.e. the combination of all chunks
-     *
+     * <p>
      * <i>Note</i>: Returns null, if the checksum could not have
      * been generated on the other client.
      */
@@ -82,6 +83,7 @@ public class FilePushRequest extends ARequest {
 
     /**
      * @param exchangeId       The exchange id of the request
+     * @param statusCode       The status code of the request
      * @param clientDevice     The client device which is sending this request
      * @param owner            The owner of the file. May be null if the file is not shared
      * @param checksum         The checksum of the complete file
@@ -97,8 +99,8 @@ public class FilePushRequest extends ARequest {
      * @param data             The actual chunk data
      * @param receiverAddress  The receiver of this request
      */
-    public FilePushRequest(UUID exchangeId, ClientDevice clientDevice, String checksum, String owner, AccessType accessType, Set<Sharer> sharers, String relativeFilePath, boolean isFile, long chunkCounter, int chunkSize, long totalNrOfChunks, long totalFileSize, Data data, ClientLocation receiverAddress) {
-        super(exchangeId, clientDevice, new ArrayList<>());
+    public FilePushRequest(UUID exchangeId, StatusCode statusCode, ClientDevice clientDevice, String checksum, String owner, AccessType accessType, Set<Sharer> sharers, String relativeFilePath, boolean isFile, long chunkCounter, int chunkSize, long totalNrOfChunks, long totalFileSize, Data data, ClientLocation receiverAddress) {
+        super(exchangeId, statusCode, clientDevice, new ArrayList<>());
         this.checksum = checksum;
         this.owner = owner;
         this.accessType = accessType;

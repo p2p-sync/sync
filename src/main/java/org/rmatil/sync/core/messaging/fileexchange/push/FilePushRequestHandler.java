@@ -6,6 +6,7 @@ import org.rmatil.sync.core.eventbus.AddSharerToObjectStoreBusEvent;
 import org.rmatil.sync.core.eventbus.IBusEvent;
 import org.rmatil.sync.core.eventbus.IgnoreBusEvent;
 import org.rmatil.sync.core.init.client.ILocalStateRequestCallback;
+import org.rmatil.sync.core.messaging.StatusCode;
 import org.rmatil.sync.core.security.IAccessManager;
 import org.rmatil.sync.event.aggregator.core.events.CreateEvent;
 import org.rmatil.sync.event.aggregator.core.events.ModifyEvent;
@@ -222,6 +223,7 @@ public class FilePushRequestHandler implements ILocalStateRequestCallback {
     protected FilePushResponse createResponse(long requestingChunk) {
         return new FilePushResponse(
                 this.request.getExchangeId(),
+                StatusCode.ACCEPTED,
                 new ClientDevice(this.client.getUser().getUserName(), this.client.getClientDeviceId(), this.client.getPeerAddress()),
                 this.request.getRelativeFilePath(),
                 new ClientLocation(this.request.getClientDevice().getClientDeviceId(), this.request.getClientDevice().getPeerAddress()),
