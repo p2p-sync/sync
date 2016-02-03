@@ -4,6 +4,7 @@ import net.engio.mbassy.bus.MBassador;
 import org.rmatil.sync.core.eventbus.IBusEvent;
 import org.rmatil.sync.core.eventbus.IgnoreBusEvent;
 import org.rmatil.sync.core.init.client.ILocalStateResponseCallback;
+import org.rmatil.sync.core.messaging.StatusCode;
 import org.rmatil.sync.event.aggregator.core.events.DeleteEvent;
 import org.rmatil.sync.network.api.IClient;
 import org.rmatil.sync.network.api.IClientManager;
@@ -123,6 +124,7 @@ public class FileDeleteExchangeHandler extends ANetworkHandler<FileDeleteExchang
 
             FileDeleteRequest fileDeleteRequest = new FileDeleteRequest(
                     this.exchangeId,
+                    StatusCode.NONE,
                     this.clientDevice,
                     this.receivers,
                     this.deleteEvent.getPath().toString()

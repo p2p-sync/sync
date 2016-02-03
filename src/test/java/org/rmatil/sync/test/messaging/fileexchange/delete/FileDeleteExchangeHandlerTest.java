@@ -10,7 +10,6 @@ import org.rmatil.sync.event.aggregator.core.events.DeleteEvent;
 import org.rmatil.sync.persistence.core.local.LocalPathElement;
 import org.rmatil.sync.persistence.exceptions.InputOutputException;
 import org.rmatil.sync.test.messaging.base.BaseNetworkHandlerTest;
-import org.rmatil.sync.version.core.model.PathObject;
 
 import java.io.IOException;
 import java.nio.file.Files;
