@@ -163,8 +163,8 @@ public class Sync {
         globalEventBus.subscribe(objectStoreFileChangeListener);
 
         List<IEventListener> eventListeners = new ArrayList<>();
-        eventListeners.add(syncFileChangeListener);
         eventListeners.add(objectStoreFileChangeListener);
+        eventListeners.add(syncFileChangeListener);
 
         // Init event aggregator
         List<Path> ignoredPaths = new ArrayList<>();
