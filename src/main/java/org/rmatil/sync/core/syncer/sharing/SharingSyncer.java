@@ -13,9 +13,7 @@ import org.rmatil.sync.core.syncer.sharing.event.ShareEvent;
 import org.rmatil.sync.core.syncer.sharing.event.UnshareEvent;
 import org.rmatil.sync.network.api.IClient;
 import org.rmatil.sync.network.api.IClientManager;
-import org.rmatil.sync.network.api.IUser;
 import org.rmatil.sync.network.core.model.ClientLocation;
-import org.rmatil.sync.network.core.model.User;
 import org.rmatil.sync.persistence.api.IPathElement;
 import org.rmatil.sync.persistence.api.IStorageAdapter;
 import org.rmatil.sync.persistence.api.StorageType;
@@ -30,7 +28,6 @@ import org.slf4j.LoggerFactory;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -125,7 +122,6 @@ public class SharingSyncer implements ISharingSyncer {
             logger.error(msg);
             throw new SharingFailedException(msg);
         }
-
 
         // own clients did update their object store too, so we can now notify one client of the sharer
         ClientLocation sharerLocation = this.getClientLocationFromSharer(sharingEvent.getUsernameToShareWith());
@@ -276,15 +272,17 @@ public class SharingSyncer implements ISharingSyncer {
      */
     public String getRelativePathToSharedFolder(String relativeFilePath, String username, AccessType accessType)
             throws InputOutputException {
-        // look up if there is any parent directory which is also shared with the given path.
+        // look up if there is any direct parent directory which is also shared with the given path.
         // if so, then we "add" the given file to that directory, resolving the path relatively to that one
 
+        Path origPath = Paths.get(relativeFilePath);
         Path path = Paths.get(relativeFilePath);
 
-        while (! relativeFilePath.isEmpty()) {
-            Path subPath = path.subpath(0, path.getNameCount());
-
+        int pathCtr = path.getNameCount() - 1;
+        while (pathCtr > 1) {
+            Path subPath = path.subpath(0, pathCtr);
             IPathElement subPathElement = new LocalPathElement(subPath.toString());
+
             if (this.storageAdapter.exists(StorageType.DIRECTORY, subPathElement) ||
                     this.storageAdapter.exists(StorageType.FILE, subPathElement)) {
                 // check whether the parent is shared
@@ -292,7 +290,7 @@ public class SharingSyncer implements ISharingSyncer {
 
 
                 if (! parentObject.isShared()) {
-                    // parent is not shared at all (or a different access type is present)
+                    // parent is not shared at all
                     break;
                 } else {
                     // now check if there is a sharer present for the given username and access type
@@ -310,16 +308,25 @@ public class SharingSyncer implements ISharingSyncer {
                 }
 
                 // there is a parent which is also shared with the given user
-                path = subPath;
+                if (subPath.getNameCount() == 1) {
+                    // we tested the most upper path, so we can break safely here
+                    // -> actually prevent an IllegalArgumentException for subpath
+                    break;
+                } else {
+                    pathCtr--;
+                }
             }
         }
 
         // once we get there, path contains the most upper path which is also shared with the given sharer.
         // Therefore, we can resolve the given relativePath to the most upper one, and will then get
         // the path in the shared folder
-        Path relativisedPath = path.relativize(Paths.get(relativeFilePath));
-
-        return relativisedPath.toString();
+        if (relativeFilePath.equals(path.toString())) {
+            // do not relativize the top level path
+            return relativeFilePath;
+        } else {
+            return origPath.subpath(pathCtr, origPath.getNameCount() - 1).toString();
+        }
     }
 
     /**
@@ -331,10 +338,9 @@ public class SharingSyncer implements ISharingSyncer {
      */
     public ClientLocation getClientLocationFromSharer(String sharer)
             throws SharingFailedException {
-        IUser otherUser = new User(sharer, "", "", null, null, new ArrayList<>());
         List<ClientLocation> otherClientsLocations;
         try {
-            otherClientsLocations = this.clientManager.getClientLocations(otherUser);
+            otherClientsLocations = this.clientManager.getClientLocations(sharer);
         } catch (InputOutputException e) {
             logger.error("Could not fetch locations from " + sharer + ". Message: " + e.getMessage(), e);
             throw new SharingFailedException("Could not fetch locations from user " + sharer + ". Error: " + e.getMessage());
