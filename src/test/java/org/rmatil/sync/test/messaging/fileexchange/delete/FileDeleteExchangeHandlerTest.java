@@ -62,7 +62,7 @@ public class FileDeleteExchangeHandlerTest extends BaseNetworkHandlerTest {
                 CLIENT_1,
                 OBJECT_STORE_1,
                 GLOBAL_EVENT_BUS_1,
-                CLIENT_LOCATIONS,
+                CLIENT_LOCATIONS_1,
                 deleteEvent
         );
 

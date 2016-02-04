@@ -51,7 +51,7 @@ public class FilePushExchangeHandlerTest extends BaseNetworkHandlerTest {
                 CLIENT_MANAGER_1,
                 CLIENT_1,
                 OBJECT_STORE_1,
-                CLIENT_LOCATIONS,
+                CLIENT_LOCATIONS_1,
                 TEST_FILE_1.toString()
         );
 
@@ -89,7 +89,7 @@ public class FilePushExchangeHandlerTest extends BaseNetworkHandlerTest {
                 CLIENT_MANAGER_1,
                 CLIENT_1,
                 OBJECT_STORE_1,
-                CLIENT_LOCATIONS,
+                CLIENT_LOCATIONS_1,
                 TEST_DIR_2.toString()
         );
 
@@ -123,7 +123,7 @@ public class FilePushExchangeHandlerTest extends BaseNetworkHandlerTest {
                 CLIENT_MANAGER_1,
                 CLIENT_1,
                 OBJECT_STORE_1,
-                CLIENT_LOCATIONS,
+                CLIENT_LOCATIONS_1,
                 TEST_FILE_1.toString()
         );
 

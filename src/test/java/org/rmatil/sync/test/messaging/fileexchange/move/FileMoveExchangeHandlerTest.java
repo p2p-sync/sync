@@ -80,7 +80,7 @@ public class FileMoveExchangeHandlerTest extends BaseNetworkHandlerTest {
                 CLIENT_MANAGER_1,
                 CLIENT_1,
                 GLOBAL_EVENT_BUS_1,
-                CLIENT_LOCATIONS,
+                CLIENT_LOCATIONS_1,
                 moveEvent
         );
 
@@ -135,7 +135,7 @@ public class FileMoveExchangeHandlerTest extends BaseNetworkHandlerTest {
                 CLIENT_MANAGER_1,
                 CLIENT_1,
                 GLOBAL_EVENT_BUS_1,
-                CLIENT_LOCATIONS,
+                CLIENT_LOCATIONS_1,
                 moveEvent
         );
 

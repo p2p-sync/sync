@@ -12,6 +12,7 @@ import org.rmatil.sync.core.exception.InitializationException;
 import org.rmatil.sync.core.init.client.ClientInitializer;
 import org.rmatil.sync.core.init.client.LocalStateObjectDataReplyHandler;
 import org.rmatil.sync.core.init.eventaggregator.EventAggregatorInitializer;
+import org.rmatil.sync.core.init.objecstore.ObjectStoreFileChangeListener;
 import org.rmatil.sync.core.messaging.fileexchange.delete.FileDeleteRequest;
 import org.rmatil.sync.core.messaging.fileexchange.delete.FileDeleteRequestHandler;
 import org.rmatil.sync.core.messaging.fileexchange.demand.FileDemandRequest;
@@ -117,7 +118,7 @@ public abstract class BaseNetworkHandlerTest extends BaseTest {
     protected static IClientManager CLIENT_MANAGER_1;
     protected static IClientManager CLIENT_MANAGER_2;
 
-    protected static List<ClientLocation> CLIENT_LOCATIONS;
+    protected static List<ClientLocation> CLIENT_LOCATIONS_1;
 
     @BeforeClass
     public static void setUp()
@@ -144,7 +145,6 @@ public abstract class BaseNetworkHandlerTest extends BaseTest {
         STORAGE_ADAPTER_1 = new LocalStorageAdapter(ROOT_TEST_DIR1);
         STORAGE_ADAPTER_2 = new LocalStorageAdapter(ROOT_TEST_DIR2);
 
-
         OBJECT_STORE_1 = createObjectStore(ROOT_TEST_DIR1);
         OBJECT_STORE_2 = createObjectStore(ROOT_TEST_DIR2);
 
@@ -164,14 +164,20 @@ public abstract class BaseNetworkHandlerTest extends BaseTest {
         FILE_SYNCER_1 = createFileSyncer(CLIENT_1, DHT_STORAGE_ADAPTER_1, ROOT_TEST_DIR1, OBJECT_STORE_1, GLOBAL_EVENT_BUS_1);
         FILE_SYNCER_2 = createFileSyncer(CLIENT_2, DHT_STORAGE_ADAPTER_2, ROOT_TEST_DIR2, OBJECT_STORE_2, GLOBAL_EVENT_BUS_2);
 
+        GLOBAL_EVENT_BUS_1.subscribe(FILE_SYNCER_1);
+        GLOBAL_EVENT_BUS_2.subscribe(FILE_SYNCER_2);
+
         // Note: start the event aggregator manually in the subclasses
         EVENT_AGGREGATOR_1 = createEventAggregator(ROOT_TEST_DIR1, OBJECT_STORE_1, FILE_SYNCER_1, GLOBAL_EVENT_BUS_1);
         EVENT_AGGREGATOR_2 = createEventAggregator(ROOT_TEST_DIR2, OBJECT_STORE_2, FILE_SYNCER_2, GLOBAL_EVENT_BUS_2);
 
+        EVENT_AGGREGATOR_1.addListener(new ObjectStoreFileChangeListener(OBJECT_STORE_1));
+        EVENT_AGGREGATOR_2.addListener(new ObjectStoreFileChangeListener(OBJECT_STORE_2));
+
         CLIENT_DEVICE_1 = new ClientDevice(USERNAME, CLIENT_ID_1, CLIENT_1.getPeerAddress());
         CLIENT_DEVICE_2 = new ClientDevice(USERNAME, CLIENT_ID_2, CLIENT_2.getPeerAddress());
 
-        CLIENT_LOCATIONS = CLIENT_MANAGER_2.getClientLocations(USER_1);
+        CLIENT_LOCATIONS_1 = CLIENT_MANAGER_2.getClientLocations(USER_1);
     }
 
     @AfterClass
@@ -206,7 +212,7 @@ public abstract class BaseNetworkHandlerTest extends BaseTest {
      *
      * @return The global event bus to use
      */
-    private static MBassador<IBusEvent> createGlobalEventBus() {
+    protected static MBassador<IBusEvent> createGlobalEventBus() {
         // Use feature driven configuration to have more control over the configuration details
         return new MBassador<>(new BusConfiguration()
                 .addFeature(Feature.SyncPubSub.Default())
@@ -285,7 +291,7 @@ public abstract class BaseNetworkHandlerTest extends BaseTest {
         objectDataReplyHandler.addRequestCallbackHandler(UnsharedRequest.class, UnsharedRequestHandler.class);
 
 
-        ClientInitializer clientInitializer = new ClientInitializer(objectDataReplyHandler, USER_1, port, bootstrapLocation);
+        ClientInitializer clientInitializer = new ClientInitializer(objectDataReplyHandler, user, port, bootstrapLocation);
         client = clientInitializer.init();
         clientInitializer.start();
 
@@ -301,7 +307,7 @@ public abstract class BaseNetworkHandlerTest extends BaseTest {
      *
      * @return The created storage adapter
      */
-    private static DhtStorageAdapter createDhtStorageAdapter(IClient client) {
+    protected static DhtStorageAdapter createDhtStorageAdapter(IClient client) {
         return new DhtStorageAdapter(client.getPeerDht());
     }
 
@@ -316,7 +322,7 @@ public abstract class BaseNetworkHandlerTest extends BaseTest {
      *
      * @return The created file syncer
      */
-    private static FileSyncer createFileSyncer(IClient client, DhtStorageAdapter dhtStorageAdapter, Path rootPath, IObjectStore objectStore, MBassador<IBusEvent> globalEventBus) {
+    protected static FileSyncer createFileSyncer(IClient client, DhtStorageAdapter dhtStorageAdapter, Path rootPath, IObjectStore objectStore, MBassador<IBusEvent> globalEventBus) {
         FileSyncer fileSyncer = new FileSyncer(
                 client.getUser(),
                 client,
@@ -348,7 +354,7 @@ public abstract class BaseNetworkHandlerTest extends BaseTest {
      *
      * @return The started event aggregator
      */
-    private static IEventAggregator createEventAggregator(Path rootPath, IObjectStore objectStore, FileSyncer fileSyncer, MBassador<IBusEvent> globalEventBus) {
+    protected static IEventAggregator createEventAggregator(Path rootPath, IObjectStore objectStore, FileSyncer fileSyncer, MBassador<IBusEvent> globalEventBus) {
         // Add sync file change listener to event aggregator
         SyncFileChangeListener syncFileChangeListener = new SyncFileChangeListener(fileSyncer);
         ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor();
@@ -382,7 +388,7 @@ public abstract class BaseNetworkHandlerTest extends BaseTest {
      *
      * @return The client manager
      */
-    private static IClientManager createClientManager(DhtStorageAdapter dhtStorageAdapter) {
+    protected static IClientManager createClientManager(DhtStorageAdapter dhtStorageAdapter) {
         return new ClientManager(
                 dhtStorageAdapter,
                 org.rmatil.sync.network.config.Config.IPv4.getLocationsContentKey(),
