@@ -154,7 +154,7 @@ public class FilePushRequestHandler implements ILocalStateRequestCallback {
                         // -> indicate we got all chunks
                         requestingChunk = - 1;
                     } else {
-                        logger.info("Checksums do not match. Restarting to push file for exchange " + this.request.getExchangeId());
+                        logger.info("Checksums do not match (local: " + checksum + "/request:" + this.request.getChecksum() + "). Restarting to push file for exchange " + this.request.getExchangeId());
                         // restart to fetch the whole file
                         requestingChunk = 0;
 
