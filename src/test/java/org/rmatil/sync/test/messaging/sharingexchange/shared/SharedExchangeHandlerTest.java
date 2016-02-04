@@ -62,7 +62,10 @@ public class SharedExchangeHandlerTest extends BaseNetworkHandlerTest {
 
         CLIENT_1.getObjectDataReplyHandler().removeResponseCallbackHandler(EXCHANGE_ID);
 
-        assertTrue("ShareExchangeHandler should be completed after awaiting", sharedExchangeHandler.isCompleted());
+        assertTrue("SharedExchangeHandler should be completed after awaiting", sharedExchangeHandler.isCompleted());
+
+        assertNotNull("SharedExchangeHandlerResult should not be null", sharedExchangeHandler.getResult());
+        assertTrue("All clients should have accepted the sharedRequest", sharedExchangeHandler.getResult().hasAccepted());
 
         PathObject sharedObject1 = OBJECT_STORE_1.getObjectManager().getObjectForPath(TEST_DIR_1.toString());
 
