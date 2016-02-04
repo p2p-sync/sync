@@ -109,117 +109,124 @@ public class FileOfferExchangeHandler extends ANetworkHandler<FileOfferExchangeH
 
     @Override
     public void run() {
-        String pathToCheck = this.eventToPropagate.getEventName().equals(MoveEvent.EVENT_NAME) ? ((MoveEvent) this.eventToPropagate).getNewPath().toString() : this.eventToPropagate.getPath().toString();
-
-        boolean isDir = false;
         try {
-            isDir = this.storageAdapter.isDir(new LocalPathElement(pathToCheck));
-        } catch (InputOutputException e) {
-            logger.error("Could not check whether the file " + pathToCheck + " is a file or directory");
-        }
+            String pathToCheck = this.eventToPropagate.getEventName().equals(MoveEvent.EVENT_NAME) ? ((MoveEvent) this.eventToPropagate).getNewPath().toString() : this.eventToPropagate.getPath().toString();
 
-        // since this sync is triggered by a move, the actual operation is already
-        // done on this client, therefore we traverse the dir on the new path
-        if (isDir && this.eventToPropagate instanceof MoveEvent) {
-            // we only offer the move event from the "root" directory
-            Path dirToMove = this.storageAdapter.getRootDir().resolve(((MoveEvent) this.eventToPropagate).getNewPath());
-            try (Stream<Path> paths = Files.walk(dirToMove)) {
-                paths.forEach((entry) -> {
-                    // do not use toAbsolutePath() since we could have also paths starting with "./myDir"
-                    Path relPath = this.storageAdapter.getRootDir().relativize(entry);
-                    Path oldPath = this.eventToPropagate.getPath().resolve(((MoveEvent) this.eventToPropagate).getNewPath().relativize(relPath));
+            boolean isDir = false;
+            try {
+                isDir = this.storageAdapter.isDir(new LocalPathElement(pathToCheck));
+            } catch (InputOutputException e) {
+                logger.error("Could not check whether the file " + pathToCheck + " is a file or directory");
+            }
 
-                    // move also file id
+            // since this sync is triggered by a move, the actual operation is already
+            // done on this client, therefore we traverse the dir on the new path
+            if (isDir && this.eventToPropagate instanceof MoveEvent) {
+                // we only offer the move event from the "root" directory
+                Path dirToMove = this.storageAdapter.getRootDir().resolve(((MoveEvent) this.eventToPropagate).getNewPath());
+                try (Stream<Path> paths = Files.walk(dirToMove)) {
+                    paths.forEach((entry) -> {
+                        // do not use toAbsolutePath() since we could have also paths starting with "./myDir"
+                        Path relPath = this.storageAdapter.getRootDir().relativize(entry);
+                        Path oldPath = this.eventToPropagate.getPath().resolve(((MoveEvent) this.eventToPropagate).getNewPath().relativize(relPath));
+
+                        // move also file id
+                        try {
+                            UUID fileId = this.client.getIdentifierManager().getValue(oldPath.toString());
+                            this.client.getIdentifierManager().addIdentifier(relPath.toString(), fileId);
+                            this.client.getIdentifierManager().removeIdentifier(oldPath.toString());
+                        } catch (InputOutputException e) {
+                            logger.error("Failed to move file id for file " + oldPath.toString() + ". Message: " + e.getMessage(), e);
+                        }
+
+                        globalEventBus.publish(new IgnoreBusEvent(
+                                new MoveEvent(
+                                        oldPath,
+                                        relPath,
+                                        entry.getFileName().toString(),
+                                        "weIgnoreTheHash",
+                                        System.currentTimeMillis()
+                                )
+                        ));
+                    });
+                } catch (IOException e) {
+                    logger.error("Could not create ignore events for moving " + this.eventToPropagate.getPath().toString() + " to " + ((MoveEvent) this.eventToPropagate).getNewPath().toString() + ". Message: " + e.getMessage());
+                }
+            }
+
+            // Fetch client locations from the DHT
+            List<ClientLocation> clientLocations;
+            try {
+                clientLocations = this.clientManager.getClientLocations(super.client.getUser());
+            } catch (InputOutputException e) {
+                logger.error("Could not fetch client locations from user " + super.client.getUser().getUserName() + ". Message: " + e.getMessage());
+                return;
+            }
+
+            PathObject pathObject;
+
+            try {
+                pathObject = this.objectStore.getObjectManager().getObjectForPath(pathToCheck);
+            } catch (InputOutputException e) {
+                logger.error("Can not read path object from object store. Message: " + e.getMessage() + ". Aborting file offer exchange " + this.exchangeId);
+                return;
+            }
+
+
+            if (pathObject.isShared()) {
+                // send changes back to owner too, if we have write access
+                // and the owner is not the user from this client
+                if (! this.client.getUser().getUserName().equals(pathObject.getOwner()) && AccessType.WRITE.equals(pathObject.getAccessType())) {
+                    // we got write permissions, so we send the changes also back to the original owner of the file
                     try {
-                        UUID fileId = this.client.getIdentifierManager().getValue(oldPath.toString());
-                        this.client.getIdentifierManager().addIdentifier(relPath.toString(), fileId);
-                        this.client.getIdentifierManager().removeIdentifier(oldPath.toString());
+                        clientLocations.addAll(this.clientManager.getClientLocations(pathObject.getOwner()));
                     } catch (InputOutputException e) {
-                        logger.error("Failed to move file id for file " + oldPath.toString() + ". Message: " + e.getMessage(), e);
+                        logger.error("Could not fetch client locations of owner " + pathObject.getOwner() + " for file " + pathObject.getAbsolutePath() + ". Will therefore skip to notify his clients.");
+                    }
+                }
+
+                for (Sharer entry : pathObject.getSharers()) {
+                    try {
+                        // ask sharer's clients to get the changes too
+                        List<ClientLocation> sharerLocations = this.clientManager.getClientLocations(entry.getUsername());
+
+                        // only add one client of the sharer. He may propagate the change then
+                        // to his clients, and if a conflict occurs, there will be a new file
+                        if (! sharerLocations.isEmpty()) {
+                            clientLocations.add(sharerLocations.get(0));
+                        }
+                    } catch (InputOutputException e) {
+                        logger.error("Could not get client locations of sharer " + entry.getUsername() + ". Skipping this sharer's clients");
+                    }
+                }
+            }
+
+            Version versionBefore = null;
+            // we check versions only for files
+            if (! isDir) {
+                // get version before the one we got from the event to propagate
+                for (Version entry : pathObject.getVersions()) {
+                    if (entry.getHash().equals(this.eventToPropagate.getHash())) {
+                        // versionBefore contains now the version before this element
+                        break;
                     }
 
-                    globalEventBus.publish(new IgnoreBusEvent(
-                            new MoveEvent(
-                                    oldPath,
-                                    relPath,
-                                    entry.getFileName().toString(),
-                                    "weIgnoreTheHash",
-                                    System.currentTimeMillis()
-                            )
-                    ));
-                });
-            } catch (IOException e) {
-                logger.error("Could not create ignore events for moving " + this.eventToPropagate.getPath().toString() + " to " + ((MoveEvent) this.eventToPropagate).getNewPath().toString() + ". Message: " + e.getMessage());
-            }
-        }
-
-        // Fetch client locations from the DHT
-        List<ClientLocation> clientLocations;
-        try {
-            clientLocations = this.clientManager.getClientLocations(super.client.getUser());
-        } catch (InputOutputException e) {
-            logger.error("Could not fetch client locations from user " + super.client.getUser().getUserName() + ". Message: " + e.getMessage());
-            return;
-        }
-
-        PathObject pathObject;
-
-        try {
-            pathObject = this.objectStore.getObjectManager().getObjectForPath(pathToCheck);
-        } catch (InputOutputException e) {
-            logger.error("Can not read path object from object store. Message: " + e.getMessage() + ". Aborting file offer exchange " + this.exchangeId);
-            return;
-        }
-
-        // send changes back to owner too, if we have write access
-        // and the owner is not the user from this client
-        if (! this.client.getUser().getUserName().equals(pathObject.getOwner()) && AccessType.WRITE.equals(pathObject.getAccessType())) {
-            // we got write permissions, so we send the changes also back to the original owner of the file
-            try {
-                clientLocations.addAll(this.clientManager.getClientLocations(pathObject.getOwner()));
-            } catch (InputOutputException e) {
-                logger.error("Could not fetch client locations of owner " + pathObject.getOwner() + " for file " + pathObject.getAbsolutePath() + ". Will therefore skip to notify his clients.");
-            }
-        }
-
-        for (Sharer entry : pathObject.getSharers()) {
-            try {
-                // ask sharer's clients to get the changes too
-                List<ClientLocation> sharerLocations = this.clientManager.getClientLocations(entry.getUsername());
-
-                // only add one client of the sharer. He may propagate the change then
-                // to his clients, and if a conflict occurs, there will be a new file
-                if (! sharerLocations.isEmpty()) {
-                    clientLocations.add(sharerLocations.get(0));
+                    versionBefore = entry;
                 }
-            } catch (InputOutputException e) {
-                logger.error("Could not get client locations of sharer " + entry.getUsername() + ". Skipping this sharer's clients");
             }
+
+            IRequest request = new FileOfferRequest(
+                    this.exchangeId,
+                    StatusCode.NONE,
+                    this.clientDevice,
+                    SerializableEvent.fromEvent(this.eventToPropagate, (null != versionBefore) ? versionBefore.getHash() : null, ! isDir),
+                    clientLocations
+            );
+
+            super.sendRequest(request);
+        } catch (Exception e) {
+            logger.error("Got exception in FileOfferExchangeHandler for exchange " + this.exchangeId + ". Message: " + e.getMessage(), e);
         }
-
-        Version versionBefore = null;
-        // we check versions only for files
-        if (! isDir) {
-            // get version before the one we got from the event to propagate
-            for (Version entry : pathObject.getVersions()) {
-                if (entry.getHash().equals(this.eventToPropagate.getHash())) {
-                    // versionBefore contains now the version before this element
-                    break;
-                }
-
-                versionBefore = entry;
-            }
-        }
-
-        IRequest request = new FileOfferRequest(
-                this.exchangeId,
-                StatusCode.NONE,
-                this.clientDevice,
-                SerializableEvent.fromEvent(this.eventToPropagate, (null != versionBefore) ? versionBefore.getHash() : null, ! isDir),
-                clientLocations
-        );
-
-        super.sendRequest(request);
     }
 
     @Override
