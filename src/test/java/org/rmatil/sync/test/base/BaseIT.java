@@ -124,8 +124,6 @@ public class BaseIT extends BaseNetworkHandlerTest {
 
     @AfterClass
     public static void tearDownIT() {
-        BaseNetworkHandlerTest.tearDown();
-
         EVENT_AGGREGATOR_3.stop();
         EVENT_AGGREGATOR_4.stop();
 
@@ -142,8 +140,6 @@ public class BaseIT extends BaseNetworkHandlerTest {
      */
     protected static void createTestDirs()
             throws IOException {
-        BaseTest.createTestDirs();
-
         if (! ROOT_TEST_DIR3.toFile().exists()) {
             Files.createDirectory(ROOT_TEST_DIR3);
         }
@@ -160,8 +156,6 @@ public class BaseIT extends BaseNetworkHandlerTest {
      */
     protected static void createObjectStoreDirs()
             throws IOException {
-        BaseTest.createObjectStoreDirs();
-
         Path syncFolder3 = ROOT_TEST_DIR3.resolve(SYNC_FOLDER_NAME);
         Path syncFolder4 = ROOT_TEST_DIR4.resolve(SYNC_FOLDER_NAME);
 
@@ -178,8 +172,6 @@ public class BaseIT extends BaseNetworkHandlerTest {
      * Deletes the test directories and all contents in them
      */
     protected static void deleteTestDirs() {
-        BaseNetworkHandlerTest.deleteTestDirs();
-
         if (ROOT_TEST_DIR3.toFile().exists()) {
             delete(ROOT_TEST_DIR3.toFile());
         }
