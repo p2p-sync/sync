@@ -15,6 +15,16 @@ public enum Config {
     protected String testRootDir2 = "./org.rmatil.sync.test.dir2";
 
     /**
+     * The root dir for the 3rd client
+     */
+    protected String testRootDir3 = "./org.rmatil.sync.test.dir3";
+
+    /**
+     * The root dir for the 4th client
+     */
+    protected String testRootDir4 = "./org.rmatil.sync.test.dir4";
+
+    /**
      * The username of the user
      */
     protected String username = "Quiche Hollandaise";
@@ -69,12 +79,30 @@ public enum Config {
      */
     protected int port2 = 4004;
 
+    /**
+     * The port for the client 3
+     */
+    protected int port3 = 4005;
+
+    /**
+     * The port for the client 4
+     */
+    protected int port4 = 4006;
+
     public String getTestRootDir1() {
         return testRootDir1;
     }
 
     public String getTestRootDir2() {
         return testRootDir2;
+    }
+
+    public String getTestRootDir3() {
+        return testRootDir3;
+    }
+
+    public String getTestRootDir4() {
+        return testRootDir4;
     }
 
     public String getUsername() {
@@ -119,5 +147,13 @@ public enum Config {
 
     public int getPort2() {
         return port2;
+    }
+
+    public int getPort3() {
+        return port3;
+    }
+
+    public int getPort4() {
+        return port4;
     }
 }
