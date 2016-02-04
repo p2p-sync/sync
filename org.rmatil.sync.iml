@@ -9,6 +9,8 @@
       <sourceFolder url="file://$MODULE_DIR$/src/test/java" isTestSource="true" />
       <excludeFolder url="file://$MODULE_DIR$/org.rmatil.sync.test.dir1" />
       <excludeFolder url="file://$MODULE_DIR$/org.rmatil.sync.test.dir2" />
+      <excludeFolder url="file://$MODULE_DIR$/org.rmatil.sync.test.dir3" />
+      <excludeFolder url="file://$MODULE_DIR$/org.rmatil.sync.test.dir4" />
       <excludeFolder url="file://$MODULE_DIR$/target" />
     </content>
     <orderEntry type="inheritedJdk" />
