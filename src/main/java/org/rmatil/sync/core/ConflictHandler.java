@@ -42,6 +42,7 @@ public class ConflictHandler {
      * @param pathElement         The path element for which to create a conflict file
      */
     public static Path createConflictFile(MBassador<IBusEvent> globalEventBus, String conflictFilePostfix, IObjectStore objectStore, IStorageAdapter storageAdapter, IPathElement pathElement) {
+        logger.info("Creating conflict file for file " + pathElement.getPath());
         PathObject pathObject;
         try {
             pathObject = objectStore.getObjectManager().getObjectForPath(pathElement.getPath());

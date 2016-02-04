@@ -96,7 +96,7 @@ public class FileSyncer implements IFileSyncer {
                 if (eventToCheck.getEventName().equals(event.getEventName()) &&
                         eventToCheck.getPath().toString().equals(event.getPath().toString())) {
 
-                    logger.info("Ignoring syncing of event " + event.getEventName() + " for path " + event.getPath().toString());
+                    logger.info("Ignoring syncing of event " + event.getEventName() + " for path " + event.getPath().toString() + " on client " + this.client.getPeerAddress().inetAddress().getHostName() + ":" + this.client.getPeerAddress().tcpPort() + ")");
                     this.eventsToIgnore.remove(event);
                     return;
                 }
@@ -108,7 +108,7 @@ public class FileSyncer implements IFileSyncer {
             // a move of a directory.
             try {
                 if (this.storageAdapter.isDir(new LocalPathElement(event.getPath().toString()))) {
-                    logger.info("Skipping received modified event for directory " + event.getPath().toString());
+                    logger.info("Skipping received modified event for directory " + event.getPath().toString() + " on client " + this.client.getPeerAddress().inetAddress().getHostName() + ":" + this.client.getPeerAddress().tcpPort() + ")");
                     return;
                 }
             } catch (InputOutputException e) {
@@ -116,7 +116,7 @@ public class FileSyncer implements IFileSyncer {
             }
         }
 
-        logger.debug("Syncing event " + event.getEventName() + " for path " + event.getPath().toString());
+        logger.debug("Syncing event " + event.getEventName() + " for path " + event.getPath().toString() + " on client " + this.client.getPeerAddress().inetAddress().getHostName() + ":" + this.client.getPeerAddress().tcpPort() + ")");
 
         UUID fileExchangeId = UUID.randomUUID();
 

@@ -281,6 +281,7 @@ public class FileOfferRequestHandler implements ILocalStateRequestCallback {
      * @param pathElement The path element for which to create a conflict file
      */
     protected void createConflictFile(LocalPathElement pathElement) {
+        logger.info("Creating conflict file for file " + pathElement.getPath());
         PathObject pathObject;
         try {
             pathObject = this.objectStore.getObjectManager().getObjectForPath(pathElement.getPath());

@@ -116,7 +116,7 @@ public class FileOfferExchangeHandler extends ANetworkHandler<FileOfferExchangeH
             try {
                 isDir = this.storageAdapter.isDir(new LocalPathElement(pathToCheck));
             } catch (InputOutputException e) {
-                logger.error("Could not check whether the file " + pathToCheck + " is a file or directory");
+                logger.error("Could not check whether the file " + pathToCheck + " is a file or directory for exchange " + this.exchangeId);
             }
 
             // since this sync is triggered by a move, the actual operation is already
