@@ -4,16 +4,13 @@ import net.engio.mbassy.bus.MBassador;
 import org.rmatil.sync.commons.hashing.Hash;
 import org.rmatil.sync.commons.path.Naming;
 import org.rmatil.sync.core.config.Config;
-import org.rmatil.sync.core.eventbus.CreateBusEvent;
 import org.rmatil.sync.core.eventbus.IBusEvent;
-import org.rmatil.sync.core.eventbus.IgnoreBusEvent;
 import org.rmatil.sync.core.eventbus.IgnoreObjectStoreUpdateBusEvent;
 import org.rmatil.sync.core.init.client.ILocalStateRequestCallback;
 import org.rmatil.sync.core.messaging.StatusCode;
 import org.rmatil.sync.core.security.IAccessManager;
 import org.rmatil.sync.event.aggregator.core.events.CreateEvent;
 import org.rmatil.sync.event.aggregator.core.events.IEvent;
-import org.rmatil.sync.event.aggregator.core.events.ModifyEvent;
 import org.rmatil.sync.network.api.IClient;
 import org.rmatil.sync.network.api.IRequest;
 import org.rmatil.sync.network.api.IResponse;
@@ -154,8 +151,12 @@ public class ShareRequestHandler implements ILocalStateRequestCallback {
                         System.currentTimeMillis()
                 );
 
-                // ignore syncing of file event
-                this.globalEventBus.publish(new IgnoreBusEvent(createEvent));
+                // since we may not know, when exactly the fileSyncer
+                // will pick this event up. If we are ignoring it,
+                // then the first create event is ignored. If now the EventAggregator
+                // did not yet receive a create event from the filesystem, we lose
+                // the creation due to the first ignore event
+
                 // ignore updating of the object store since we created the entry manually...
                 this.globalEventBus.publish(new IgnoreObjectStoreUpdateBusEvent(createEvent));
 
@@ -175,27 +176,15 @@ public class ShareRequestHandler implements ILocalStateRequestCallback {
                     // file being larger than expected after the change
                     this.storageAdapter.persist(storageType, pathElement, new byte[0]);
 
-                    IEvent modifyEvent = new ModifyEvent(
-                            Paths.get(pathObject.getAbsolutePath()),
-                            Paths.get(pathObject.getAbsolutePath()).getFileName().toString(),
-                            "weIgnoreTheHash",
-                            System.currentTimeMillis()
-                    );
-
-                    // ignore syncing of file event
-                    this.globalEventBus.publish(new IgnoreBusEvent(modifyEvent));
+                    // since we may not know, when exactly the fileSyncer
+                    // will pick this event up. If we are ignoring it,
+                    // then the first create event is ignored. If now the EventAggregator
+                    // did not yet receive a create event from the filesystem, we lose
+                    // the creation due to the first ignore event
                 }
+
+                // we do not ignore the modify event
             }
-
-            IEvent modifyEvent = new ModifyEvent(
-                    Paths.get(pathObject.getAbsolutePath()),
-                    Paths.get(pathObject.getAbsolutePath()).getFileName().toString(),
-                    "weIgnoreTheHash",
-                    System.currentTimeMillis()
-            );
-
-            // ignore syncing of file event
-            this.globalEventBus.publish(new IgnoreBusEvent(modifyEvent));
 
             // now actually write the file
             if (this.request.isFile()) {
@@ -235,33 +224,26 @@ public class ShareRequestHandler implements ILocalStateRequestCallback {
 
                         // once we completed the file transfer, we can create the hash
                         // and omit a CreateEvent to propagate the new file to all other own clients
+
                         String hash = Hash.hash(
                                 org.rmatil.sync.event.aggregator.config.Config.DEFAULT.getHashingAlgorithm(),
-                                this.storageAdapter.read(pathElement)
+                                this.storageAdapter.getRootDir().resolve(pathElement.getPath()).toFile()
                         );
+                        pathObject.getVersions().clear(); // first clear all versions again, we have written before
                         pathObject.getVersions().add(new Version(hash));
 
                         // now write the updated path object
                         this.objectStore.getObjectManager().writeObject(pathObject);
-                        // omit a file create event to the file syncer
-                        this.globalEventBus.publish(
-                                new CreateBusEvent(
-                                        new CreateEvent(
-                                                Paths.get(pathElement.getPath()),
-                                                Paths.get(pathElement.getPath()).getFileName().toString(),
-                                                "weIgnoreTheHash",
-                                                System.currentTimeMillis()
-                                        )
-                                )
-                        );
+
+                        // we did not ignore the create event, therefore
+                        // no need to emit a new one
 
                     } else {
                         logger.info("Checksums do not match. Restarting share exchange " + this.request.getExchangeId());
                         // restart to fetch the whole file
                         requestingChunk = 0;
 
-                        // ignore again the syncing of the reset
-                        this.globalEventBus.publish(new IgnoreBusEvent(modifyEvent));
+                        // we do not ignore the modify event
 
                         this.storageAdapter.persist(storageType, pathElement, new byte[0]);
                     }

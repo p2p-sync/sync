@@ -4,9 +4,7 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.rmatil.sync.core.config.Config;
-import org.rmatil.sync.core.eventbus.CreateBusEvent;
 import org.rmatil.sync.core.eventbus.IBusEvent;
-import org.rmatil.sync.core.eventbus.IgnoreBusEvent;
 import org.rmatil.sync.core.eventbus.IgnoreObjectStoreUpdateBusEvent;
 import org.rmatil.sync.core.messaging.sharingexchange.share.ShareExchangeHandler;
 import org.rmatil.sync.core.messaging.sharingexchange.share.ShareExchangeHandlerResult;
@@ -15,7 +13,6 @@ import org.rmatil.sync.core.messaging.sharingexchange.share.ShareRequestHandler;
 import org.rmatil.sync.core.model.RemoteClientLocation;
 import org.rmatil.sync.core.security.AccessManager;
 import org.rmatil.sync.event.aggregator.core.events.CreateEvent;
-import org.rmatil.sync.event.aggregator.core.events.ModifyEvent;
 import org.rmatil.sync.network.core.model.ClientLocation;
 import org.rmatil.sync.persistence.exceptions.InputOutputException;
 import org.rmatil.sync.test.messaging.base.BaseNetworkHandlerTest;
@@ -152,86 +149,20 @@ public class ShareExchangeHandlerTest extends BaseNetworkHandlerTest {
                 System.currentTimeMillis()
         );
 
-        IgnoreBusEvent expectedEvent0 = new IgnoreBusEvent(
-                createEvent
-        );
-
         IgnoreObjectStoreUpdateBusEvent expectedEvent1 = new IgnoreObjectStoreUpdateBusEvent(
                 createEvent
         );
 
-        IgnoreBusEvent expectedEvent2 = new IgnoreBusEvent(
-                new ModifyEvent(
-                        Paths.get(Config.DEFAULT.getSharedWithOthersReadWriteFolderName()).resolve(TEST_FILE_1.getFileName()),
-                        TEST_FILE_1.getFileName().toString(),
-                        "weIgnoreTheHash",
-                        System.currentTimeMillis()
-                )
-        );
-
-        IgnoreBusEvent expectedEvent3 = new IgnoreBusEvent(
-                new ModifyEvent(
-                        Paths.get(Config.DEFAULT.getSharedWithOthersReadWriteFolderName()).resolve(TEST_FILE_1.getFileName()),
-                        TEST_FILE_1.getFileName().toString(),
-                        "weIgnoreTheHash",
-                        System.currentTimeMillis()
-                )
-        );
-
-        IgnoreBusEvent expectedEvent4 = new IgnoreBusEvent(
-                new ModifyEvent(
-                        Paths.get(Config.DEFAULT.getSharedWithOthersReadWriteFolderName()).resolve(TEST_FILE_1.getFileName()),
-                        TEST_FILE_1.getFileName().toString(),
-                        "weIgnoreTheHash",
-                        System.currentTimeMillis()
-                )
-        );
-
-        CreateBusEvent expectedEvent5 = new CreateBusEvent(
-                createEvent
-        );
-
-
         List<IBusEvent> listener2Events = EVENT_BUS_LISTENER_2.getReceivedBusEvents();
 
-        assertEquals("Listener should only contain all 6 events", 6, listener2Events.size());
+        assertEquals("Listener should only contain all 1 events", 1, listener2Events.size());
 
-        IBusEvent actualEvent0 = listener2Events.get(0);
-        IBusEvent actualEvent1 = listener2Events.get(1);
-        IBusEvent actualEvent2 = listener2Events.get(2);
-        IBusEvent actualEvent3 = listener2Events.get(3);
-        IBusEvent actualEvent4 = listener2Events.get(4);
-        IBusEvent actualEvent5 = listener2Events.get(5);
-
-        assertEquals("Expected create event", expectedEvent0.getEvent().getEventName(), actualEvent0.getEvent().getEventName());
-        assertEquals("Expected path for testFile1", expectedEvent0.getEvent().getPath().toString(), actualEvent0.getEvent().getPath().toString());
-        assertEquals("Expected name testFile1", expectedEvent0.getEvent().getName(), actualEvent0.getEvent().getName());
-        assertEquals("Expected different hash", expectedEvent0.getEvent().getHash(), actualEvent0.getEvent().getHash());
+        IBusEvent actualEvent1 = listener2Events.get(0);
 
         assertEquals("Expected create event", expectedEvent1.getEvent().getEventName(), actualEvent1.getEvent().getEventName());
         assertEquals("Expected path for testFile1", expectedEvent1.getEvent().getPath().toString(), actualEvent1.getEvent().getPath().toString());
         assertEquals("Expected name testFile1", expectedEvent1.getEvent().getName(), actualEvent1.getEvent().getName());
         assertEquals("Expected different hash", expectedEvent1.getEvent().getHash(), actualEvent1.getEvent().getHash());
-
-        assertEquals("Expected modify event", expectedEvent2.getEvent().getEventName(), actualEvent2.getEvent().getEventName());
-        assertEquals("Expected path for testFile1", expectedEvent2.getEvent().getPath().toString(), actualEvent2.getEvent().getPath().toString());
-        assertEquals("Expected name testFile1", expectedEvent2.getEvent().getName(), actualEvent2.getEvent().getName());
-        assertEquals("Expected different hash", expectedEvent2.getEvent().getHash(), actualEvent2.getEvent().getHash());
-
-        assertEquals("Expected modify event", expectedEvent3.getEvent().getEventName(), actualEvent3.getEvent().getEventName());
-        assertEquals("Expected path for testFile1", expectedEvent3.getEvent().getPath().toString(), actualEvent3.getEvent().getPath().toString());
-        assertEquals("Expected name testFile1", expectedEvent3.getEvent().getName(), actualEvent3.getEvent().getName());
-        assertEquals("Expected different hash", expectedEvent3.getEvent().getHash(), actualEvent3.getEvent().getHash());
-
-        assertEquals("Expected modify event", expectedEvent4.getEvent().getEventName(), actualEvent4.getEvent().getEventName());
-        assertEquals("Expected path for testFile1", expectedEvent4.getEvent().getPath().toString(), actualEvent4.getEvent().getPath().toString());
-        assertEquals("Expected name testFile1", expectedEvent4.getEvent().getName(), actualEvent4.getEvent().getName());
-        assertEquals("Expected different hash", expectedEvent4.getEvent().getHash(), actualEvent4.getEvent().getHash());
-
-        assertEquals("Expected create event", expectedEvent5.getEvent().getEventName(), actualEvent5.getEvent().getEventName());
-        assertEquals("Expected path for testFile1", expectedEvent5.getEvent().getPath().toString(), actualEvent5.getEvent().getPath().toString());
-        assertEquals("Expected name testFile1", expectedEvent5.getEvent().getName(), actualEvent5.getEvent().getName());
-        assertEquals("Expected different hash", expectedEvent5.getEvent().getHash(), actualEvent5.getEvent().getHash());
 
         // now check that the object store contains the sharer
         PathObject sharedObject = OBJECT_STORE_2.getObjectManager().getObjectForPath(Paths.get(Config.DEFAULT.getSharedWithOthersReadWriteFolderName()).resolve(TEST_FILE_1.getFileName()).toString());
