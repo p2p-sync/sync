@@ -3,8 +3,14 @@ package org.rmatil.sync.test.syncer.file;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.rmatil.sync.core.api.IShareEvent;
+import org.rmatil.sync.core.config.Config;
 import org.rmatil.sync.core.syncer.file.SyncFileChangeListener;
+import org.rmatil.sync.core.syncer.sharing.SharingSyncer;
+import org.rmatil.sync.core.syncer.sharing.event.ShareEvent;
+import org.rmatil.sync.persistence.exceptions.InputOutputException;
 import org.rmatil.sync.test.base.BaseIT;
+import org.rmatil.sync.version.api.AccessType;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -38,9 +44,16 @@ public class FileSyncerIT extends BaseIT {
 
     @BeforeClass
     public static void setUpChildIT()
-            throws IOException, InterruptedException {
+            throws IOException, InterruptedException, InputOutputException {
 
         FILE_CONTENT = createFileContent();
+        createSharingFolders();
+
+        // re-sync after creating sharing folders
+        OBJECT_STORE_1.sync(ROOT_TEST_DIR1.toFile());
+        OBJECT_STORE_2.sync(ROOT_TEST_DIR2.toFile());
+        OBJECT_STORE_3.sync(ROOT_TEST_DIR3.toFile());
+        OBJECT_STORE_4.sync(ROOT_TEST_DIR4.toFile());
 
         // start threads for all file syncer
         SyncFileChangeListener syncFileChangeListener1 = new SyncFileChangeListener(FILE_SYNCER_1);
@@ -53,12 +66,12 @@ public class FileSyncerIT extends BaseIT {
         EXECUTOR_SERVICE_2.scheduleAtFixedRate(syncFileChangeListener2, 0, 10, TimeUnit.SECONDS);
         GLOBAL_EVENT_BUS_2.subscribe(syncFileChangeListener2);
 
-        SyncFileChangeListener syncFileChangeListener3 = new SyncFileChangeListener(FILE_SYNCER_1);
+        SyncFileChangeListener syncFileChangeListener3 = new SyncFileChangeListener(FILE_SYNCER_3);
         EXECUTOR_SERVICE_3 = Executors.newSingleThreadScheduledExecutor();
         EXECUTOR_SERVICE_3.scheduleAtFixedRate(syncFileChangeListener3, 0, 10, TimeUnit.SECONDS);
         GLOBAL_EVENT_BUS_3.subscribe(syncFileChangeListener3);
 
-        SyncFileChangeListener syncFileChangeListener4 = new SyncFileChangeListener(FILE_SYNCER_1);
+        SyncFileChangeListener syncFileChangeListener4 = new SyncFileChangeListener(FILE_SYNCER_4);
         EXECUTOR_SERVICE_4 = Executors.newSingleThreadScheduledExecutor();
         EXECUTOR_SERVICE_4.scheduleAtFixedRate(syncFileChangeListener4, 0, 10, TimeUnit.SECONDS);
         GLOBAL_EVENT_BUS_4.subscribe(syncFileChangeListener4);
@@ -79,9 +92,49 @@ public class FileSyncerIT extends BaseIT {
      *
      * @throws IOException If serializing to bytes failed
      */
-    private static byte[] createFileContent()
+    protected static byte[] createFileContent()
             throws IOException {
         return Files.readAllBytes(Paths.get("./src/main/resources/test-file-content.txt"));
+    }
+
+    /**
+     * Create all shared directories
+     *
+     * @throws IOException If creating the dirs failed
+     */
+    protected static void createSharingFolders()
+            throws IOException {
+        if (! Files.exists(ROOT_TEST_DIR1.resolve(Config.DEFAULT.getSharedWithOthersReadWriteFolderName()))) {
+            Files.createDirectory(ROOT_TEST_DIR1.resolve(Config.DEFAULT.getSharedWithOthersReadWriteFolderName()));
+        }
+
+        if (! Files.exists(ROOT_TEST_DIR1.resolve(Config.DEFAULT.getSharedWithOthersReadOnlyFolderName()))) {
+            Files.createDirectory(ROOT_TEST_DIR1.resolve(Config.DEFAULT.getSharedWithOthersReadOnlyFolderName()));
+        }
+
+        if (! Files.exists(ROOT_TEST_DIR2.resolve(Config.DEFAULT.getSharedWithOthersReadWriteFolderName()))) {
+            Files.createDirectory(ROOT_TEST_DIR2.resolve(Config.DEFAULT.getSharedWithOthersReadWriteFolderName()));
+        }
+
+        if (! Files.exists(ROOT_TEST_DIR2.resolve(Config.DEFAULT.getSharedWithOthersReadOnlyFolderName()))) {
+            Files.createDirectory(ROOT_TEST_DIR2.resolve(Config.DEFAULT.getSharedWithOthersReadOnlyFolderName()));
+        }
+
+        if (! Files.exists(ROOT_TEST_DIR3.resolve(Config.DEFAULT.getSharedWithOthersReadWriteFolderName()))) {
+            Files.createDirectory(ROOT_TEST_DIR3.resolve(Config.DEFAULT.getSharedWithOthersReadWriteFolderName()));
+        }
+
+        if (! Files.exists(ROOT_TEST_DIR3.resolve(Config.DEFAULT.getSharedWithOthersReadOnlyFolderName()))) {
+            Files.createDirectory(ROOT_TEST_DIR3.resolve(Config.DEFAULT.getSharedWithOthersReadOnlyFolderName()));
+        }
+
+        if (! Files.exists(ROOT_TEST_DIR4.resolve(Config.DEFAULT.getSharedWithOthersReadWriteFolderName()))) {
+            Files.createDirectory(ROOT_TEST_DIR4.resolve(Config.DEFAULT.getSharedWithOthersReadWriteFolderName()));
+        }
+
+        if (! Files.exists(ROOT_TEST_DIR4.resolve(Config.DEFAULT.getSharedWithOthersReadOnlyFolderName()))) {
+            Files.createDirectory(ROOT_TEST_DIR4.resolve(Config.DEFAULT.getSharedWithOthersReadOnlyFolderName()));
+        }
     }
 
     @AfterClass
@@ -118,5 +171,36 @@ public class FileSyncerIT extends BaseIT {
         assertTrue("Test dir should exist on client2", Files.exists(ROOT_TEST_DIR2.resolve(TEST_DIR)));
         assertTrue("Test file1 should exist on client2", Files.exists(ROOT_TEST_DIR2.resolve(TEST_FILE_1)));
         assertTrue("Test file2 should exist on client2", Files.exists(ROOT_TEST_DIR2.resolve(TEST_FILE_2)));
+
+        // ok, now try to share the test dir recursively
+        System.err.println("Starting to share files with a client of user2");
+
+        SharingSyncer sharingSyncer = new SharingSyncer(CLIENT_1, CLIENT_MANAGER_1, STORAGE_ADAPTER_1, OBJECT_STORE_1);
+
+        IShareEvent shareEvent1 = new ShareEvent(TEST_DIR, AccessType.WRITE, USER_2.getUserName());
+        IShareEvent shareEvent2 = new ShareEvent(TEST_FILE_1, AccessType.WRITE, USER_2.getUserName());
+        IShareEvent shareEvent3 = new ShareEvent(TEST_FILE_2, AccessType.WRITE, USER_2.getUserName());
+
+        sharingSyncer.sync(shareEvent1);
+        sharingSyncer.sync(shareEvent2);
+        sharingSyncer.sync(shareEvent3);
+
+        // after syncing, we should be able to tell, that at least one client of user2
+        // has received the file
+
+        // we check on client3, since he is the first client in the list of client locations from user2
+        assertTrue("Test dir should exist on client3", Files.exists(ROOT_TEST_DIR3.resolve(Config.DEFAULT.getSharedWithOthersReadWriteFolderName()).resolve(TEST_DIR)));
+        assertTrue("Test file1 should exist on client3", Files.exists(ROOT_TEST_DIR3.resolve(Config.DEFAULT.getSharedWithOthersReadWriteFolderName()).resolve(TEST_FILE_1)));
+        assertTrue("Test file2 should exist on client3", Files.exists(ROOT_TEST_DIR3.resolve(Config.DEFAULT.getSharedWithOthersReadWriteFolderName()).resolve(TEST_FILE_2)));
+
+        System.err.println("Waiting, that shared files are propagate to the other client of user 2");
+
+        // wait until file is also propagated to the second client of user2, i.e. client4
+        Thread.sleep(60000L);
+
+        assertTrue("Test dir should exist on client4", Files.exists(ROOT_TEST_DIR4.resolve(Config.DEFAULT.getSharedWithOthersReadWriteFolderName()).resolve(TEST_DIR)));
+        assertTrue("Test file1 should exist on client4", Files.exists(ROOT_TEST_DIR4.resolve(Config.DEFAULT.getSharedWithOthersReadWriteFolderName()).resolve(TEST_FILE_1)));
+        assertTrue("Test file2 should exist on client4", Files.exists(ROOT_TEST_DIR4.resolve(Config.DEFAULT.getSharedWithOthersReadWriteFolderName()).resolve(TEST_FILE_2)));
+
     }
 }
