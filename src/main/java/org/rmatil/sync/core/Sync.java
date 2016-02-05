@@ -52,6 +52,7 @@ import org.rmatil.sync.persistence.core.local.LocalStorageAdapter;
 import org.rmatil.sync.version.api.IObjectStore;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -81,15 +82,15 @@ public class Sync {
      *
      * @throws IOException If writing any file or directory fails
      */
-    public void init()
+    public static void init(Path rootPath)
             throws IOException {
 
-        if (! this.rootPath.toFile().exists()) {
+        if (! rootPath.toFile().exists()) {
             // create the synced folder
-            Files.createDirectories(this.rootPath);
+            Files.createDirectories(rootPath);
         }
 
-        Path objectStoreFolder = this.rootPath.resolve(Config.DEFAULT.getOsFolderName());
+        Path objectStoreFolder = rootPath.resolve(Config.DEFAULT.getOsFolderName());
         if (! objectStoreFolder.toFile().exists()) {
             Files.createDirectory(objectStoreFolder);
         }
@@ -99,12 +100,12 @@ public class Sync {
             Files.createDirectories(objectStoreObjectFolder);
         }
 
-        Path sharedWithOthersReadWriteFolder = this.rootPath.resolve(Config.DEFAULT.getSharedWithOthersReadWriteFolderName());
+        Path sharedWithOthersReadWriteFolder = rootPath.resolve(Config.DEFAULT.getSharedWithOthersReadWriteFolderName());
         if (! sharedWithOthersReadWriteFolder.toFile().exists()) {
             Files.createDirectory(sharedWithOthersReadWriteFolder);
         }
 
-        Path sharedWithOthersReadOnlyFolder = this.rootPath.resolve(Config.DEFAULT.getSharedWithOthersReadOnlyFolderName());
+        Path sharedWithOthersReadOnlyFolder = rootPath.resolve(Config.DEFAULT.getSharedWithOthersReadOnlyFolderName());
         if (! sharedWithOthersReadOnlyFolder.toFile().exists()) {
             Files.createDirectory(sharedWithOthersReadOnlyFolder);
         }
@@ -134,7 +135,43 @@ public class Sync {
             // actually write the config file
             Files.write(defaultConfigPath, appConfig.toJson().getBytes(), StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE);
         }
+    }
 
+    /**
+     * Returns the saved application config
+     *
+     * @param rootPath The root path in which the app was initialized
+     *
+     * @return The application config
+     *
+     * @throws IllegalArgumentException If any of the required paths of the app do not exist
+     * @throws RuntimeException         If the application config could not have been read
+     */
+    public static ApplicationConfig getApplicationConfig(Path rootPath)
+            throws IllegalArgumentException, RuntimeException {
+
+        if (! rootPath.toFile().exists()) {
+            throw new IllegalArgumentException("The root path (" + rootPath + ") of the synced folder does not exist");
+        }
+
+        Path objectStoreFolder = rootPath.resolve(Config.DEFAULT.getOsFolderName());
+
+        if (! objectStoreFolder.toFile().exists()) {
+            throw new IllegalArgumentException("The object store folder (" + objectStoreFolder + ") does not exist. Init the application first");
+        }
+
+        Path defaultConfigPath = objectStoreFolder.resolve(Config.DEFAULT.getConfigFileName());
+
+        if (! defaultConfigPath.toFile().exists()) {
+            throw new IllegalArgumentException("The application config does not yet exist. Init the application first");
+        }
+
+        try {
+            byte[] appConfigBytes = Files.readAllBytes(defaultConfigPath);
+            return ApplicationConfig.fromJson(new String(appConfigBytes, StandardCharsets.UTF_8));
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to read the application config. Try to rebuild it first. Error: " + e.getMessage());
+        }
     }
 
     /**
