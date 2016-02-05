@@ -175,6 +175,42 @@ public class Sync {
     }
 
     /**
+     * Writes the given application config to the sync app
+     * on the given path
+     *
+     * @param appConfig The app config to write
+     * @param rootPath  The path to the root of the synced folder
+     *
+     * @throws IllegalArgumentException If any of the required paths of the app do not exist
+     * @throws RuntimeException         If the application config could not have been written
+     */
+    public static void writeApplicationConfig(ApplicationConfig appConfig, Path rootPath)
+            throws IllegalArgumentException, RuntimeException {
+        if (! rootPath.toFile().exists()) {
+            throw new IllegalArgumentException("The root path (" + rootPath + ") of the synced folder does not exist");
+        }
+
+        Path objectStoreFolder = rootPath.resolve(Config.DEFAULT.getOsFolderName());
+
+        if (! objectStoreFolder.toFile().exists()) {
+            throw new IllegalArgumentException("The object store folder (" + objectStoreFolder + ") does not exist. Init the application first");
+        }
+
+        Path defaultConfigPath = objectStoreFolder.resolve(Config.DEFAULT.getConfigFileName());
+
+        if (! defaultConfigPath.toFile().exists()) {
+            throw new IllegalArgumentException("The application config does not yet exist. Init the application first");
+        }
+
+        try {
+            String json = appConfig.toJson();
+            Files.write(defaultConfigPath, json.getBytes(StandardCharsets.UTF_8), StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE);
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to write the application config. Try to rebuild it first. Error: " + e.getMessage());
+        }
+    }
+
+    /**
      * Start the client either as a bootstrap peer or connect it to an already online one.
      *
      * @param keyPair           The RSA keypair which is used to sign & encrypt messages
