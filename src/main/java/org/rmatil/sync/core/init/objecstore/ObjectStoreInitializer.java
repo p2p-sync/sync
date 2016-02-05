@@ -32,8 +32,6 @@ public class ObjectStoreInitializer implements IInitializer<IObjectStore> {
     public IObjectStore init()
             throws InitializationException {
 
-        // TODO: create root path on disk, if not available
-
         this.syncFolderStorageAdapter = new LocalStorageAdapter(this.rootPath.resolve(this.syncFolderName));
 
         try {

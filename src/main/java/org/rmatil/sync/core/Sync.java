@@ -5,8 +5,10 @@ import net.engio.mbassy.bus.config.BusConfiguration;
 import net.engio.mbassy.bus.config.Feature;
 import net.engio.mbassy.bus.config.IBusConfiguration;
 import net.engio.mbassy.bus.error.IPublicationErrorHandler;
+import org.rmatil.sync.core.config.Config;
 import org.rmatil.sync.core.eventbus.IBusEvent;
 import org.rmatil.sync.core.exception.InitializationException;
+import org.rmatil.sync.core.init.ApplicationConfig;
 import org.rmatil.sync.core.init.client.ClientInitializer;
 import org.rmatil.sync.core.init.client.LocalStateObjectDataReplyHandler;
 import org.rmatil.sync.core.init.eventaggregator.EventAggregatorInitializer;
@@ -32,7 +34,6 @@ import org.rmatil.sync.core.messaging.sharingexchange.unshared.UnsharedRequest;
 import org.rmatil.sync.core.messaging.sharingexchange.unshared.UnsharedRequestHandler;
 import org.rmatil.sync.core.model.RemoteClientLocation;
 import org.rmatil.sync.core.security.AccessManager;
-import org.rmatil.sync.core.security.IAccessManager;
 import org.rmatil.sync.core.syncer.background.IBackgroundSyncer;
 import org.rmatil.sync.core.syncer.background.NonBlockingBackgroundSyncer;
 import org.rmatil.sync.core.syncer.background.fetchobjectstore.FetchObjectStoreRequest;
@@ -54,6 +55,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
@@ -66,15 +68,88 @@ import java.util.concurrent.TimeUnit;
 
 public class Sync {
 
-    protected static int backgroundSyncerCounter = 0;
-
     protected Path rootPath;
 
     public Sync(Path rootPath) {
         this.rootPath = rootPath;
     }
 
-    public ClientDevice init(KeyPair keyPair, String userName, String password, String salt, int port, RemoteClientLocation bootstrapLocation) {
+    /**
+     * Initializes the app in means of creating
+     * all required app folders and files, e.g. the default application
+     * configuration file, the object store directory and more.
+     *
+     * @throws IOException If writing any file or directory fails
+     */
+    public void init()
+            throws IOException {
+
+        if (! this.rootPath.toFile().exists()) {
+            // create the synced folder
+            Files.createDirectories(this.rootPath);
+        }
+
+        Path objectStoreFolder = this.rootPath.resolve(Config.DEFAULT.getOsFolderName());
+        if (! objectStoreFolder.toFile().exists()) {
+            Files.createDirectory(objectStoreFolder);
+        }
+
+        Path objectStoreObjectFolder = objectStoreFolder.resolve(Config.DEFAULT.getOsObjectFolderName());
+        if (! objectStoreObjectFolder.toFile().exists()) {
+            Files.createDirectories(objectStoreObjectFolder);
+        }
+
+        Path sharedWithOthersReadWriteFolder = this.rootPath.resolve(Config.DEFAULT.getSharedWithOthersReadWriteFolderName());
+        if (! sharedWithOthersReadWriteFolder.toFile().exists()) {
+            Files.createDirectory(sharedWithOthersReadWriteFolder);
+        }
+
+        Path sharedWithOthersReadOnlyFolder = this.rootPath.resolve(Config.DEFAULT.getSharedWithOthersReadOnlyFolderName());
+        if (! sharedWithOthersReadOnlyFolder.toFile().exists()) {
+            Files.createDirectory(sharedWithOthersReadOnlyFolder);
+        }
+
+        Path defaultConfigPath = objectStoreFolder.resolve(Config.DEFAULT.getConfigFileName());
+        if (! defaultConfigPath.toFile().exists()) {
+            // now create a default application config
+            KeyPairGenerator keyPairGenerator;
+            try {
+                keyPairGenerator = KeyPairGenerator.getInstance("DSA");
+            } catch (NoSuchAlgorithmException e) {
+                throw new InitializationException(e);
+            }
+
+            KeyPair keyPair = keyPairGenerator.generateKeyPair();
+
+            ApplicationConfig appConfig = new ApplicationConfig(
+                    null,
+                    null,
+                    null,
+                    4003,
+                    keyPair.getPublic(),
+                    keyPair.getPrivate(),
+                    null
+            );
+
+            // actually write the config file
+            Files.write(defaultConfigPath, appConfig.toJson().getBytes(), StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE);
+        }
+
+    }
+
+    /**
+     * Start the client either as a bootstrap peer or connect it to an already online one.
+     *
+     * @param keyPair           The RSA keypair which is used to sign & encrypt messages
+     * @param userName          The username of the user
+     * @param password          The password of the user
+     * @param salt              The salt of the user
+     * @param port              The port on which the client should be started
+     * @param bootstrapLocation The bootstrap location to which to connect. If null, then this peer will be created as bootstrap peer
+     *
+     * @return A client device representing the created and bootstrapped client
+     */
+    public ClientDevice connect(KeyPair keyPair, String userName, String password, String salt, int port, RemoteClientLocation bootstrapLocation) {
         IUser user = new User(
                 userName,
                 password,
@@ -101,8 +176,6 @@ public class Sync {
         ObjectStoreInitializer objectStoreInitializer = new ObjectStoreInitializer(this.rootPath, ".sync", "index.json", "object");
         IObjectStore objectStore = objectStoreInitializer.init();
         objectStoreInitializer.start();
-
-        IAccessManager accessManager = new AccessManager(objectStore);
 
         // Init client
         IClient client = new Client(null, user, null);
@@ -168,14 +241,13 @@ public class Sync {
 
         // Init event aggregator
         List<Path> ignoredPaths = new ArrayList<>();
-        ignoredPaths.add(this.rootPath.relativize(rootPath.resolve(Paths.get(".sync"))));
+        ignoredPaths.add(this.rootPath.relativize(rootPath.resolve(Paths.get(Config.DEFAULT.getOsFolderName()))));
         EventAggregatorInitializer eventAggregatorInitializer = new EventAggregatorInitializer(this.rootPath, objectStore, eventListeners, ignoredPaths, 25000L);
         IEventAggregator eventAggregator = eventAggregatorInitializer.init();
         eventAggregatorInitializer.start();
 
         objectDataReplyHandler.setEventAggregator(eventAggregator);
 
-//        BlockingBackgroundSyncer blockingBackgroundSyncer = new BlockingBackgroundSyncer(eventAggregator, client, clientManager);
         IBackgroundSyncer backgroundSyncer = new NonBlockingBackgroundSyncer(
                 eventAggregator,
                 client,
@@ -184,59 +256,12 @@ public class Sync {
                 localStorageAdapter,
                 globalEventBus
         );
-        if (backgroundSyncerCounter < 1) {
-            ScheduledExecutorService executorService1 = Executors.newSingleThreadScheduledExecutor();
-            executorService1.scheduleAtFixedRate(backgroundSyncer, 20L, 600L, TimeUnit.SECONDS);
 
-            backgroundSyncerCounter++;
-        }
+        // start the background syncer as first task, then reconcile every 10 minutes
+        ScheduledExecutorService executorService1 = Executors.newSingleThreadScheduledExecutor();
+        executorService1.scheduleAtFixedRate(backgroundSyncer, 0L, 600L, TimeUnit.SECONDS);
 
         // now set the peer address once we know it
         return new ClientDevice(userName, clientId, client.getPeerAddress());
     }
-
-    public static void main(String[] args) {
-        Path path = Paths.get("/tmp/sync-dir");
-        Path syncDir = Paths.get("/tmp/sync-dir/.sync");
-
-        Path path2 = Paths.get("/tmp/sync-dir2");
-        Path syncDir2 = Paths.get("/tmp/sync-dir2/.sync");
-
-        try {
-            if (! path.toFile().exists()) {
-                Files.createDirectory(path);
-            }
-            if (! syncDir.toFile().exists()) {
-                Files.createDirectory(syncDir);
-            }
-            if (! path2.toFile().exists()) {
-                Files.createDirectory(path2);
-            }
-            if (! syncDir2.toFile().exists()) {
-                Files.createDirectory(syncDir2);
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        KeyPairGenerator keyPairGenerator;
-        try {
-            keyPairGenerator = KeyPairGenerator.getInstance("DSA");
-        } catch (NoSuchAlgorithmException e) {
-            throw new InitializationException(e);
-        }
-
-        KeyPair keyPair = keyPairGenerator.generateKeyPair();
-
-        Sync sync = new Sync(path);
-        ClientDevice client1 = sync.init(keyPair, "raphael", "password", "salt", 4003, null);
-
-        Sync sync2 = new Sync(path2);
-        sync2.init(keyPair, "raphael", "password", "salt", 4004, new RemoteClientLocation(
-                client1.getPeerAddress().inetAddress().getHostName(),
-                client1.getPeerAddress().isIPv6(),
-                client1.getPeerAddress().tcpPort()
-        ));
-    }
-
 }

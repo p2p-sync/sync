@@ -1,15 +1,43 @@
 package org.rmatil.sync.core.config;
 
 public enum Config {
-    DEFAULT("sharedWithOthers (read-only)", "sharedWithOthers (read-write)");
+    DEFAULT(".sync", "config", "index.json", "object", "sharedWithOthers (read-only)", "sharedWithOthers (read-write)");
+
+    private String osFolderName;
+
+    private String configFileName;
+
+    private String osIndexName;
+
+    private String osObjectFolderName;
 
     private String sharedWithOthersReadOnlyFolderName;
 
-    private String shareWithOthersReadWriteFolderName;
+    private String sharedWithOthersReadWriteFolderName;
 
-    Config(String sharedWithOthersReadOnlyFolderName, String shareWithOthersReadWriteFolderName) {
+    Config(String osFolderName, String configFileName, String osIndexName, String osObjectFolderName, String sharedWithOthersReadOnlyFolderName, String sharedWithOthersReadWriteFolderName) {
+        this.osFolderName = osFolderName;
+        this.configFileName = configFileName;
+        this.osIndexName = osIndexName;
+        this.osObjectFolderName = osObjectFolderName;
         this.sharedWithOthersReadOnlyFolderName = sharedWithOthersReadOnlyFolderName;
-        this.shareWithOthersReadWriteFolderName = shareWithOthersReadWriteFolderName;
+        this.sharedWithOthersReadWriteFolderName = sharedWithOthersReadWriteFolderName;
+    }
+
+    public String getOsFolderName() {
+        return osFolderName;
+    }
+
+    public String getConfigFileName() {
+        return configFileName;
+    }
+
+    public String getOsIndexName() {
+        return osIndexName;
+    }
+
+    public String getOsObjectFolderName() {
+        return osObjectFolderName;
     }
 
     public String getSharedWithOthersReadOnlyFolderName() {
@@ -17,6 +45,6 @@ public enum Config {
     }
 
     public String getSharedWithOthersReadWriteFolderName() {
-        return shareWithOthersReadWriteFolderName;
+        return sharedWithOthersReadWriteFolderName;
     }
 }
