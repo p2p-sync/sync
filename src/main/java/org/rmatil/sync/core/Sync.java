@@ -52,6 +52,7 @@ import org.rmatil.sync.persistence.core.local.LocalStorageAdapter;
 import org.rmatil.sync.version.api.IObjectStore;
 
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -103,31 +104,13 @@ public class Sync {
                     null,
                     null,
                     4003,
-                    Config.DEFAULT.getPublicKeyFileName(),
-                    Config.DEFAULT.getPrivateKeyFileName(),
+                    defaultFolderPath.resolve(Config.DEFAULT.getPublicKeyFileName()).toString(),
+                    defaultFolderPath.resolve(Config.DEFAULT.getPrivateKeyFileName()).toString(),
                     null
             );
 
             // actually write the config file
             Files.write(configFilePath, appConfig.toJson().getBytes(), StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE);
-        }
-
-        // generate and persist a keypair to disk
-        Path publicKeyPath = defaultFolderPath.resolve(Config.DEFAULT.getPublicKeyFileName());
-        Path privateKeyPath = defaultFolderPath.resolve(Config.DEFAULT.getPrivateKeyFileName());
-        if (! publicKeyPath.toFile().exists() || ! privateKeyPath.toFile().exists()) {
-
-            KeyPairGenerator keyPairGenerator;
-            try {
-                keyPairGenerator = KeyPairGenerator.getInstance("DSA");
-            } catch (NoSuchAlgorithmException e) {
-                throw new InitializationException(e);
-            }
-
-            KeyPair keyPair = keyPairGenerator.generateKeyPair();
-
-            Files.write(publicKeyPath, keyPair.getPublic().getEncoded(), StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE);
-            Files.write(privateKeyPath, keyPair.getPrivate().getEncoded(), StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE);
         }
 
         return defaultFolderPath;
