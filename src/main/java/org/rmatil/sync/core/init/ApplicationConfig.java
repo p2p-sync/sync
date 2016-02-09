@@ -30,28 +30,56 @@ public class ApplicationConfig {
         return userName;
     }
 
+    public void setUserName(String userName) {
+        this.userName = userName;
+    }
+
     public String getPassword() {
         return password;
+    }
+
+    public void setPassword(String password) {
+        this.password = password;
     }
 
     public String getSalt() {
         return salt;
     }
 
+    public void setSalt(String salt) {
+        this.salt = salt;
+    }
+
     public int getDefaultPort() {
         return defaultPort;
+    }
+
+    public void setDefaultPort(int defaultPort) {
+        this.defaultPort = defaultPort;
     }
 
     public String getPublicKeyPath() {
         return publicKeyPath;
     }
 
+    public void setPublicKeyPath(String publicKeyPath) {
+        this.publicKeyPath = publicKeyPath;
+    }
+
     public String getPrivateKeyPath() {
         return privateKeyPath;
     }
 
+    public void setPrivateKeyPath(String privateKeyPath) {
+        this.privateKeyPath = privateKeyPath;
+    }
+
     public RemoteClientLocation getDefaultBootstrapLocation() {
         return defaultBootstrapLocation;
+    }
+
+    public void setDefaultBootstrapLocation(RemoteClientLocation defaultBootstrapLocation) {
+        this.defaultBootstrapLocation = defaultBootstrapLocation;
     }
 
     /**
