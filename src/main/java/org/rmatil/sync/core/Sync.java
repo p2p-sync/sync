@@ -78,9 +78,11 @@ public class Sync {
     /**
      * Creates the config file for the application
      *
+     * @return Returns the path to the configuration directory
+     *
      * @throws IOException If writing the file failed
      */
-    public static void createDefaultApplicationConfig()
+    public static Path createDefaultApplicationConfig()
             throws IOException {
 
         // replace any user home with the actual path to the folder
@@ -107,7 +109,7 @@ public class Sync {
             );
 
             // actually write the config file
-            Files.write(defaultFolderPath, appConfig.toJson().getBytes(), StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE);
+            Files.write(configFilePath, appConfig.toJson().getBytes(), StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE);
         }
 
         // generate and persist a keypair to disk
@@ -128,6 +130,7 @@ public class Sync {
             Files.write(privateKeyPath, keyPair.getPrivate().getEncoded(), StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE);
         }
 
+        return defaultFolderPath;
     }
 
     /**
@@ -180,7 +183,7 @@ public class Sync {
             Files.createFile(configFilePath);
 
             String json = appConfig.toJson();
-            Files.write(defaultFolderPath, json.getBytes(StandardCharsets.UTF_8), StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE);
+            Files.write(configFilePath, json.getBytes(StandardCharsets.UTF_8), StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE);
         }
     }
 
