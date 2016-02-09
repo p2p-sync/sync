@@ -82,8 +82,10 @@ public class Sync {
      */
     public static void createDefaultApplicationConfig()
             throws IOException {
-        // read the default config from the users config file
-        Path defaultFolderPath = Paths.get(Config.DEFAULT.getConfigFolderPath()).toAbsolutePath();
+
+        // replace any user home with the actual path to the folder
+        String resolvedFolderPath = Config.DEFAULT.getConfigFolderPath().replaceFirst("^~", System.getProperty("user.home"));
+        Path defaultFolderPath = Paths.get(resolvedFolderPath).toAbsolutePath();
 
         if (! defaultFolderPath.toFile().exists()) {
             Files.createDirectories(defaultFolderPath);
@@ -138,7 +140,9 @@ public class Sync {
      */
     public static ApplicationConfig getApplicationConfig()
             throws IllegalArgumentException, IOException {
-        Path defaultFolderPath = Paths.get(Config.DEFAULT.getConfigFolderPath()).toAbsolutePath();
+        String resolvedFolderPath = Config.DEFAULT.getConfigFolderPath().replaceFirst("^~", System.getProperty("user.home"));
+        Path defaultFolderPath = Paths.get(resolvedFolderPath).toAbsolutePath();
+
         Path configFilePath = defaultFolderPath.resolve(Config.DEFAULT.getConfigFileName());
 
         if (! defaultFolderPath.toFile().exists() || ! configFilePath.toFile().exists()) {
@@ -164,7 +168,8 @@ public class Sync {
     public static void writeApplicationConfig(ApplicationConfig appConfig)
             throws IOException {
 
-        Path defaultFolderPath = Paths.get(Config.DEFAULT.getConfigFolderPath()).toAbsolutePath();
+        String resolvedFolderPath = Config.DEFAULT.getConfigFolderPath().replaceFirst("^~", System.getProperty("user.home"));
+        Path defaultFolderPath = Paths.get(resolvedFolderPath).toAbsolutePath();
 
         if (! defaultFolderPath.toFile().exists()) {
             Files.createDirectories(defaultFolderPath);
