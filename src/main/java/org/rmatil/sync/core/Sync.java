@@ -181,10 +181,10 @@ public class Sync {
         Path configFilePath = defaultFolderPath.resolve(Config.DEFAULT.getConfigFileName());
         if (! configFilePath.toFile().exists()) {
             Files.createFile(configFilePath);
-
-            String json = appConfig.toJson();
-            Files.write(configFilePath, json.getBytes(StandardCharsets.UTF_8), StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE);
         }
+
+        String json = appConfig.toJson();
+        Files.write(configFilePath, json.getBytes(StandardCharsets.UTF_8), StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE);
     }
 
     /**
