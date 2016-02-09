@@ -76,6 +76,110 @@ public class Sync {
     }
 
     /**
+     * Creates the config file for the application
+     *
+     * @throws IOException If writing the file failed
+     */
+    public static void createDefaultApplicationConfig()
+            throws IOException {
+        // read the default config from the users config file
+        Path defaultFolderPath = Paths.get(Config.DEFAULT.getConfigFolderPath()).toAbsolutePath();
+
+        if (! defaultFolderPath.toFile().exists()) {
+            Files.createDirectories(defaultFolderPath);
+        }
+
+        Path configFilePath = defaultFolderPath.resolve(Config.DEFAULT.getConfigFileName());
+        if (! configFilePath.toFile().exists()) {
+            Files.createFile(configFilePath);
+
+            // write the application config
+            ApplicationConfig appConfig = new ApplicationConfig(
+                    null,
+                    null,
+                    null,
+                    4003,
+                    Config.DEFAULT.getPublicKeyFileName(),
+                    Config.DEFAULT.getPrivateKeyFileName(),
+                    null
+            );
+
+            // actually write the config file
+            Files.write(defaultFolderPath, appConfig.toJson().getBytes(), StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE);
+        }
+
+        // generate and persist a keypair to disk
+        Path publicKeyPath = defaultFolderPath.resolve(Config.DEFAULT.getPublicKeyFileName());
+        Path privateKeyPath = defaultFolderPath.resolve(Config.DEFAULT.getPrivateKeyFileName());
+        if (! publicKeyPath.toFile().exists() || ! privateKeyPath.toFile().exists()) {
+
+            KeyPairGenerator keyPairGenerator;
+            try {
+                keyPairGenerator = KeyPairGenerator.getInstance("DSA");
+            } catch (NoSuchAlgorithmException e) {
+                throw new InitializationException(e);
+            }
+
+            KeyPair keyPair = keyPairGenerator.generateKeyPair();
+
+            Files.write(publicKeyPath, keyPair.getPublic().getEncoded(), StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE);
+            Files.write(privateKeyPath, keyPair.getPrivate().getEncoded(), StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE);
+        }
+
+    }
+
+    /**
+     * Returns the saved application config
+     *
+     * @return The application config
+     *
+     * @throws IOException              If the application config does not exist
+     * @throws IllegalArgumentException If the application config file does not exist yet
+     */
+    public static ApplicationConfig getApplicationConfig()
+            throws IllegalArgumentException, IOException {
+        Path defaultFolderPath = Paths.get(Config.DEFAULT.getConfigFolderPath()).toAbsolutePath();
+        Path configFilePath = defaultFolderPath.resolve(Config.DEFAULT.getConfigFileName());
+
+        if (! defaultFolderPath.toFile().exists() || ! configFilePath.toFile().exists()) {
+            throw new IllegalArgumentException("Application config does not exist yet. Create it first");
+        }
+
+        try {
+            byte[] appConfigBytes = Files.readAllBytes(configFilePath);
+            return ApplicationConfig.fromJson(new String(appConfigBytes, StandardCharsets.UTF_8));
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to read the application config. Try to rebuild it first. Error: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Writes the given application config to the sync app
+     * on the given path
+     *
+     * @param appConfig The app config to write
+     *
+     * @throws IOException If writing the application config failed
+     */
+    public static void writeApplicationConfig(ApplicationConfig appConfig)
+            throws IOException {
+
+        Path defaultFolderPath = Paths.get(Config.DEFAULT.getConfigFolderPath()).toAbsolutePath();
+
+        if (! defaultFolderPath.toFile().exists()) {
+            Files.createDirectories(defaultFolderPath);
+        }
+
+        Path configFilePath = defaultFolderPath.resolve(Config.DEFAULT.getConfigFileName());
+        if (! configFilePath.toFile().exists()) {
+            Files.createFile(configFilePath);
+
+            String json = appConfig.toJson();
+            Files.write(defaultFolderPath, json.getBytes(StandardCharsets.UTF_8), StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE);
+        }
+    }
+
+    /**
      * Initializes the app in means of creating
      * all required app folders and files, e.g. the default application
      * configuration file, the object store directory and more.
@@ -108,105 +212,6 @@ public class Sync {
         Path sharedWithOthersReadOnlyFolder = rootPath.resolve(Config.DEFAULT.getSharedWithOthersReadOnlyFolderName());
         if (! sharedWithOthersReadOnlyFolder.toFile().exists()) {
             Files.createDirectory(sharedWithOthersReadOnlyFolder);
-        }
-
-        Path defaultConfigPath = objectStoreFolder.resolve(Config.DEFAULT.getConfigFileName());
-        if (! defaultConfigPath.toFile().exists()) {
-            // now create a default application config
-            KeyPairGenerator keyPairGenerator;
-            try {
-                keyPairGenerator = KeyPairGenerator.getInstance("DSA");
-            } catch (NoSuchAlgorithmException e) {
-                throw new InitializationException(e);
-            }
-
-            KeyPair keyPair = keyPairGenerator.generateKeyPair();
-
-            ApplicationConfig appConfig = new ApplicationConfig(
-                    null,
-                    null,
-                    null,
-                    4003,
-                    keyPair.getPublic(),
-                    keyPair.getPrivate(),
-                    null
-            );
-
-            // actually write the config file
-            Files.write(defaultConfigPath, appConfig.toJson().getBytes(), StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE);
-        }
-    }
-
-    /**
-     * Returns the saved application config
-     *
-     * @param rootPath The root path in which the app was initialized
-     *
-     * @return The application config
-     *
-     * @throws IllegalArgumentException If any of the required paths of the app do not exist
-     * @throws RuntimeException         If the application config could not have been read
-     */
-    public static ApplicationConfig getApplicationConfig(Path rootPath)
-            throws IllegalArgumentException, RuntimeException {
-
-        if (! rootPath.toFile().exists()) {
-            throw new IllegalArgumentException("The root path (" + rootPath + ") of the synced folder does not exist");
-        }
-
-        Path objectStoreFolder = rootPath.resolve(Config.DEFAULT.getOsFolderName());
-
-        if (! objectStoreFolder.toFile().exists()) {
-            throw new IllegalArgumentException("The object store folder (" + objectStoreFolder + ") does not exist. Init the application first");
-        }
-
-        Path defaultConfigPath = objectStoreFolder.resolve(Config.DEFAULT.getConfigFileName());
-
-        if (! defaultConfigPath.toFile().exists()) {
-            throw new IllegalArgumentException("The application config does not yet exist. Init the application first");
-        }
-
-        try {
-            byte[] appConfigBytes = Files.readAllBytes(defaultConfigPath);
-            return ApplicationConfig.fromJson(new String(appConfigBytes, StandardCharsets.UTF_8));
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to read the application config. Try to rebuild it first. Error: " + e.getMessage());
-        }
-    }
-
-    /**
-     * Writes the given application config to the sync app
-     * on the given path
-     *
-     * @param appConfig The app config to write
-     * @param rootPath  The path to the root of the synced folder
-     *
-     * @throws IllegalArgumentException If any of the required paths of the app do not exist
-     * @throws RuntimeException         If the application config could not have been written
-     */
-    public static void writeApplicationConfig(ApplicationConfig appConfig, Path rootPath)
-            throws IllegalArgumentException, RuntimeException {
-        if (! rootPath.toFile().exists()) {
-            throw new IllegalArgumentException("The root path (" + rootPath + ") of the synced folder does not exist");
-        }
-
-        Path objectStoreFolder = rootPath.resolve(Config.DEFAULT.getOsFolderName());
-
-        if (! objectStoreFolder.toFile().exists()) {
-            throw new IllegalArgumentException("The object store folder (" + objectStoreFolder + ") does not exist. Init the application first");
-        }
-
-        Path defaultConfigPath = objectStoreFolder.resolve(Config.DEFAULT.getConfigFileName());
-
-        if (! defaultConfigPath.toFile().exists()) {
-            throw new IllegalArgumentException("The application config does not yet exist. Init the application first");
-        }
-
-        try {
-            String json = appConfig.toJson();
-            Files.write(defaultConfigPath, json.getBytes(StandardCharsets.UTF_8), StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE);
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to write the application config. Try to rebuild it first. Error: " + e.getMessage());
         }
     }
 
