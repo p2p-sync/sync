@@ -220,8 +220,8 @@ public class LocalStateObjectDataReplyHandler extends ObjectDataReplyHandler {
 
         Set<UUID> exchangesInProgress = this.pathsInProgress.get(relativePath);
 
+        Path path = Paths.get(relativePath);
         while (null == exchangesInProgress) {
-            Path path = Paths.get(relativePath);
 
             path = path.subpath(0, Math.max(1, path.getNameCount() - 1));
 

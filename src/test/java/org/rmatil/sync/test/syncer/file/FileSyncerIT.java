@@ -3,8 +3,13 @@ package org.rmatil.sync.test.syncer.file;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.rmatil.sync.core.api.IShareEvent;
+import org.rmatil.sync.core.config.Config;
 import org.rmatil.sync.core.syncer.file.SyncFileChangeListener;
+import org.rmatil.sync.core.syncer.sharing.SharingSyncer;
+import org.rmatil.sync.core.syncer.sharing.event.ShareEvent;
 import org.rmatil.sync.test.base.BaseIT;
+import org.rmatil.sync.version.api.AccessType;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -118,5 +123,36 @@ public class FileSyncerIT extends BaseIT {
         assertTrue("Test dir should exist on client2", Files.exists(ROOT_TEST_DIR2.resolve(TEST_DIR)));
         assertTrue("Test file1 should exist on client2", Files.exists(ROOT_TEST_DIR2.resolve(TEST_FILE_1)));
         assertTrue("Test file2 should exist on client2", Files.exists(ROOT_TEST_DIR2.resolve(TEST_FILE_2)));
+
+        // ok, now try to share the test dir recursively
+        System.err.println("Starting to share files with a client of user2");
+
+        SharingSyncer sharingSyncer = new SharingSyncer(CLIENT_1, CLIENT_MANAGER_1, STORAGE_ADAPTER_1, OBJECT_STORE_1);
+
+        IShareEvent shareEvent1 = new ShareEvent(TEST_DIR, AccessType.WRITE, USER_2.getUserName());
+        IShareEvent shareEvent2 = new ShareEvent(TEST_FILE_1, AccessType.WRITE, USER_2.getUserName());
+        IShareEvent shareEvent3 = new ShareEvent(TEST_FILE_2, AccessType.WRITE, USER_2.getUserName());
+
+        sharingSyncer.sync(shareEvent1);
+        sharingSyncer.sync(shareEvent2);
+        sharingSyncer.sync(shareEvent3);
+
+        // after syncing, we should be able to tell, that at least one client of user2
+        // has received the file
+
+        // we check on client3, since he is the first client in the list of client locations from user2
+        assertTrue("Test dir should exist on client3", Files.exists(ROOT_TEST_DIR3.resolve(Config.DEFAULT.getSharedWithOthersReadWriteFolderName()).resolve(TEST_DIR)));
+        assertTrue("Test file1 should exist on client3", Files.exists(ROOT_TEST_DIR3.resolve(Config.DEFAULT.getSharedWithOthersReadWriteFolderName()).resolve(TEST_FILE_1)));
+        assertTrue("Test file2 should exist on client3", Files.exists(ROOT_TEST_DIR3.resolve(Config.DEFAULT.getSharedWithOthersReadWriteFolderName()).resolve(TEST_FILE_2)));
+
+        System.err.println("Waiting, that shared files are propagate to the other client of user 2");
+
+        // wait until file is also propagated to the second client of user2, i.e. client4
+        Thread.sleep(60000L);
+
+        assertTrue("Test dir should exist on client4", Files.exists(ROOT_TEST_DIR4.resolve(Config.DEFAULT.getSharedWithOthersReadWriteFolderName()).resolve(TEST_DIR)));
+        assertTrue("Test file1 should exist on client4", Files.exists(ROOT_TEST_DIR4.resolve(Config.DEFAULT.getSharedWithOthersReadWriteFolderName()).resolve(TEST_FILE_1)));
+        assertTrue("Test file2 should exist on client4", Files.exists(ROOT_TEST_DIR4.resolve(Config.DEFAULT.getSharedWithOthersReadWriteFolderName()).resolve(TEST_FILE_2)));
+
     }
 }
