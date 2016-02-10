@@ -7,7 +7,7 @@ import net.engio.mbassy.bus.config.IBusConfiguration;
 import net.engio.mbassy.bus.error.IPublicationErrorHandler;
 import org.rmatil.sync.core.config.Config;
 import org.rmatil.sync.core.eventbus.IBusEvent;
-import org.rmatil.sync.core.exception.InitializationException;
+import org.rmatil.sync.core.exception.InitializationStartException;
 import org.rmatil.sync.core.init.ApplicationConfig;
 import org.rmatil.sync.core.init.client.ClientInitializer;
 import org.rmatil.sync.core.init.client.LocalStateObjectDataReplyHandler;
@@ -40,6 +40,7 @@ import org.rmatil.sync.core.syncer.background.fetchobjectstore.FetchObjectStoreR
 import org.rmatil.sync.core.syncer.background.fetchobjectstore.FetchObjectStoreRequestHandler;
 import org.rmatil.sync.core.syncer.file.FileSyncer;
 import org.rmatil.sync.core.syncer.file.SyncFileChangeListener;
+import org.rmatil.sync.core.syncer.sharing.SharingSyncer;
 import org.rmatil.sync.event.aggregator.api.IEventAggregator;
 import org.rmatil.sync.event.aggregator.api.IEventListener;
 import org.rmatil.sync.network.api.IClient;
@@ -48,19 +49,17 @@ import org.rmatil.sync.network.api.IUser;
 import org.rmatil.sync.network.core.Client;
 import org.rmatil.sync.network.core.model.ClientDevice;
 import org.rmatil.sync.network.core.model.User;
+import org.rmatil.sync.persistence.api.IStorageAdapter;
 import org.rmatil.sync.persistence.core.local.LocalStorageAdapter;
 import org.rmatil.sync.version.api.IObjectStore;
 
 import java.io.IOException;
-import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.security.KeyPair;
-import java.security.KeyPairGenerator;
-import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -71,6 +70,18 @@ import java.util.concurrent.TimeUnit;
 public class Sync {
 
     protected Path rootPath;
+
+    protected IStorageAdapter storageAdapter;
+
+    protected SharingSyncer sharingSyncer;
+
+    protected IClientManager clientManager;
+
+    protected IClient client;
+
+    protected IEventAggregator eventAggregator;
+
+    protected ScheduledExecutorService backgroundSyncerExecutorService;
 
     public Sync(Path rootPath) {
         this.rootPath = rootPath;
@@ -207,6 +218,24 @@ public class Sync {
     }
 
     /**
+     * Start the client as bootstrap peer
+     *
+     * @param keyPair  The RSA keypair which is used to sign & encrypt messages
+     * @param userName The username of the user
+     * @param password The password of the user
+     * @param salt     The salt of the user
+     * @param port     The port on which the client should be started
+     *
+     * @return A client device representing the created and bootstrapped client
+     *
+     * @throws InitializationStartException If the client could not have been started
+     */
+    public ClientDevice connect(KeyPair keyPair, String userName, String password, String salt, int port)
+            throws InitializationStartException {
+        return this.connect(keyPair, userName, password, salt, port, null);
+    }
+
+    /**
      * Start the client either as a bootstrap peer or connect it to an already online one.
      *
      * @param keyPair           The RSA keypair which is used to sign & encrypt messages
@@ -216,9 +245,12 @@ public class Sync {
      * @param port              The port on which the client should be started
      * @param bootstrapLocation The bootstrap location to which to connect. If null, then this peer will be created as bootstrap peer
      *
-     * @return A client device representing the created and bootstrapped client
+     * @return A client device representing the created and connected client
+     *
+     * @throws InitializationStartException If the client could not have been started
      */
-    public ClientDevice connect(KeyPair keyPair, String userName, String password, String salt, int port, RemoteClientLocation bootstrapLocation) {
+    public ClientDevice connect(KeyPair keyPair, String userName, String password, String salt, int port, RemoteClientLocation bootstrapLocation)
+            throws InitializationStartException {
         IUser user = new User(
                 userName,
                 password,
@@ -230,7 +262,7 @@ public class Sync {
 
         UUID clientId = UUID.randomUUID();
 
-        LocalStorageAdapter localStorageAdapter = new LocalStorageAdapter(rootPath);
+        this.storageAdapter = new LocalStorageAdapter(rootPath);
 
         // Use feature driven configuration to have more control over the configuration details
         MBassador<IBusEvent> globalEventBus = new MBassador<>(new BusConfiguration()
@@ -247,11 +279,11 @@ public class Sync {
         objectStoreInitializer.start();
 
         // Init client
-        IClient client = new Client(null, user, null);
+        this.client = new Client(null, user, null);
         LocalStateObjectDataReplyHandler objectDataReplyHandler = new LocalStateObjectDataReplyHandler(
-                localStorageAdapter,
+                this.storageAdapter,
                 objectStore,
-                client,
+                this.client,
                 globalEventBus,
                 null,
                 null,
@@ -274,20 +306,20 @@ public class Sync {
 
 
         ClientInitializer clientInitializer = new ClientInitializer(objectDataReplyHandler, user, port, bootstrapLocation);
-        client = clientInitializer.init();
+        this.client = clientInitializer.init();
         clientInitializer.start();
 
         // TODO: fix cycle with wrapper around client
-        objectDataReplyHandler.setClient(client);
+        objectDataReplyHandler.setClient(this.client);
 
-        IClientManager clientManager = clientInitializer.getClientManager();
+        this.clientManager = clientInitializer.getClientManager();
 
-        objectDataReplyHandler.setClientManager(clientManager);
+        objectDataReplyHandler.setClientManager(this.clientManager);
 
         FileSyncer fileSyncer = new FileSyncer(
-                client.getUser(),
-                client,
-                clientManager,
+                this.client.getUser(),
+                this.client,
+                this.clientManager,
                 new LocalStorageAdapter(rootPath),
                 objectStore,
                 globalEventBus
@@ -312,25 +344,66 @@ public class Sync {
         List<Path> ignoredPaths = new ArrayList<>();
         ignoredPaths.add(this.rootPath.relativize(rootPath.resolve(Paths.get(Config.DEFAULT.getOsFolderName()))));
         EventAggregatorInitializer eventAggregatorInitializer = new EventAggregatorInitializer(this.rootPath, objectStore, eventListeners, ignoredPaths, 25000L);
-        IEventAggregator eventAggregator = eventAggregatorInitializer.init();
+        this.eventAggregator = eventAggregatorInitializer.init();
         eventAggregatorInitializer.start();
 
-        objectDataReplyHandler.setEventAggregator(eventAggregator);
+        objectDataReplyHandler.setEventAggregator(this.eventAggregator);
 
         IBackgroundSyncer backgroundSyncer = new NonBlockingBackgroundSyncer(
-                eventAggregator,
-                client,
-                clientManager,
+                this.eventAggregator,
+                this.client,
+                this.clientManager,
                 objectStore,
-                localStorageAdapter,
+                this.storageAdapter,
                 globalEventBus
         );
 
+        this.sharingSyncer = new SharingSyncer(
+                this.client,
+                this.clientManager,
+                this.storageAdapter,
+                objectStore
+        );
+
         // start the background syncer as first task, then reconcile every 10 minutes
-        ScheduledExecutorService executorService1 = Executors.newSingleThreadScheduledExecutor();
-        executorService1.scheduleAtFixedRate(backgroundSyncer, 0L, 600L, TimeUnit.SECONDS);
+        this.backgroundSyncerExecutorService = Executors.newSingleThreadScheduledExecutor();
+        this.backgroundSyncerExecutorService.scheduleAtFixedRate(backgroundSyncer, 0L, 600L, TimeUnit.SECONDS);
 
         // now set the peer address once we know it
         return new ClientDevice(userName, clientId, client.getPeerAddress());
+    }
+
+    public void shutdown() {
+        this.backgroundSyncerExecutorService.shutdown();
+        this.eventAggregator.stop();
+        this.client.shutdown();
+    }
+
+    public Path getRootPath() {
+        return rootPath;
+    }
+
+    public SharingSyncer getSharingSyncer() {
+        return sharingSyncer;
+    }
+
+    public IClientManager getClientManager() {
+        return clientManager;
+    }
+
+    public IClient getClient() {
+        return client;
+    }
+
+    public IEventAggregator getEventAggregator() {
+        return eventAggregator;
+    }
+
+    public ScheduledExecutorService getBackgroundSyncerExecutorService() {
+        return backgroundSyncerExecutorService;
+    }
+
+    public IStorageAdapter getStorageAdapter() {
+        return storageAdapter;
     }
 }
