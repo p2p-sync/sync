@@ -11,15 +11,23 @@ public class ApplicationConfig {
     protected String               userName;
     protected String               password;
     protected String               salt;
+    protected long                 cacheTtl;
+    protected long                 peerDiscoveryTimeout;
+    protected long                 peerBootstrapTimeout;
+    protected long                 shutdownAnnounceTimeout;
     protected int                  defaultPort;
     protected String               publicKeyPath;
     protected String               privateKeyPath;
     protected RemoteClientLocation defaultBootstrapLocation;
 
-    public ApplicationConfig(String userName, String password, String salt, int defaultPort, String publicKeyPath, String privateKeyPath, RemoteClientLocation defaultBootstrapLocation) {
+    public ApplicationConfig(String userName, String password, String salt, long cacheTtl, long peerDiscoveryTimeout, long peerBootstrapTimeout, long shutdownAnnounceTimeout, int defaultPort, String publicKeyPath, String privateKeyPath, RemoteClientLocation defaultBootstrapLocation) {
         this.userName = userName;
         this.password = password;
         this.salt = salt;
+        this.cacheTtl = cacheTtl;
+        this.peerDiscoveryTimeout = peerDiscoveryTimeout;
+        this.peerBootstrapTimeout = peerBootstrapTimeout;
+        this.shutdownAnnounceTimeout = shutdownAnnounceTimeout;
         this.defaultPort = defaultPort;
         this.publicKeyPath = publicKeyPath;
         this.privateKeyPath = privateKeyPath;
@@ -48,6 +56,38 @@ public class ApplicationConfig {
 
     public void setSalt(String salt) {
         this.salt = salt;
+    }
+
+    public long getCacheTtl() {
+        return cacheTtl;
+    }
+
+    public void setCacheTtl(long cacheTtl) {
+        this.cacheTtl = cacheTtl;
+    }
+
+    public long getPeerDiscoveryTimeout() {
+        return peerDiscoveryTimeout;
+    }
+
+    public void setPeerDiscoveryTimeout(long peerDiscoveryTimeout) {
+        this.peerDiscoveryTimeout = peerDiscoveryTimeout;
+    }
+
+    public long getPeerBootstrapTimeout() {
+        return peerBootstrapTimeout;
+    }
+
+    public void setPeerBootstrapTimeout(long peerBootstrapTimeout) {
+        this.peerBootstrapTimeout = peerBootstrapTimeout;
+    }
+
+    public long getShutdownAnnounceTimeout() {
+        return shutdownAnnounceTimeout;
+    }
+
+    public void setShutdownAnnounceTimeout(long shutdownAnnounceTimeout) {
+        this.shutdownAnnounceTimeout = shutdownAnnounceTimeout;
     }
 
     public int getDefaultPort() {

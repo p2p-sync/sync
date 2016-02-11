@@ -115,6 +115,10 @@ public class Sync {
                     null,
                     null,
                     null,
+                    0L,
+                    20000L,
+                    20000L,
+                    5000L,
                     4003,
                     defaultFolderPath.resolve(Config.DEFAULT.getPublicKeyFileName()).toString(),
                     defaultFolderPath.resolve(Config.DEFAULT.getPrivateKeyFileName()).toString(),
@@ -221,36 +225,44 @@ public class Sync {
     /**
      * Start the client as bootstrap peer
      *
-     * @param keyPair  The RSA keypair which is used to sign & encrypt messages
-     * @param userName The username of the user
-     * @param password The password of the user
-     * @param salt     The salt of the user
-     * @param port     The port on which the client should be started
+     * @param keyPair                 The RSA keypair which is used to sign & encrypt messages
+     * @param userName                The username of the user
+     * @param password                The password of the user
+     * @param salt                    The salt of the user
+     * @param cacheTtl                The time to live for values in the DHT cache
+     * @param peerDiscoveryTimeout    The max timeout for peer discovery (in milliseconds)
+     * @param peerBootstrapTimeout    The max timeout for bootstrapping to another peer (in milliseconds)
+     * @param shutdownAnnounceTimeout The max timeout for announcing a friendly shutdown (in milliseconds)
+     * @param port                    The port on which the client should be started
      *
      * @return A client device representing the created and bootstrapped client
      *
      * @throws InitializationStartException If the client could not have been started
      */
-    public ClientDevice connect(KeyPair keyPair, String userName, String password, String salt, int port)
+    public ClientDevice connect(KeyPair keyPair, String userName, String password, String salt, long cacheTtl, long peerDiscoveryTimeout, long peerBootstrapTimeout, long shutdownAnnounceTimeout, int port)
             throws InitializationStartException {
-        return this.connect(keyPair, userName, password, salt, port, null);
+        return this.connect(keyPair, userName, password, salt, cacheTtl, peerDiscoveryTimeout, peerBootstrapTimeout, shutdownAnnounceTimeout, port, null);
     }
 
     /**
      * Start the client either as a bootstrap peer or connect it to an already online one.
      *
-     * @param keyPair           The RSA keypair which is used to sign & encrypt messages
-     * @param userName          The username of the user
-     * @param password          The password of the user
-     * @param salt              The salt of the user
-     * @param port              The port on which the client should be started
-     * @param bootstrapLocation The bootstrap location to which to connect. If null, then this peer will be created as bootstrap peer
+     * @param keyPair                 The RSA keypair which is used to sign & encrypt messages
+     * @param userName                The username of the user
+     * @param password                The password of the user
+     * @param salt                    The salt of the user
+     * @param cacheTtl                The time to live for values in the DHT cache
+     * @param peerDiscoveryTimeout    The max timeout for peer discovery (in milliseconds)
+     * @param peerBootstrapTimeout    The max timeout for bootstrapping to another peer (in milliseconds)
+     * @param shutdownAnnounceTimeout The max timeout for announcing a friendly shutdown (in milliseconds)
+     * @param port                    The port on which the client should be started
+     * @param bootstrapLocation       The bootstrap location to which to connect. If null, then this peer will be created as bootstrap peer
      *
      * @return A client device representing the created and connected client
      *
      * @throws InitializationStartException If the client could not have been started
      */
-    public ClientDevice connect(KeyPair keyPair, String userName, String password, String salt, int port, RemoteClientLocation bootstrapLocation)
+    public ClientDevice connect(KeyPair keyPair, String userName, String password, String salt, long cacheTtl, long peerDiscoveryTimeout, long peerBootstrapTimeout, long shutdownAnnounceTimeout, int port, RemoteClientLocation bootstrapLocation)
             throws InitializationStartException {
         IUser user = new User(
                 userName,
@@ -310,10 +322,10 @@ public class Sync {
                 new ConnectionConfiguration(
                         clientId.toString(),
                         port,
-                        0L,
-                        20000L,
-                        20000L,
-                        5000L,
+                        cacheTtl,
+                        peerDiscoveryTimeout,
+                        peerBootstrapTimeout,
+                        shutdownAnnounceTimeout,
                         false
                 ),
                 objectDataReplyHandler,
