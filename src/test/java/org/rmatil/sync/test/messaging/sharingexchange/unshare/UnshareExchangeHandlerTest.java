@@ -5,6 +5,7 @@ import org.junit.Test;
 import org.rmatil.sync.core.messaging.sharingexchange.unshare.UnshareExchangeHandler;
 import org.rmatil.sync.core.messaging.sharingexchange.unshare.UnshareExchangeHandlerResult;
 import org.rmatil.sync.core.model.RemoteClientLocation;
+import org.rmatil.sync.network.core.ConnectionConfiguration;
 import org.rmatil.sync.network.core.model.ClientLocation;
 import org.rmatil.sync.persistence.exceptions.InputOutputException;
 import org.rmatil.sync.test.messaging.base.BaseNetworkHandlerTest;
@@ -35,11 +36,26 @@ public class UnshareExchangeHandlerTest extends BaseNetworkHandlerTest {
         // wait a bit until client2 has correctly shutdown
         Thread.sleep(1000L);
 
-        CLIENT_2 = createClient(USER_2, STORAGE_ADAPTER_2, OBJECT_STORE_2, GLOBAL_EVENT_BUS_2, PORT_CLIENT_2, new RemoteClientLocation(
-                CLIENT_1.getPeerAddress().inetAddress().getHostName(),
-                CLIENT_1.getPeerAddress().isIPv6(),
-                CLIENT_1.getPeerAddress().tcpPort()
-        ));
+        CLIENT_2 = createClient(
+                new ConnectionConfiguration(
+                        CLIENT_ID_2.toString(),
+                        PORT_CLIENT_2,
+                        0L,
+                        20000L,
+                        20000L,
+                        5000L,
+                        false
+                ),
+                USER_2,
+                STORAGE_ADAPTER_2,
+                OBJECT_STORE_2,
+                GLOBAL_EVENT_BUS_2,
+                new RemoteClientLocation(
+                        CLIENT_1.getPeerAddress().inetAddress().getHostName(),
+                        CLIENT_1.getPeerAddress().isIPv6(),
+                        CLIENT_1.getPeerAddress().tcpPort()
+                )
+        );
 
         CLIENT_MANAGER_2 = CLIENT_2.getClientManager();
 

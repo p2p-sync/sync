@@ -10,9 +10,9 @@ import org.rmatil.sync.core.syncer.file.FileSyncer;
 import org.rmatil.sync.event.aggregator.api.IEventAggregator;
 import org.rmatil.sync.network.api.IClient;
 import org.rmatil.sync.network.api.IClientManager;
+import org.rmatil.sync.network.core.ConnectionConfiguration;
 import org.rmatil.sync.network.core.model.ClientDevice;
 import org.rmatil.sync.persistence.api.IStorageAdapter;
-import org.rmatil.sync.persistence.core.dht.DhtStorageAdapter;
 import org.rmatil.sync.persistence.core.local.LocalStorageAdapter;
 import org.rmatil.sync.test.config.Config;
 import org.rmatil.sync.test.messaging.base.BaseNetworkHandlerTest;
@@ -51,9 +51,6 @@ public class BaseIT extends BaseNetworkHandlerTest {
     protected static IClient CLIENT_3;
     protected static IClient CLIENT_4;
 
-    protected static DhtStorageAdapter DHT_STORAGE_ADAPTER_3;
-    protected static DhtStorageAdapter DHT_STORAGE_ADAPTER_4;
-
     protected static FileSyncer FILE_SYNCER_3;
     protected static FileSyncer FILE_SYNCER_4;
 
@@ -87,26 +84,53 @@ public class BaseIT extends BaseNetworkHandlerTest {
         OBJECT_STORE_3 = BaseNetworkHandlerTest.createObjectStore(ROOT_TEST_DIR3);
         OBJECT_STORE_4 = BaseNetworkHandlerTest.createObjectStore(ROOT_TEST_DIR4);
 
-        CLIENT_3 = BaseNetworkHandlerTest.createClient(USER_2, STORAGE_ADAPTER_3, OBJECT_STORE_3, GLOBAL_EVENT_BUS_3, PORT_CLIENT_3, new RemoteClientLocation(
-                CLIENT_1.getPeerAddress().inetAddress().getHostName(),
-                CLIENT_1.getPeerAddress().isIPv6(),
-                CLIENT_1.getPeerAddress().tcpPort()
-        ));
+        CLIENT_3 = BaseNetworkHandlerTest.createClient(
+                new ConnectionConfiguration(
+                        CLIENT_ID_3.toString(),
+                        PORT_CLIENT_3,
+                        0L,
+                        20000L,
+                        20000L,
+                        5000L,
+                        false
+                ),
+                USER_2,
+                STORAGE_ADAPTER_3,
+                OBJECT_STORE_3,
+                GLOBAL_EVENT_BUS_3,
+                new RemoteClientLocation(
+                        CLIENT_1.getPeerAddress().inetAddress().getHostName(),
+                        CLIENT_1.getPeerAddress().isIPv6(),
+                        CLIENT_1.getPeerAddress().tcpPort()
+                )
+        );
 
-        CLIENT_4 = BaseNetworkHandlerTest.createClient(USER_2, STORAGE_ADAPTER_4, OBJECT_STORE_4, GLOBAL_EVENT_BUS_4, PORT_CLIENT_4, new RemoteClientLocation(
-                CLIENT_1.getPeerAddress().inetAddress().getHostName(),
-                CLIENT_1.getPeerAddress().isIPv6(),
-                CLIENT_1.getPeerAddress().tcpPort()
-        ));
+        CLIENT_4 = BaseNetworkHandlerTest.createClient(
+                new ConnectionConfiguration(
+                        CLIENT_ID_4.toString(),
+                        PORT_CLIENT_4,
+                        0L,
+                        20000L,
+                        20000L,
+                        5000L,
+                        false
+                ),
+                USER_2,
+                STORAGE_ADAPTER_4,
+                OBJECT_STORE_4,
+                GLOBAL_EVENT_BUS_4,
+                new RemoteClientLocation(
+                        CLIENT_1.getPeerAddress().inetAddress().getHostName(),
+                        CLIENT_1.getPeerAddress().isIPv6(),
+                        CLIENT_1.getPeerAddress().tcpPort()
+                )
+        );
 
-        DHT_STORAGE_ADAPTER_3 = BaseNetworkHandlerTest.createDhtStorageAdapter(CLIENT_3);
-        DHT_STORAGE_ADAPTER_4 = BaseNetworkHandlerTest.createDhtStorageAdapter(CLIENT_4);
+        CLIENT_MANAGER_3 = CLIENT_3.getClientManager();
+        CLIENT_MANAGER_4 = CLIENT_4.getClientManager();
 
-        CLIENT_MANAGER_3 = createClientManager(DHT_STORAGE_ADAPTER_3);
-        CLIENT_MANAGER_4 = createClientManager(DHT_STORAGE_ADAPTER_4);
-
-        FILE_SYNCER_3 = createFileSyncer(CLIENT_3, DHT_STORAGE_ADAPTER_3, ROOT_TEST_DIR3, OBJECT_STORE_3, GLOBAL_EVENT_BUS_3);
-        FILE_SYNCER_4 = createFileSyncer(CLIENT_4, DHT_STORAGE_ADAPTER_4, ROOT_TEST_DIR4, OBJECT_STORE_4, GLOBAL_EVENT_BUS_4);
+        FILE_SYNCER_3 = createFileSyncer(CLIENT_3, ROOT_TEST_DIR3, OBJECT_STORE_3, GLOBAL_EVENT_BUS_3);
+        FILE_SYNCER_4 = createFileSyncer(CLIENT_4, ROOT_TEST_DIR4, OBJECT_STORE_4, GLOBAL_EVENT_BUS_4);
 
         GLOBAL_EVENT_BUS_3.subscribe(FILE_SYNCER_3);
         GLOBAL_EVENT_BUS_4.subscribe(FILE_SYNCER_4);

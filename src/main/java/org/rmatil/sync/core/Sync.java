@@ -47,6 +47,7 @@ import org.rmatil.sync.network.api.IClient;
 import org.rmatil.sync.network.api.IClientManager;
 import org.rmatil.sync.network.api.IUser;
 import org.rmatil.sync.network.core.Client;
+import org.rmatil.sync.network.core.ConnectionConfiguration;
 import org.rmatil.sync.network.core.model.ClientDevice;
 import org.rmatil.sync.network.core.model.User;
 import org.rmatil.sync.persistence.api.IStorageAdapter;
@@ -305,7 +306,20 @@ public class Sync {
         objectDataReplyHandler.addRequestCallbackHandler(UnsharedRequest.class, UnsharedRequestHandler.class);
 
 
-        ClientInitializer clientInitializer = new ClientInitializer(objectDataReplyHandler, user, port, bootstrapLocation);
+        ClientInitializer clientInitializer = new ClientInitializer(
+                new ConnectionConfiguration(
+                        clientId.toString(),
+                        port,
+                        0L,
+                        20000L,
+                        20000L,
+                        5000L,
+                        false
+                ),
+                objectDataReplyHandler,
+                user,
+                bootstrapLocation
+        );
         this.client = clientInitializer.init();
         clientInitializer.start();
 

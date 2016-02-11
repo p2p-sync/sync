@@ -43,12 +43,11 @@ import org.rmatil.sync.network.api.IClient;
 import org.rmatil.sync.network.api.IClientManager;
 import org.rmatil.sync.network.api.IUser;
 import org.rmatil.sync.network.core.Client;
-import org.rmatil.sync.network.core.ClientManager;
+import org.rmatil.sync.network.core.ConnectionConfiguration;
 import org.rmatil.sync.network.core.model.ClientDevice;
 import org.rmatil.sync.network.core.model.ClientLocation;
 import org.rmatil.sync.network.core.model.User;
 import org.rmatil.sync.persistence.api.IStorageAdapter;
-import org.rmatil.sync.persistence.core.dht.DhtStorageAdapter;
 import org.rmatil.sync.persistence.core.local.LocalStorageAdapter;
 import org.rmatil.sync.persistence.exceptions.InputOutputException;
 import org.rmatil.sync.test.base.BaseTest;
@@ -103,9 +102,6 @@ public abstract class BaseNetworkHandlerTest extends BaseTest {
     protected static IClient CLIENT_1;
     protected static IClient CLIENT_2;
 
-    protected static DhtStorageAdapter DHT_STORAGE_ADAPTER_1;
-    protected static DhtStorageAdapter DHT_STORAGE_ADAPTER_2;
-
     protected static FileSyncer FILE_SYNCER_1;
     protected static FileSyncer FILE_SYNCER_2;
 
@@ -148,21 +144,50 @@ public abstract class BaseNetworkHandlerTest extends BaseTest {
         OBJECT_STORE_1 = createObjectStore(ROOT_TEST_DIR1);
         OBJECT_STORE_2 = createObjectStore(ROOT_TEST_DIR2);
 
-        CLIENT_1 = createClient(USER_1, STORAGE_ADAPTER_1, OBJECT_STORE_1, GLOBAL_EVENT_BUS_1, PORT_CLIENT_1, null);
-        CLIENT_2 = createClient(USER_1, STORAGE_ADAPTER_2, OBJECT_STORE_2, GLOBAL_EVENT_BUS_2, PORT_CLIENT_2, new RemoteClientLocation(
-                CLIENT_1.getPeerAddress().inetAddress().getHostName(),
-                CLIENT_1.getPeerAddress().isIPv6(),
-                CLIENT_1.getPeerAddress().tcpPort()
-        ));
+        CLIENT_1 = createClient(
+                new ConnectionConfiguration(
+                        CLIENT_ID_1.toString(),
+                        PORT_CLIENT_1,
+                        0L,
+                        20000L,
+                        20000L,
+                        5000L,
+                        false
+                ),
+                USER_1,
+                STORAGE_ADAPTER_1,
+                OBJECT_STORE_1,
+                GLOBAL_EVENT_BUS_1,
+                null
+        );
 
-        DHT_STORAGE_ADAPTER_1 = createDhtStorageAdapter(CLIENT_1);
-        DHT_STORAGE_ADAPTER_2 = createDhtStorageAdapter(CLIENT_2);
+        CLIENT_2 = createClient(
+                new ConnectionConfiguration(
+                        CLIENT_ID_2.toString(),
+                        PORT_CLIENT_2,
+                        0L,
+                        20000L,
+                        20000L,
+                        5000L,
+                        false
+                ),
+                USER_1,
+                STORAGE_ADAPTER_2,
+                OBJECT_STORE_2,
+                GLOBAL_EVENT_BUS_2,
+                new RemoteClientLocation(
+                        CLIENT_1.getPeerAddress().inetAddress().getHostName(),
+                        CLIENT_1.getPeerAddress().isIPv6(),
+                        CLIENT_1.getPeerAddress().tcpPort()
+                )
+        );
 
-        CLIENT_MANAGER_1 = createClientManager(DHT_STORAGE_ADAPTER_1);
-        CLIENT_MANAGER_2 = createClientManager(DHT_STORAGE_ADAPTER_2);
 
-        FILE_SYNCER_1 = createFileSyncer(CLIENT_1, DHT_STORAGE_ADAPTER_1, ROOT_TEST_DIR1, OBJECT_STORE_1, GLOBAL_EVENT_BUS_1);
-        FILE_SYNCER_2 = createFileSyncer(CLIENT_2, DHT_STORAGE_ADAPTER_2, ROOT_TEST_DIR2, OBJECT_STORE_2, GLOBAL_EVENT_BUS_2);
+        CLIENT_MANAGER_1 = CLIENT_1.getClientManager();
+        CLIENT_MANAGER_2 = CLIENT_2.getClientManager();
+
+        FILE_SYNCER_1 = createFileSyncer(CLIENT_1, ROOT_TEST_DIR1, OBJECT_STORE_1, GLOBAL_EVENT_BUS_1);
+        FILE_SYNCER_2 = createFileSyncer(CLIENT_2, ROOT_TEST_DIR2, OBJECT_STORE_2, GLOBAL_EVENT_BUS_2);
 
         GLOBAL_EVENT_BUS_1.subscribe(FILE_SYNCER_1);
         GLOBAL_EVENT_BUS_2.subscribe(FILE_SYNCER_2);
@@ -257,15 +282,16 @@ public abstract class BaseNetworkHandlerTest extends BaseTest {
     /**
      * Creates and starts a client with the provided configuration
      *
-     * @param storageAdapter    The storage adapter to use for the local state object data reply handler
-     * @param objectStore       The object store to access versions
-     * @param globalEventBus    The global event bus for the client
-     * @param port              The port of the client
-     * @param bootstrapLocation The bootstrap location to use. May be null to start as bootstrap peer
+     * @param connectionConfiguration The connection configuration used to create the client
+     * @param user                    The user to which the created client should belong
+     * @param storageAdapter          The storage adapter to use for the local state object data reply handler
+     * @param objectStore             The object store to access versions
+     * @param globalEventBus          The global event bus for the client
+     * @param bootstrapLocation       The bootstrap location to use. May be null to start as bootstrap peer
      *
      * @return The configured and started client
      */
-    protected static IClient createClient(IUser user, IStorageAdapter storageAdapter, IObjectStore objectStore, MBassador<IBusEvent> globalEventBus, int port, RemoteClientLocation bootstrapLocation) {
+    protected static IClient createClient(ConnectionConfiguration connectionConfiguration, IUser user, IStorageAdapter storageAdapter, IObjectStore objectStore, MBassador<IBusEvent> globalEventBus, RemoteClientLocation bootstrapLocation) {
         IClient client = new Client(null, user, null);
         LocalStateObjectDataReplyHandler objectDataReplyHandler = new LocalStateObjectDataReplyHandler(
                 storageAdapter,
@@ -291,7 +317,7 @@ public abstract class BaseNetworkHandlerTest extends BaseTest {
         objectDataReplyHandler.addRequestCallbackHandler(UnsharedRequest.class, UnsharedRequestHandler.class);
 
 
-        ClientInitializer clientInitializer = new ClientInitializer(objectDataReplyHandler, user, port, bootstrapLocation);
+        ClientInitializer clientInitializer = new ClientInitializer(connectionConfiguration, objectDataReplyHandler, user, bootstrapLocation);
         client = clientInitializer.init();
         clientInitializer.start();
 
@@ -301,39 +327,20 @@ public abstract class BaseNetworkHandlerTest extends BaseTest {
     }
 
     /**
-     * Creates a new DHT storage adapter using the given client
-     *
-     * @param client The client of which the peerDHT is used to create a DHTStorageAdapter
-     *
-     * @return The created storage adapter
-     */
-    protected static DhtStorageAdapter createDhtStorageAdapter(IClient client) {
-        return new DhtStorageAdapter(client.getPeerDht());
-    }
-
-    /**
      * Creates a new file syncer
      *
-     * @param client            The client to use for sending messages
-     * @param dhtStorageAdapter The storage adapter to access client locations
-     * @param rootPath          The root path of the synchronized folder
-     * @param objectStore       The object store to access versions
-     * @param globalEventBus    The global event bus to publish events to
+     * @param client         The client to use for sending messages
+     * @param rootPath       The root path of the synchronized folder
+     * @param objectStore    The object store to access versions
+     * @param globalEventBus The global event bus to publish events to
      *
      * @return The created file syncer
      */
-    protected static FileSyncer createFileSyncer(IClient client, DhtStorageAdapter dhtStorageAdapter, Path rootPath, IObjectStore objectStore, MBassador<IBusEvent> globalEventBus) {
+    protected static FileSyncer createFileSyncer(IClient client, Path rootPath, IObjectStore objectStore, MBassador<IBusEvent> globalEventBus) {
         FileSyncer fileSyncer = new FileSyncer(
                 client.getUser(),
                 client,
-                new ClientManager(
-                        dhtStorageAdapter,
-                        org.rmatil.sync.network.config.Config.IPv4.getLocationsContentKey(),
-                        org.rmatil.sync.network.config.Config.IPv4.getPrivateKeyContentKey(),
-                        org.rmatil.sync.network.config.Config.IPv4.getPublicKeyContentKey(),
-                        org.rmatil.sync.network.config.Config.IPv4.getSaltContentKey(),
-                        org.rmatil.sync.network.config.Config.IPv4.getDomainKey()
-                ),
+                client.getClientManager(),
                 new LocalStorageAdapter(rootPath),
                 objectStore,
                 globalEventBus
@@ -379,23 +386,5 @@ public abstract class BaseNetworkHandlerTest extends BaseTest {
         );
 
         return eventAggregatorInitializer.init();
-    }
-
-    /**
-     * Create a client manager
-     *
-     * @param dhtStorageAdapter The dht storage adapter where the client locations are saved
-     *
-     * @return The client manager
-     */
-    protected static IClientManager createClientManager(DhtStorageAdapter dhtStorageAdapter) {
-        return new ClientManager(
-                dhtStorageAdapter,
-                org.rmatil.sync.network.config.Config.IPv4.getLocationsContentKey(),
-                org.rmatil.sync.network.config.Config.IPv4.getPrivateKeyContentKey(),
-                org.rmatil.sync.network.config.Config.IPv4.getPublicKeyContentKey(),
-                org.rmatil.sync.network.config.Config.IPv4.getSaltContentKey(),
-                org.rmatil.sync.network.config.Config.IPv4.getDomainKey()
-        );
     }
 }
