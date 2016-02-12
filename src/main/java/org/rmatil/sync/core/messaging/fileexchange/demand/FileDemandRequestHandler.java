@@ -126,6 +126,8 @@ public class FileDemandRequestHandler implements ILocalStateRequestCallback {
 
             int totalNrOfChunks = 0;
             Data data = null;
+            // only files can have a checksum!
+            String checksum = "";
             if (fileMetaInfo.isFile()) {
                 // should round to the next bigger int value anyway
                 totalNrOfChunks = (int) Math.ceil(fileMetaInfo.getTotalFileSize() / CHUNK_SIZE);
@@ -150,6 +152,12 @@ public class FileDemandRequestHandler implements ILocalStateRequestCallback {
                 }
 
                 data = new Data(content, false);
+
+                try {
+                    checksum = this.storageAdapter.getChecksum(pathElement);
+                } catch (InputOutputException e) {
+                    logger.error("Could not generate checksum. Message: " + e.getMessage(), e);
+                }
             }
 
             Set<Sharer> sharers = new HashSet<>();
@@ -157,13 +165,6 @@ public class FileDemandRequestHandler implements ILocalStateRequestCallback {
                 sharers = this.objectStore.getSharerManager().getSharer(this.request.getRelativeFilePath());
             } catch (InputOutputException e) {
                 logger.error("Failed to read the sharers for file " + this.request.getRelativeFilePath() + ". Sending an empty sharer set. Message: " + e.getMessage());
-            }
-
-            String checksum = null;
-            try {
-                checksum = this.storageAdapter.getChecksum(pathElement);
-            } catch (InputOutputException e) {
-                logger.error("Could not generate checksum. Message: " + e.getMessage(), e);
             }
 
             IResponse response = new FileDemandResponse(
