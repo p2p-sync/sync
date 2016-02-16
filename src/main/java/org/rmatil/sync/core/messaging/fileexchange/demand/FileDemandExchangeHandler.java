@@ -7,12 +7,12 @@ import org.rmatil.sync.core.eventbus.IgnoreBusEvent;
 import org.rmatil.sync.core.messaging.StatusCode;
 import org.rmatil.sync.event.aggregator.core.events.CreateEvent;
 import org.rmatil.sync.event.aggregator.core.events.ModifyEvent;
-import org.rmatil.sync.network.api.IClient;
-import org.rmatil.sync.network.api.IClientManager;
+import org.rmatil.sync.network.api.INode;
+import org.rmatil.sync.network.api.INodeManager;
 import org.rmatil.sync.network.api.IResponse;
 import org.rmatil.sync.network.core.ANetworkHandler;
 import org.rmatil.sync.network.core.model.ClientDevice;
-import org.rmatil.sync.network.core.model.ClientLocation;
+import org.rmatil.sync.network.core.model.NodeLocation;
 import org.rmatil.sync.persistence.api.IPathElement;
 import org.rmatil.sync.persistence.api.IStorageAdapter;
 import org.rmatil.sync.persistence.api.StorageType;
@@ -48,12 +48,12 @@ public class FileDemandExchangeHandler extends ANetworkHandler<FileDemandExchang
     /**
      * The client manager to fetch client locations
      */
-    protected IClientManager clientManager;
+    protected INodeManager nodeManager;
 
     /**
      * The actual client address from which to get the missing file
      */
-    protected ClientLocation fetchAddress;
+    protected NodeLocation fetchAddress;
 
     /**
      * The relative path (rel. to the synced-folder root)
@@ -88,14 +88,14 @@ public class FileDemandExchangeHandler extends ANetworkHandler<FileDemandExchang
     /**
      * @param storageAdapter The storage adapter to access the synced folder
      * @param client         The client to send messages
-     * @param clientManager  The client manager to fetch other clients' locations
+     * @param nodeManager  The client manager to fetch other clients' locations
      * @param fetchAddress   The address from the client from which the file should be fetched
      * @param pathToFetch    The path to the file which is requested
      * @param exchangeId     The id of the exchange
      */
-    public FileDemandExchangeHandler(IStorageAdapter storageAdapter, IClient client, IClientManager clientManager, MBassador<IBusEvent> globalEventBus, ClientLocation fetchAddress, String pathToFetch, UUID exchangeId) {
+    public FileDemandExchangeHandler(IStorageAdapter storageAdapter, INode client, INodeManager nodeManager, MBassador<IBusEvent> globalEventBus, NodeLocation fetchAddress, String pathToFetch, UUID exchangeId) {
         super(client);
-        this.clientManager = clientManager;
+        this.nodeManager = nodeManager;
         this.storageAdapter = storageAdapter;
         this.globalEventBus = globalEventBus;
         this.fetchAddress = fetchAddress;
@@ -107,13 +107,13 @@ public class FileDemandExchangeHandler extends ANetworkHandler<FileDemandExchang
     @Override
     public void run() {
         try {
-            List<ClientLocation> receiverAddresses = new ArrayList<>();
+            List<NodeLocation> receiverAddresses = new ArrayList<>();
             receiverAddresses.add(this.fetchAddress);
 
             ClientDevice clientDevice = new ClientDevice(
-                    super.client.getUser().getUserName(),
-                    super.client.getClientDeviceId(),
-                    super.client.getPeerAddress()
+                    super.node.getUser().getUserName(),
+                    super.node.getClientDeviceId(),
+                    super.node.getPeerAddress()
             );
 
 

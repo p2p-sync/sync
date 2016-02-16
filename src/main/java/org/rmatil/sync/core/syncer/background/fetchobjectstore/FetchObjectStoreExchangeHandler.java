@@ -1,12 +1,12 @@
 package org.rmatil.sync.core.syncer.background.fetchobjectstore;
 
 import org.rmatil.sync.core.messaging.StatusCode;
-import org.rmatil.sync.network.api.IClient;
-import org.rmatil.sync.network.api.IClientManager;
+import org.rmatil.sync.network.api.INode;
+import org.rmatil.sync.network.api.INodeManager;
 import org.rmatil.sync.network.api.IResponse;
 import org.rmatil.sync.network.core.ANetworkHandler;
 import org.rmatil.sync.network.core.model.ClientDevice;
-import org.rmatil.sync.network.core.model.ClientLocation;
+import org.rmatil.sync.network.core.model.NodeLocation;
 import org.rmatil.sync.persistence.exceptions.InputOutputException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,7 +26,7 @@ public class FetchObjectStoreExchangeHandler extends ANetworkHandler<FetchObject
     /**
      * The client manager to get all client locations from
      */
-    protected IClientManager clientManager;
+    protected INodeManager nodeManager;
 
     /**
      * The exchange id used for the fetch
@@ -40,12 +40,12 @@ public class FetchObjectStoreExchangeHandler extends ANetworkHandler<FetchObject
 
     /**
      * @param client        The client to use for sending messages
-     * @param clientManager The client manager to get all other client locations
+     * @param nodeManager The client manager to get all other client locations
      * @param exchangeId    The exchange id used for this exchange
      */
-    public FetchObjectStoreExchangeHandler(IClient client, IClientManager clientManager, UUID exchangeId) {
+    public FetchObjectStoreExchangeHandler(INode client, INodeManager nodeManager, UUID exchangeId) {
         super(client);
-        this.clientManager = clientManager;
+        this.nodeManager = nodeManager;
         this.exchangeId = exchangeId;
         this.responses = new ArrayList<>();
     }
@@ -53,18 +53,18 @@ public class FetchObjectStoreExchangeHandler extends ANetworkHandler<FetchObject
     @Override
     public void run() {
         try {
-            List<ClientLocation> clientLocations;
+            List<NodeLocation> clientLocations;
             try {
-                clientLocations = this.clientManager.getClientLocations(super.client.getUser());
+                clientLocations = this.nodeManager.getNodeLocations(super.node.getUser());
             } catch (InputOutputException e) {
-                logger.error("Could not fetch client locations from user " + super.client.getUser().getUserName() + ". Message: " + e.getMessage());
+                logger.error("Could not fetch client locations from user " + super.node.getUser().getUserName() + ". Message: " + e.getMessage());
                 return;
             }
 
             FetchObjectStoreRequest syncObjectStoreRequest = new FetchObjectStoreRequest(
                     this.exchangeId,
                     StatusCode.NONE,
-                    new ClientDevice(super.client.getUser().getUserName(), super.client.getClientDeviceId(), super.client.getPeerAddress()),
+                    new ClientDevice(super.node.getUser().getUserName(), super.node.getClientDeviceId(), super.node.getPeerAddress()),
                     clientLocations
             );
 

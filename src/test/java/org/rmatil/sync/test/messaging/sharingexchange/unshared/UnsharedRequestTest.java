@@ -3,7 +3,7 @@ package org.rmatil.sync.test.messaging.sharingexchange.unshared;
 import org.junit.Test;
 import org.rmatil.sync.core.messaging.sharingexchange.unshared.UnsharedRequest;
 import org.rmatil.sync.network.core.model.ClientDevice;
-import org.rmatil.sync.network.core.model.ClientLocation;
+import org.rmatil.sync.network.core.model.NodeLocation;
 import org.rmatil.sync.test.base.BaseMessageTest;
 
 import java.util.ArrayList;
@@ -16,13 +16,13 @@ public class UnsharedRequestTest extends BaseMessageTest {
 
     protected static final UUID           FILE_ID          = UUID.randomUUID();
     protected static final ClientDevice   CLIENT_DEVICE    = new ClientDevice("Inverness McKenzie", UUID.randomUUID(), null);
-    protected static final ClientLocation RECEIVER_ADDRESS = new ClientLocation(UUID.randomUUID(), null);
+    protected static final NodeLocation RECEIVER_ADDRESS = new NodeLocation(UUID.randomUUID(), null);
     protected static final String         USERNAME         = "John Doe";
 
 
     @Test
     public void test() {
-        List<ClientLocation> receiver = new ArrayList<>();
+        List<NodeLocation> receiver = new ArrayList<>();
         receiver.add(RECEIVER_ADDRESS);
 
         UnsharedRequest request = new UnsharedRequest(

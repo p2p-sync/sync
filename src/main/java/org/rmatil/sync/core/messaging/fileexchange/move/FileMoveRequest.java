@@ -3,7 +3,7 @@ package org.rmatil.sync.core.messaging.fileexchange.move;
 import org.rmatil.sync.core.messaging.StatusCode;
 import org.rmatil.sync.core.messaging.base.ARequest;
 import org.rmatil.sync.network.core.model.ClientDevice;
-import org.rmatil.sync.network.core.model.ClientLocation;
+import org.rmatil.sync.network.core.model.NodeLocation;
 
 import java.util.ArrayList;
 import java.util.UUID;
@@ -38,7 +38,7 @@ public class FileMoveRequest extends ARequest {
      * @param newPath         The new path
      * @param isFile          If the path represents a file
      */
-    public FileMoveRequest(UUID exchangeId, StatusCode statusCode, ClientDevice clientDevice, ClientLocation receiverAddress, String oldPath, String newPath, boolean isFile) {
+    public FileMoveRequest(UUID exchangeId, StatusCode statusCode, ClientDevice clientDevice, NodeLocation receiverAddress, String oldPath, String newPath, boolean isFile) {
         super(exchangeId, statusCode, clientDevice, new ArrayList<>());
         this.oldPath = oldPath;
         this.newPath = newPath;

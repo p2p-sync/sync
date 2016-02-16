@@ -11,9 +11,9 @@ import org.rmatil.sync.core.messaging.sharingexchange.unshare.UnshareExchangeHan
 import org.rmatil.sync.core.messaging.sharingexchange.unshared.UnsharedExchangeHandler;
 import org.rmatil.sync.core.syncer.sharing.event.ShareEvent;
 import org.rmatil.sync.core.syncer.sharing.event.UnshareEvent;
-import org.rmatil.sync.network.api.IClient;
-import org.rmatil.sync.network.api.IClientManager;
-import org.rmatil.sync.network.core.model.ClientLocation;
+import org.rmatil.sync.network.api.INode;
+import org.rmatil.sync.network.api.INodeManager;
+import org.rmatil.sync.network.core.model.NodeLocation;
 import org.rmatil.sync.persistence.api.IPathElement;
 import org.rmatil.sync.persistence.api.IStorageAdapter;
 import org.rmatil.sync.persistence.api.StorageType;
@@ -35,15 +35,15 @@ public class SharingSyncer implements ISharingSyncer {
 
     private static final Logger logger = LoggerFactory.getLogger(SharingSyncer.class);
 
-    protected IClient         client;
-    protected IClientManager  clientManager;
+    protected INode           node;
+    protected INodeManager    nodeManager;
     protected IStorageAdapter storageAdapter;
     protected IObjectStore    objectStore;
 
 
-    public SharingSyncer(IClient client, IClientManager clientManager, IStorageAdapter storageAdapter, IObjectStore objectStore) {
-        this.client = client;
-        this.clientManager = clientManager;
+    public SharingSyncer(INode node, INodeManager nodeManager, IStorageAdapter storageAdapter, IObjectStore objectStore) {
+        this.node = node;
+        this.nodeManager = nodeManager;
         this.storageAdapter = storageAdapter;
         this.objectStore = objectStore;
     }
@@ -76,7 +76,7 @@ public class SharingSyncer implements ISharingSyncer {
 
         UUID fileId;
         try {
-            fileId = this.client.getIdentifierManager().getValue(sharingEvent.getRelativePath().toString());
+            fileId = this.node.getIdentifierManager().getValue(sharingEvent.getRelativePath().toString());
         } catch (InputOutputException e) {
             String msg = "Could not find fileId for file " + sharingEvent.getRelativePath().toString() + ". Message: " + e.getMessage();
             logger.error(msg);
@@ -94,8 +94,8 @@ public class SharingSyncer implements ISharingSyncer {
 
         // Now ask all own clients to add the sharer to their object store
         SharedExchangeHandler sharedExchangeHandler = new SharedExchangeHandler(
-                this.client,
-                this.clientManager,
+                this.node,
+                this.nodeManager,
                 this.objectStore,
                 sharingEvent.getUsernameToShareWith(),
                 sharingEvent.getAccessType(),
@@ -103,7 +103,7 @@ public class SharingSyncer implements ISharingSyncer {
                 exchangeId
         );
 
-        this.client.getObjectDataReplyHandler().addResponseCallbackHandler(exchangeId, sharedExchangeHandler);
+        this.node.getObjectDataReplyHandler().addResponseCallbackHandler(exchangeId, sharedExchangeHandler);
 
         Thread sharedExchangeHandlerThread = new Thread(sharedExchangeHandler);
         sharedExchangeHandlerThread.setName("SharedExchangeHandlerThread-" + exchangeId);
@@ -115,7 +115,7 @@ public class SharingSyncer implements ISharingSyncer {
             logger.error("Got interrupted while waiting for all client to respond to the sharedExchange " + exchangeId);
         }
 
-        this.client.getObjectDataReplyHandler().removeResponseCallbackHandler(exchangeId);
+        this.node.getObjectDataReplyHandler().removeResponseCallbackHandler(exchangeId);
 
         if (! sharedExchangeHandler.isCompleted()) {
             String msg = "SharedExchangeHandler should be completed after awaiting. Did not send share request to sharer. Own clients may be inconsistent until next sync.";
@@ -124,7 +124,7 @@ public class SharingSyncer implements ISharingSyncer {
         }
 
         // own clients did update their object store too, so we can now notify one client of the sharer
-        ClientLocation sharerLocation = this.getClientLocationFromSharer(sharingEvent.getUsernameToShareWith());
+        NodeLocation sharerLocation = this.getClientLocationFromSharer(sharingEvent.getUsernameToShareWith());
 
         String relativePathToSharedFolder;
         try {
@@ -135,7 +135,7 @@ public class SharingSyncer implements ISharingSyncer {
         }
 
         ShareExchangeHandler shareExchangeHandler = new ShareExchangeHandler(
-                this.client,
+                this.node,
                 sharerLocation,
                 this.storageAdapter,
                 this.objectStore,
@@ -147,7 +147,7 @@ public class SharingSyncer implements ISharingSyncer {
                 exchangeId
         );
 
-        this.client.getObjectDataReplyHandler().addResponseCallbackHandler(exchangeId, shareExchangeHandler);
+        this.node.getObjectDataReplyHandler().addResponseCallbackHandler(exchangeId, shareExchangeHandler);
 
         Thread shareExchangeHandlerThread = new Thread(shareExchangeHandler);
         shareExchangeHandlerThread.setName("ShareExchangeHandler-" + exchangeId);
@@ -159,7 +159,7 @@ public class SharingSyncer implements ISharingSyncer {
             logger.error("Got interrupted while waiting for shareExchangeHandler " + exchangeId + " to complete. Message: " + e.getMessage(), e);
         }
 
-        this.client.getObjectDataReplyHandler().removeResponseCallbackHandler(exchangeId);
+        this.node.getObjectDataReplyHandler().removeResponseCallbackHandler(exchangeId);
 
         if (! shareExchangeHandler.isCompleted()) {
             String msg = "ShareExchangeHandler should be completed after awaiting. Sync " + exchangeId + " will likely be failed. Aborting";
@@ -183,7 +183,7 @@ public class SharingSyncer implements ISharingSyncer {
 
         UUID fileId;
         try {
-            fileId = this.client.getIdentifierManager().getValue(unshareEvent.getRelativePath().toString());
+            fileId = this.node.getIdentifierManager().getValue(unshareEvent.getRelativePath().toString());
         } catch (InputOutputException e) {
             String msg = "Could not fetch fileId for file " + unshareEvent.getRelativePath().toString() + ". Message: " + e.getMessage();
             logger.error(msg, e);
@@ -192,8 +192,8 @@ public class SharingSyncer implements ISharingSyncer {
 
         // unshare on own clients
         UnsharedExchangeHandler unsharedExchangeHandler = new UnsharedExchangeHandler(
-                this.client,
-                this.clientManager,
+                this.node,
+                this.nodeManager,
                 this.objectStore,
                 unshareEvent.getRelativePath().toString(),
                 fileId,
@@ -201,7 +201,7 @@ public class SharingSyncer implements ISharingSyncer {
                 exchangeId
         );
 
-        this.client.getObjectDataReplyHandler().addResponseCallbackHandler(exchangeId, unsharedExchangeHandler);
+        this.node.getObjectDataReplyHandler().addResponseCallbackHandler(exchangeId, unsharedExchangeHandler);
 
         Thread unsharedExchangeHandlerThread = new Thread(unsharedExchangeHandler);
         unsharedExchangeHandlerThread.setName("UnsharedExchangeHandler-" + exchangeId);
@@ -213,7 +213,7 @@ public class SharingSyncer implements ISharingSyncer {
             logger.error("Got interrupted while waiting for unsharing " + exchangeId + " to complete on own clients. Message: " + e.getMessage(), e);
         }
 
-        this.client.getObjectDataReplyHandler().removeResponseCallbackHandler(exchangeId);
+        this.node.getObjectDataReplyHandler().removeResponseCallbackHandler(exchangeId);
 
         if (unsharedExchangeHandler.isCompleted()) {
             String msg = "UnsharedExchangeHandler should be completed after awaiting. Unsharing might not be complete on own clients. Aborting";
@@ -223,16 +223,16 @@ public class SharingSyncer implements ISharingSyncer {
 
         // unshare with sharer
 
-        ClientLocation sharerLocation = this.getClientLocationFromSharer(unshareEvent.getUsernameToShareWith());
+        NodeLocation sharerLocation = this.getClientLocationFromSharer(unshareEvent.getUsernameToShareWith());
 
         UnshareExchangeHandler unshareExchangeHandler = new UnshareExchangeHandler(
-                this.client,
+                this.node,
                 sharerLocation,
                 fileId,
                 exchangeId
         );
 
-        this.client.getObjectDataReplyHandler().addResponseCallbackHandler(exchangeId, unshareExchangeHandler);
+        this.node.getObjectDataReplyHandler().addResponseCallbackHandler(exchangeId, unshareExchangeHandler);
 
         Thread unshareExchangeHandlerThread = new Thread(unshareExchangeHandler);
         unshareExchangeHandlerThread.setName("UnshareExchangeHandler-" + exchangeId);
@@ -244,7 +244,7 @@ public class SharingSyncer implements ISharingSyncer {
             logger.error("Got interrupted while waiting for unsharing " + exchangeId + " to complete on own clients. Message: " + e.getMessage(), e);
         }
 
-        this.client.getObjectDataReplyHandler().removeResponseCallbackHandler(exchangeId);
+        this.node.getObjectDataReplyHandler().removeResponseCallbackHandler(exchangeId);
 
         if (unshareExchangeHandler.isCompleted()) {
             String msg = "UnshareExchangeHandler should be completed after awaiting. Unsharing might not be complete on sharer's clients";
@@ -336,11 +336,11 @@ public class SharingSyncer implements ISharingSyncer {
      *
      * @return The found client location
      */
-    public ClientLocation getClientLocationFromSharer(String sharer)
+    public NodeLocation getClientLocationFromSharer(String sharer)
             throws SharingFailedException {
-        List<ClientLocation> otherClientsLocations;
+        List<NodeLocation> otherClientsLocations;
         try {
-            otherClientsLocations = this.clientManager.getClientLocations(sharer);
+            otherClientsLocations = this.nodeManager.getNodeLocations(sharer);
         } catch (InputOutputException e) {
             logger.error("Could not fetch locations from " + sharer + ". Message: " + e.getMessage(), e);
             throw new SharingFailedException("Could not fetch locations from user " + sharer + ". Error: " + e.getMessage());

@@ -11,7 +11,7 @@ import org.rmatil.sync.event.aggregator.api.IEventAggregator;
 import org.rmatil.sync.network.api.*;
 import org.rmatil.sync.network.core.messaging.ObjectDataReplyHandler;
 import org.rmatil.sync.network.core.model.ClientDevice;
-import org.rmatil.sync.network.core.model.ClientLocation;
+import org.rmatil.sync.network.core.model.NodeLocation;
 import org.rmatil.sync.persistence.api.IStorageAdapter;
 import org.rmatil.sync.version.api.IObjectStore;
 
@@ -25,41 +25,41 @@ public class LocalStateObjectDataReplyHandler extends ObjectDataReplyHandler {
     protected IObjectStore         objectStore;
     protected MBassador<IBusEvent> globalEventBus;
     protected IEventAggregator     eventAggregator;
-    protected IClientManager       clientManager;
+    protected INodeManager         nodeManager;
     protected IAccessManager       accessManager;
 
     protected Map<String, Set<UUID>> pathsInProgress = new HashMap<>();
 
-    public LocalStateObjectDataReplyHandler(IStorageAdapter storageAdapter, IObjectStore objectStore, IClient client, MBassador<IBusEvent> globalEventBus, IEventAggregator eventAggregator, IClientManager clientManager, IAccessManager accessManager, Map<UUID, IResponseCallback> responseCallbackHandlers, Map<Class<? extends IRequest>, Class<? extends IRequestCallback>> requestCallbackHandlers) {
-        super(client, responseCallbackHandlers, requestCallbackHandlers);
+    public LocalStateObjectDataReplyHandler(IStorageAdapter storageAdapter, IObjectStore objectStore, INode node, MBassador<IBusEvent> globalEventBus, IEventAggregator eventAggregator, INodeManager nodeManager, IAccessManager accessManager, Map<UUID, IResponseCallback> responseCallbackHandlers, Map<Class<? extends IRequest>, Class<? extends IRequestCallback>> requestCallbackHandlers) {
+        super(node, responseCallbackHandlers, requestCallbackHandlers);
         this.storageAdapter = storageAdapter;
         this.objectStore = objectStore;
         this.globalEventBus = globalEventBus;
         this.eventAggregator = eventAggregator;
-        this.clientManager = clientManager;
+        this.nodeManager = nodeManager;
         this.accessManager = accessManager;
     }
 
-    public LocalStateObjectDataReplyHandler(IStorageAdapter storageAdapter, IObjectStore objectStore, IClient client, MBassador<IBusEvent> globalEventBus, IEventAggregator eventAggregator, IClientManager clientManager, IAccessManager accessManager) {
+    public LocalStateObjectDataReplyHandler(IStorageAdapter storageAdapter, IObjectStore objectStore, INode client, MBassador<IBusEvent> globalEventBus, IEventAggregator eventAggregator, INodeManager nodeManager, IAccessManager accessManager) {
         super(client);
         this.storageAdapter = storageAdapter;
         this.objectStore = objectStore;
         this.globalEventBus = globalEventBus;
         this.eventAggregator = eventAggregator;
-        this.clientManager = clientManager;
+        this.nodeManager = nodeManager;
         this.accessManager = accessManager;
     }
 
-    public void setClient(IClient client) {
-        super.client = client;
+    public void setNode(INode client) {
+        super.node = client;
     }
 
     public void setEventAggregator(IEventAggregator eventAggregator) {
         this.eventAggregator = eventAggregator;
     }
 
-    public void setClientManager(IClientManager clientManager) {
-        this.clientManager = clientManager;
+    public void setNodeManager(INodeManager nodeManager) {
+        this.nodeManager = nodeManager;
     }
 
     /**
@@ -125,13 +125,13 @@ public class LocalStateObjectDataReplyHandler extends ObjectDataReplyHandler {
 
                 logger.error("There are already exchanges in progress for the file affected by request " + ((IRequest) request).getExchangeId() + ". Returning a unaccepted file offer response");
 
-                this.client.sendDirect(
+                this.node.sendDirect(
                         ((IRequest) request).getClientDevice().getPeerAddress(),
                         new FileOfferResponse(
                                 ((IRequest) request).getExchangeId(),
                                 StatusCode.DENIED,
-                                new ClientDevice(this.client.getUser().getUserName(), this.client.getClientDeviceId(), this.client.getPeerAddress()),
-                                new ClientLocation(
+                                new ClientDevice(this.node.getUser().getUserName(), this.node.getClientDeviceId(), this.node.getPeerAddress()),
+                                new NodeLocation(
                                         ((IRequest) request).getClientDevice().getClientDeviceId(),
                                         ((IRequest) request).getClientDevice().getPeerAddress()
                                 )
@@ -148,13 +148,13 @@ public class LocalStateObjectDataReplyHandler extends ObjectDataReplyHandler {
                 if (IExtendedLocalStateRequestCallback.class.isAssignableFrom(requestCallbackClass)) {
                     // create a new instance running in its own thread
                     IExtendedLocalStateRequestCallback requestCallback = (IExtendedLocalStateRequestCallback) requestCallbackClass.newInstance();
-                    requestCallback.setClient(this.client);
+                    requestCallback.setNode(this.node);
                     requestCallback.setStorageAdapter(this.storageAdapter);
                     requestCallback.setObjectStore(this.objectStore);
                     requestCallback.setGlobalEventBus(this.globalEventBus);
                     requestCallback.setRequest((IRequest) request);
                     requestCallback.setEventAggregator(this.eventAggregator);
-                    requestCallback.setClientManager(this.clientManager);
+                    requestCallback.setClientManager(this.nodeManager);
                     requestCallback.setAccessManager(this.accessManager);
 
                     Thread thread = new Thread(requestCallback);
@@ -167,7 +167,7 @@ public class LocalStateObjectDataReplyHandler extends ObjectDataReplyHandler {
                 if (ILocalStateRequestCallback.class.isAssignableFrom(requestCallbackClass)) {
                     // create a new instance running in its own thread
                     ILocalStateRequestCallback requestCallback = (ILocalStateRequestCallback) requestCallbackClass.newInstance();
-                    requestCallback.setClient(this.client);
+                    requestCallback.setNode(this.node);
                     requestCallback.setStorageAdapter(this.storageAdapter);
                     requestCallback.setObjectStore(this.objectStore);
                     requestCallback.setGlobalEventBus(this.globalEventBus);

@@ -3,7 +3,7 @@ package org.rmatil.sync.core.messaging.fileexchange.push;
 import org.rmatil.sync.core.messaging.StatusCode;
 import org.rmatil.sync.core.messaging.base.AResponse;
 import org.rmatil.sync.network.core.model.ClientDevice;
-import org.rmatil.sync.network.core.model.ClientLocation;
+import org.rmatil.sync.network.core.model.NodeLocation;
 
 import java.util.UUID;
 
@@ -30,7 +30,7 @@ public class FilePushResponse extends AResponse {
      * @param relativeFilePath The relative path to the file which should be returned
      * @param chunkCounter     The chunk number which should returned in the corresponding response to this request
      */
-    public FilePushResponse(UUID exchangeId, StatusCode statusCode, ClientDevice clientDevice, String relativeFilePath, ClientLocation receiverAddress, long chunkCounter) {
+    public FilePushResponse(UUID exchangeId, StatusCode statusCode, ClientDevice clientDevice, String relativeFilePath, NodeLocation receiverAddress, long chunkCounter) {
         super(exchangeId, statusCode, clientDevice, receiverAddress);
         this.relativeFilePath = relativeFilePath;
         this.chunkCounter = chunkCounter;

@@ -3,7 +3,7 @@ package org.rmatil.sync.core.messaging.sharingexchange.share;
 import org.rmatil.sync.core.messaging.StatusCode;
 import org.rmatil.sync.core.messaging.base.AResponse;
 import org.rmatil.sync.network.core.model.ClientDevice;
-import org.rmatil.sync.network.core.model.ClientLocation;
+import org.rmatil.sync.network.core.model.NodeLocation;
 
 import java.util.UUID;
 
@@ -26,7 +26,7 @@ public class ShareResponse extends AResponse {
      * @param fileId       The unique id of the file which should be returned
      * @param chunkCounter The chunk number which should returned in the corresponding response to this request
      */
-    public ShareResponse(UUID exchangeId, StatusCode statusCode, ClientDevice clientDevice, UUID fileId, ClientLocation receiverAddress, long chunkCounter) {
+    public ShareResponse(UUID exchangeId, StatusCode statusCode, ClientDevice clientDevice, UUID fileId, NodeLocation receiverAddress, long chunkCounter) {
         super(exchangeId, statusCode, clientDevice, receiverAddress);
         this.fileId = fileId;
         this.chunkCounter = chunkCounter;

@@ -9,7 +9,7 @@ import org.rmatil.sync.core.messaging.fileexchange.demand.FileDemandExchangeHand
 import org.rmatil.sync.core.messaging.fileexchange.demand.FileDemandRequestHandler;
 import org.rmatil.sync.event.aggregator.core.events.CreateEvent;
 import org.rmatil.sync.event.aggregator.core.events.ModifyEvent;
-import org.rmatil.sync.network.core.model.ClientLocation;
+import org.rmatil.sync.network.core.model.NodeLocation;
 import org.rmatil.sync.persistence.exceptions.InputOutputException;
 import org.rmatil.sync.test.messaging.base.BaseNetworkHandlerTest;
 
@@ -58,7 +58,7 @@ public class FileDemandExchangeHandlerTest extends BaseNetworkHandlerTest {
                 CLIENT_2,
                 CLIENT_MANAGER_2,
                 GLOBAL_EVENT_BUS_2,
-                new ClientLocation(CLIENT_DEVICE_1.getClientDeviceId(), CLIENT_1.getPeerAddress()),
+                new NodeLocation(CLIENT_DEVICE_1.getClientDeviceId(), CLIENT_1.getPeerAddress()),
                 TEST_FILE_1.toString(),
                 EXCHANGE_ID
         );
@@ -160,7 +160,7 @@ public class FileDemandExchangeHandlerTest extends BaseNetworkHandlerTest {
                 CLIENT_2,
                 CLIENT_MANAGER_2,
                 GLOBAL_EVENT_BUS_2,
-                new ClientLocation(CLIENT_DEVICE_1.getClientDeviceId(), CLIENT_1.getPeerAddress()),
+                new NodeLocation(CLIENT_DEVICE_1.getClientDeviceId(), CLIENT_1.getPeerAddress()),
                 NON_EXISTING_FILE.toString(),
                 EXCHANGE_ID
         );
@@ -194,7 +194,7 @@ public class FileDemandExchangeHandlerTest extends BaseNetworkHandlerTest {
                 CLIENT_2,
                 CLIENT_MANAGER_2,
                 GLOBAL_EVENT_BUS_2,
-                new ClientLocation(CLIENT_DEVICE_1.getClientDeviceId(), CLIENT_1.getPeerAddress()),
+                new NodeLocation(CLIENT_DEVICE_1.getClientDeviceId(), CLIENT_1.getPeerAddress()),
                 TEST_FILE_1.toString(),
                 EXCHANGE_ID
         );

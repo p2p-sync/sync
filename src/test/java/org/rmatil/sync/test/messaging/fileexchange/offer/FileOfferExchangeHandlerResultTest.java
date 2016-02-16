@@ -4,7 +4,7 @@ import org.junit.Test;
 import org.rmatil.sync.core.messaging.StatusCode;
 import org.rmatil.sync.core.messaging.fileexchange.offer.FileOfferExchangeHandlerResult;
 import org.rmatil.sync.core.messaging.fileexchange.offer.FileOfferResponse;
-import org.rmatil.sync.network.core.model.ClientLocation;
+import org.rmatil.sync.network.core.model.NodeLocation;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -16,8 +16,8 @@ public class FileOfferExchangeHandlerResultTest {
 
     @Test
     public void test() {
-        ClientLocation clientLocation = new ClientLocation(UUID.randomUUID(), null);
-        FileOfferResponse response = new FileOfferResponse(UUID.randomUUID(), StatusCode.ACCEPTED, null, clientLocation);
+        NodeLocation nodeLocation = new NodeLocation(UUID.randomUUID(), null);
+        FileOfferResponse response = new FileOfferResponse(UUID.randomUUID(), StatusCode.ACCEPTED, null, nodeLocation);
         List<FileOfferResponse> fileOfferResponses = new ArrayList<>();
         fileOfferResponses.add(response);
 

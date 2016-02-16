@@ -39,13 +39,13 @@ import org.rmatil.sync.core.syncer.file.FileSyncer;
 import org.rmatil.sync.core.syncer.file.SyncFileChangeListener;
 import org.rmatil.sync.event.aggregator.api.IEventAggregator;
 import org.rmatil.sync.event.aggregator.api.IEventListener;
-import org.rmatil.sync.network.api.IClient;
-import org.rmatil.sync.network.api.IClientManager;
+import org.rmatil.sync.network.api.INode;
+import org.rmatil.sync.network.api.INodeManager;
 import org.rmatil.sync.network.api.IUser;
-import org.rmatil.sync.network.core.Client;
 import org.rmatil.sync.network.core.ConnectionConfiguration;
+import org.rmatil.sync.network.core.Node;
 import org.rmatil.sync.network.core.model.ClientDevice;
-import org.rmatil.sync.network.core.model.ClientLocation;
+import org.rmatil.sync.network.core.model.NodeLocation;
 import org.rmatil.sync.network.core.model.User;
 import org.rmatil.sync.persistence.api.IStorageAdapter;
 import org.rmatil.sync.persistence.core.local.LocalStorageAdapter;
@@ -99,8 +99,8 @@ public abstract class BaseNetworkHandlerTest extends BaseTest {
     protected static IStorageAdapter STORAGE_ADAPTER_2;
     protected static IObjectStore    OBJECT_STORE_2;
 
-    protected static IClient CLIENT_1;
-    protected static IClient CLIENT_2;
+    protected static INode CLIENT_1;
+    protected static INode CLIENT_2;
 
     protected static FileSyncer FILE_SYNCER_1;
     protected static FileSyncer FILE_SYNCER_2;
@@ -111,10 +111,10 @@ public abstract class BaseNetworkHandlerTest extends BaseTest {
     protected static ClientDevice CLIENT_DEVICE_1;
     protected static ClientDevice CLIENT_DEVICE_2;
 
-    protected static IClientManager CLIENT_MANAGER_1;
-    protected static IClientManager CLIENT_MANAGER_2;
+    protected static INodeManager CLIENT_MANAGER_1;
+    protected static INodeManager CLIENT_MANAGER_2;
 
-    protected static List<ClientLocation> CLIENT_LOCATIONS_1;
+    protected static List<NodeLocation> CLIENT_LOCATIONS_1;
 
     @BeforeClass
     public static void setUp()
@@ -183,8 +183,8 @@ public abstract class BaseNetworkHandlerTest extends BaseTest {
         );
 
 
-        CLIENT_MANAGER_1 = CLIENT_1.getClientManager();
-        CLIENT_MANAGER_2 = CLIENT_2.getClientManager();
+        CLIENT_MANAGER_1 = CLIENT_1.getNodeManager();
+        CLIENT_MANAGER_2 = CLIENT_2.getNodeManager();
 
         FILE_SYNCER_1 = createFileSyncer(CLIENT_1, ROOT_TEST_DIR1, OBJECT_STORE_1, GLOBAL_EVENT_BUS_1);
         FILE_SYNCER_2 = createFileSyncer(CLIENT_2, ROOT_TEST_DIR2, OBJECT_STORE_2, GLOBAL_EVENT_BUS_2);
@@ -202,7 +202,7 @@ public abstract class BaseNetworkHandlerTest extends BaseTest {
         CLIENT_DEVICE_1 = new ClientDevice(USERNAME, CLIENT_ID_1, CLIENT_1.getPeerAddress());
         CLIENT_DEVICE_2 = new ClientDevice(USERNAME, CLIENT_ID_2, CLIENT_2.getPeerAddress());
 
-        CLIENT_LOCATIONS_1 = CLIENT_MANAGER_2.getClientLocations(USER_1);
+        CLIENT_LOCATIONS_1 = CLIENT_MANAGER_2.getNodeLocations(USER_1);
     }
 
     @AfterClass
@@ -291,8 +291,8 @@ public abstract class BaseNetworkHandlerTest extends BaseTest {
      *
      * @return The configured and started client
      */
-    protected static IClient createClient(ConnectionConfiguration connectionConfiguration, IUser user, IStorageAdapter storageAdapter, IObjectStore objectStore, MBassador<IBusEvent> globalEventBus, RemoteClientLocation bootstrapLocation) {
-        IClient client = new Client(null, user, null);
+    protected static INode createClient(ConnectionConfiguration connectionConfiguration, IUser user, IStorageAdapter storageAdapter, IObjectStore objectStore, MBassador<IBusEvent> globalEventBus, RemoteClientLocation bootstrapLocation) {
+        INode client = new Node(null, user, null);
         LocalStateObjectDataReplyHandler objectDataReplyHandler = new LocalStateObjectDataReplyHandler(
                 storageAdapter,
                 objectStore,
@@ -321,7 +321,7 @@ public abstract class BaseNetworkHandlerTest extends BaseTest {
         client = clientInitializer.init();
         clientInitializer.start();
 
-        objectDataReplyHandler.setClient(client);
+        objectDataReplyHandler.setNode(client);
 
         return client;
     }
@@ -336,11 +336,11 @@ public abstract class BaseNetworkHandlerTest extends BaseTest {
      *
      * @return The created file syncer
      */
-    protected static FileSyncer createFileSyncer(IClient client, Path rootPath, IObjectStore objectStore, MBassador<IBusEvent> globalEventBus) {
+    protected static FileSyncer createFileSyncer(INode client, Path rootPath, IObjectStore objectStore, MBassador<IBusEvent> globalEventBus) {
         FileSyncer fileSyncer = new FileSyncer(
                 client.getUser(),
                 client,
-                client.getClientManager(),
+                client.getNodeManager(),
                 new LocalStorageAdapter(rootPath),
                 objectStore,
                 globalEventBus

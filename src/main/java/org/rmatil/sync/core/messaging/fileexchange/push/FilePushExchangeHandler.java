@@ -5,13 +5,13 @@ import org.rmatil.sync.core.messaging.StatusCode;
 import org.rmatil.sync.core.messaging.chunk.Chunk;
 import org.rmatil.sync.core.messaging.chunk.ChunkProvider;
 import org.rmatil.sync.core.messaging.fileexchange.offer.FileOfferExchangeHandler;
-import org.rmatil.sync.network.api.IClient;
-import org.rmatil.sync.network.api.IClientManager;
+import org.rmatil.sync.network.api.INode;
+import org.rmatil.sync.network.api.INodeManager;
 import org.rmatil.sync.network.api.IRequest;
 import org.rmatil.sync.network.api.IResponse;
 import org.rmatil.sync.network.core.ANetworkHandler;
 import org.rmatil.sync.network.core.model.ClientDevice;
-import org.rmatil.sync.network.core.model.ClientLocation;
+import org.rmatil.sync.network.core.model.NodeLocation;
 import org.rmatil.sync.persistence.api.IStorageAdapter;
 import org.rmatil.sync.persistence.core.local.LocalPathElement;
 import org.rmatil.sync.persistence.exceptions.InputOutputException;
@@ -59,7 +59,7 @@ public class FilePushExchangeHandler extends ANetworkHandler<FilePushExchangeHan
     /**
      * The client manager to access client locations
      */
-    protected IClientManager clientManager;
+    protected INodeManager nodeManager;
 
     /**
      * The object store to read the sharers from
@@ -81,19 +81,19 @@ public class FilePushExchangeHandler extends ANetworkHandler<FilePushExchangeHan
     /**
      * A list of client locations which should receive file push requests
      */
-    protected List<ClientLocation> receivers;
+    protected List<NodeLocation> receivers;
 
     /**
      * The chunk provider
      */
     protected ChunkProvider chunkProvider;
 
-    public FilePushExchangeHandler(UUID exchangeId, ClientDevice clientDevice, IStorageAdapter storageAdapter, IClientManager clientManager, IClient client, IObjectStore objectStore, List<ClientLocation> receivers, String relativeFilePath) {
+    public FilePushExchangeHandler(UUID exchangeId, ClientDevice clientDevice, IStorageAdapter storageAdapter, INodeManager nodeManager, INode client, IObjectStore objectStore, List<NodeLocation> receivers, String relativeFilePath) {
         super(client);
         this.clientDevice = clientDevice;
         this.exchangeId = exchangeId;
         this.storageAdapter = storageAdapter;
-        this.clientManager = clientManager;
+        this.nodeManager = nodeManager;
         this.objectStore = objectStore;
         this.receivers = receivers;
         this.relativeFilePath = relativeFilePath;
@@ -110,8 +110,8 @@ public class FilePushExchangeHandler extends ANetworkHandler<FilePushExchangeHan
         try {
             // check whether the own client is also in the list (should be usually, but you never know...)
             int clientCounter = this.receivers.size();
-            for (ClientLocation location : this.receivers) {
-                if (location.getPeerAddress().equals(this.client.getPeerAddress())) {
+            for (NodeLocation location : this.receivers) {
+                if (location.getPeerAddress().equals(this.node.getPeerAddress())) {
                     clientCounter--;
                     break;
                 }
@@ -121,17 +121,17 @@ public class FilePushExchangeHandler extends ANetworkHandler<FilePushExchangeHan
 
             // check, whether there is a fileId already present,
             // e.g. made in an earlier push request (or on another client)
-            if (null == super.client.getIdentifierManager().getValue(this.relativeFilePath)) {
+            if (null == super.node.getIdentifierManager().getValue(this.relativeFilePath)) {
                 // add a file id
-                this.client.getIdentifierManager().addIdentifier(this.relativeFilePath, UUID.randomUUID());
+                this.node.getIdentifierManager().addIdentifier(this.relativeFilePath, UUID.randomUUID());
             }
 
             // the owner of a file is only added on a share request
-            for (ClientLocation location : this.receivers) {
+            for (NodeLocation location : this.receivers) {
                 UUID uuid = UUID.randomUUID();
                 logger.info("Sending first chunk as subRequest of " + this.exchangeId + " with id " + uuid + " to client " + location.getPeerAddress().inetAddress().getHostName() + ":" + location.getPeerAddress().tcpPort());
                 // add callback handler for sub request
-                super.client.getObjectDataReplyHandler().addResponseCallbackHandler(uuid, this);
+                super.node.getObjectDataReplyHandler().addResponseCallbackHandler(uuid, this);
 
                 this.sendChunk(0, uuid, location);
             }
@@ -156,10 +156,10 @@ public class FilePushExchangeHandler extends ANetworkHandler<FilePushExchangeHan
         }
 
         if (- 1 < ((FilePushResponse) response).getChunkCounter()) {
-            this.sendChunk(((FilePushResponse) response).getChunkCounter(), response.getExchangeId(), new ClientLocation(response.getClientDevice().getClientDeviceId(), response.getClientDevice().getPeerAddress()));
+            this.sendChunk(((FilePushResponse) response).getChunkCounter(), response.getExchangeId(), new NodeLocation(response.getClientDevice().getClientDeviceId(), response.getClientDevice().getPeerAddress()));
         } else {
             // exchange is finished
-            super.client.getObjectDataReplyHandler().removeResponseCallbackHandler(response.getExchangeId());
+            super.node.getObjectDataReplyHandler().removeResponseCallbackHandler(response.getExchangeId());
 
             super.onResponse(response);
 
@@ -198,7 +198,7 @@ public class FilePushExchangeHandler extends ANetworkHandler<FilePushExchangeHan
      * @param exchangeId   The exchange id for the request
      * @param receiver     The receiver which should get the chunk
      */
-    protected void sendChunk(long chunkCounter, UUID exchangeId, ClientLocation receiver) {
+    protected void sendChunk(long chunkCounter, UUID exchangeId, NodeLocation receiver) {
         Chunk chunk = new Chunk(
                 "",
                 "",

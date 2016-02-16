@@ -5,11 +5,11 @@ import org.rmatil.sync.core.eventbus.IBusEvent;
 import org.rmatil.sync.core.init.client.ILocalStateRequestCallback;
 import org.rmatil.sync.core.messaging.StatusCode;
 import org.rmatil.sync.core.security.IAccessManager;
-import org.rmatil.sync.network.api.IClient;
+import org.rmatil.sync.network.api.INode;
 import org.rmatil.sync.network.api.IRequest;
 import org.rmatil.sync.network.api.IResponse;
 import org.rmatil.sync.network.core.model.ClientDevice;
-import org.rmatil.sync.network.core.model.ClientLocation;
+import org.rmatil.sync.network.core.model.NodeLocation;
 import org.rmatil.sync.persistence.api.IStorageAdapter;
 import org.rmatil.sync.persistence.core.local.LocalPathElement;
 import org.rmatil.sync.version.api.IObjectStore;
@@ -34,7 +34,7 @@ public class UnshareRequestHandler implements ILocalStateRequestCallback {
     /**
      * The client to send responses
      */
-    protected IClient client;
+    protected INode node;
 
     /**
      * The unshare request which have been received
@@ -67,8 +67,8 @@ public class UnshareRequestHandler implements ILocalStateRequestCallback {
     }
 
     @Override
-    public void setClient(IClient iClient) {
-        this.client = iClient;
+    public void setNode(INode INode) {
+        this.node = INode;
     }
 
     @Override
@@ -92,7 +92,7 @@ public class UnshareRequestHandler implements ILocalStateRequestCallback {
             logger.info("Unsharing file for id " + this.request.getFileId());
 
             PathObject sharedObject = this.objectStore.getObjectManager().getObjectForPath(
-                    this.client.getIdentifierManager().getKey(this.request.getFileId())
+                    this.node.getIdentifierManager().getKey(this.request.getFileId())
             );
 
             logger.info("Found file on path " + sharedObject.getAbsolutePath() + " for file with id " + this.request.getFileId());
@@ -121,7 +121,7 @@ public class UnshareRequestHandler implements ILocalStateRequestCallback {
      * @param statusCode The status code of the response
      */
     protected void sendResponse(StatusCode statusCode) {
-        if (null == this.client) {
+        if (null == this.node) {
             throw new IllegalStateException("A client instance is required to send a response back");
         }
 
@@ -129,16 +129,16 @@ public class UnshareRequestHandler implements ILocalStateRequestCallback {
                 this.request.getExchangeId(),
                 statusCode,
                 new ClientDevice(
-                        this.client.getUser().getUserName(),
-                        this.client.getClientDeviceId(),
-                        this.client.getPeerAddress()
+                        this.node.getUser().getUserName(),
+                        this.node.getClientDeviceId(),
+                        this.node.getPeerAddress()
                 ),
-                new ClientLocation(
+                new NodeLocation(
                         this.request.getClientDevice().getClientDeviceId(),
                         this.request.getClientDevice().getPeerAddress()
                 )
         );
 
-        this.client.sendDirect(response.getReceiverAddress().getPeerAddress(), response);
+        this.node.sendDirect(response.getReceiverAddress().getPeerAddress(), response);
     }
 }

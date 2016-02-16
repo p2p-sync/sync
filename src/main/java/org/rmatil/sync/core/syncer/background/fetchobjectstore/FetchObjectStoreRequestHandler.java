@@ -6,10 +6,10 @@ import org.rmatil.sync.core.eventbus.IBusEvent;
 import org.rmatil.sync.core.init.client.ILocalStateRequestCallback;
 import org.rmatil.sync.core.messaging.StatusCode;
 import org.rmatil.sync.core.security.IAccessManager;
-import org.rmatil.sync.network.api.IClient;
+import org.rmatil.sync.network.api.INode;
 import org.rmatil.sync.network.api.IRequest;
 import org.rmatil.sync.network.core.model.ClientDevice;
-import org.rmatil.sync.network.core.model.ClientLocation;
+import org.rmatil.sync.network.core.model.NodeLocation;
 import org.rmatil.sync.persistence.api.IStorageAdapter;
 import org.rmatil.sync.version.api.IObjectStore;
 import org.slf4j.Logger;
@@ -32,7 +32,7 @@ public class FetchObjectStoreRequestHandler implements ILocalStateRequestCallbac
     /**
      * The client to send responses
      */
-    protected IClient client;
+    protected INode node;
 
     /**
      * The fetch object store which have been received
@@ -65,8 +65,8 @@ public class FetchObjectStoreRequestHandler implements ILocalStateRequestCallbac
     }
 
     @Override
-    public void setClient(IClient iClient) {
-        this.client = iClient;
+    public void setNode(INode INode) {
+        this.node = INode;
     }
 
     @Override
@@ -93,12 +93,12 @@ public class FetchObjectStoreRequestHandler implements ILocalStateRequestCallbac
             FetchObjectStoreResponse syncObjectStoreResponse = new FetchObjectStoreResponse(
                     this.request.getExchangeId(),
                     StatusCode.ACCEPTED,
-                    new ClientDevice(this.client.getUser().getUserName(), this.client.getClientDeviceId(), this.client.getPeerAddress()),
-                    new ClientLocation(this.request.getClientDevice().getClientDeviceId(), this.request.getClientDevice().getPeerAddress()),
+                    new ClientDevice(this.node.getUser().getUserName(), this.node.getClientDeviceId(), this.node.getPeerAddress()),
+                    new NodeLocation(this.request.getClientDevice().getClientDeviceId(), this.request.getClientDevice().getPeerAddress()),
                     zipFile
             );
 
-            this.client.sendDirect(this.request.getClientDevice().getPeerAddress(),
+            this.node.sendDirect(this.request.getClientDevice().getPeerAddress(),
                     syncObjectStoreResponse
             );
 

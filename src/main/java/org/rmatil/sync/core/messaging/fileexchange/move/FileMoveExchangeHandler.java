@@ -5,12 +5,12 @@ import org.rmatil.sync.core.eventbus.IBusEvent;
 import org.rmatil.sync.core.init.client.ILocalStateResponseCallback;
 import org.rmatil.sync.core.messaging.StatusCode;
 import org.rmatil.sync.event.aggregator.core.events.MoveEvent;
-import org.rmatil.sync.network.api.IClient;
-import org.rmatil.sync.network.api.IClientManager;
+import org.rmatil.sync.network.api.INode;
+import org.rmatil.sync.network.api.INodeManager;
 import org.rmatil.sync.network.api.IResponse;
 import org.rmatil.sync.network.core.ANetworkHandler;
 import org.rmatil.sync.network.core.model.ClientDevice;
-import org.rmatil.sync.network.core.model.ClientLocation;
+import org.rmatil.sync.network.core.model.NodeLocation;
 import org.rmatil.sync.persistence.api.IStorageAdapter;
 import org.rmatil.sync.persistence.core.local.LocalPathElement;
 import org.slf4j.Logger;
@@ -32,7 +32,7 @@ public class FileMoveExchangeHandler extends ANetworkHandler<FileMoveExchangeHan
 
     protected IStorageAdapter storageAdapter;
 
-    protected IClientManager clientManager;
+    protected INodeManager nodeManager;
 
     protected MBassador<IBusEvent> globalEventBus;
 
@@ -40,14 +40,14 @@ public class FileMoveExchangeHandler extends ANetworkHandler<FileMoveExchangeHan
 
     protected CountDownLatch moveCountDownLatch;
 
-    protected List<ClientLocation> receivers;
+    protected List<NodeLocation> receivers;
 
-    public FileMoveExchangeHandler(UUID exchangeId, ClientDevice clientDevice, IStorageAdapter storageAdapter, IClientManager clientManager, IClient client, MBassador<IBusEvent> globalEventBus, List<ClientLocation> receivers, MoveEvent moveEvent) {
+    public FileMoveExchangeHandler(UUID exchangeId, ClientDevice clientDevice, IStorageAdapter storageAdapter, INodeManager nodeManager, INode client, MBassador<IBusEvent> globalEventBus, List<NodeLocation> receivers, MoveEvent moveEvent) {
         super(client);
         this.exchangeId = exchangeId;
         this.clientDevice = clientDevice;
         this.storageAdapter = storageAdapter;
-        this.clientManager = clientManager;
+        this.nodeManager = nodeManager;
         this.globalEventBus = globalEventBus;
         this.receivers = receivers;
         this.moveEvent = moveEvent;
@@ -60,8 +60,8 @@ public class FileMoveExchangeHandler extends ANetworkHandler<FileMoveExchangeHan
 
             // check whether the own client is also in the list (should be usually, but you never know...)
             int clientCounter = this.receivers.size();
-            for (ClientLocation location : this.receivers) {
-                if (location.getPeerAddress().equals(this.client.getPeerAddress())) {
+            for (NodeLocation location : this.receivers) {
+                if (location.getPeerAddress().equals(this.node.getPeerAddress())) {
                     clientCounter--;
                     break;
                 }
@@ -69,11 +69,11 @@ public class FileMoveExchangeHandler extends ANetworkHandler<FileMoveExchangeHan
 
             this.moveCountDownLatch = new CountDownLatch(clientCounter);
 
-            for (ClientLocation location : this.receivers) {
+            for (NodeLocation location : this.receivers) {
                 UUID uuid = UUID.randomUUID();
                 logger.info("Sending move request as subRequest of " + this.exchangeId + " with id " + uuid + " to client " + location.getPeerAddress().inetAddress().getHostName() + ":" + location.getPeerAddress().tcpPort());
                 // add callback handler for subrequest
-                super.client.getObjectDataReplyHandler().addResponseCallbackHandler(uuid, this);
+                super.node.getObjectDataReplyHandler().addResponseCallbackHandler(uuid, this);
 
                 FileMoveRequest fileMoveRequest = new FileMoveRequest(
                         uuid,
@@ -85,7 +85,7 @@ public class FileMoveExchangeHandler extends ANetworkHandler<FileMoveExchangeHan
                         isFile
                 );
 
-                super.client.getObjectDataReplyHandler().addResponseCallbackHandler(uuid, this);
+                super.node.getObjectDataReplyHandler().addResponseCallbackHandler(uuid, this);
 
                 super.sendRequest(fileMoveRequest);
             }

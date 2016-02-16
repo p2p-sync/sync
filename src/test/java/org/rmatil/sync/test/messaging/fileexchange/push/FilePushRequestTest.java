@@ -3,7 +3,7 @@ package org.rmatil.sync.test.messaging.fileexchange.push;
 import org.junit.Test;
 import org.rmatil.sync.core.messaging.fileexchange.push.FilePushRequest;
 import org.rmatil.sync.network.core.model.ClientDevice;
-import org.rmatil.sync.network.core.model.ClientLocation;
+import org.rmatil.sync.network.core.model.NodeLocation;
 import org.rmatil.sync.network.core.model.Data;
 import org.rmatil.sync.test.base.BaseMessageTest;
 import org.rmatil.sync.version.api.AccessType;
@@ -30,7 +30,7 @@ public class FilePushRequestTest extends BaseMessageTest {
     protected static final long           TOTAL_NR_OF_CHUNKS = 1;
     protected static final long           TOTAL_FILE_SIZE    = 0;
     protected static final Data           DATA               = new Data(new byte[0], false);
-    protected static final ClientLocation RECEIVER_ADDRESS   = new ClientLocation(UUID.randomUUID(), null);
+    protected static final NodeLocation RECEIVER_ADDRESS   = new NodeLocation(UUID.randomUUID(), null);
     protected static final Set<Sharer>    SHARERS            = new HashSet<>();
 
     @Test
@@ -64,7 +64,7 @@ public class FilePushRequestTest extends BaseMessageTest {
         assertEquals("TotalNrOfChunks is not equal", TOTAL_NR_OF_CHUNKS, filePushRequest.getTotalNrOfChunks());
         assertEquals("TotalFileSize is not equal", TOTAL_FILE_SIZE, filePushRequest.getTotalFileSize());
         assertEquals("Data is not equal", DATA, filePushRequest.getData());
-        assertThat("Receiver addresses should contain clientLocation", filePushRequest.getReceiverAddresses(), hasItem(RECEIVER_ADDRESS));
+        assertThat("Receiver addresses should contain nodeLocation", filePushRequest.getReceiverAddresses(), hasItem(RECEIVER_ADDRESS));
         assertEquals("Owner should be equal", OWNER, filePushRequest.getOwner());
         assertEquals("AccessType should be equal", ACCESS_TYPE, filePushRequest.getAccessType());
         assertEquals("Sharers should be equal", SHARERS, filePushRequest.getSharers());

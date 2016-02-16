@@ -5,22 +5,22 @@ import org.rmatil.sync.core.exception.InitializationStartException;
 import org.rmatil.sync.core.exception.InitializationStopException;
 import org.rmatil.sync.core.init.IInitializer;
 import org.rmatil.sync.core.model.RemoteClientLocation;
-import org.rmatil.sync.network.api.IClient;
-import org.rmatil.sync.network.api.IClientManager;
+import org.rmatil.sync.network.api.INode;
+import org.rmatil.sync.network.api.INodeManager;
 import org.rmatil.sync.network.api.IUser;
-import org.rmatil.sync.network.core.Client;
 import org.rmatil.sync.network.core.ConnectionConfiguration;
+import org.rmatil.sync.network.core.Node;
 import org.rmatil.sync.network.core.exception.ConnectionException;
 import org.rmatil.sync.network.core.messaging.ObjectDataReplyHandler;
 
 import java.util.UUID;
 
-public class ClientInitializer implements IInitializer<IClient> {
+public class ClientInitializer implements IInitializer<INode> {
 
     protected int                     port;
     protected IUser                   user;
-    protected IClient                 client;
-    protected IClientManager          clientManager;
+    protected INode                   node;
+    protected INodeManager            nodeManager;
     protected RemoteClientLocation    bootstrapLocation;
     protected ObjectDataReplyHandler  objectDataReplyHandler;
     protected ConnectionConfiguration connectionConfiguration;
@@ -33,18 +33,18 @@ public class ClientInitializer implements IInitializer<IClient> {
     }
 
     @Override
-    public IClient init()
+    public INode init()
             throws InitializationException {
         UUID deviceId = UUID.randomUUID();
 
-        this.client = new Client(this.connectionConfiguration, this.user, deviceId);
+        this.node = new Node(this.connectionConfiguration, this.user, deviceId);
 
         // Set object reply handlers which handle direct requests to the peer, i.e. the client
-        this.client.setObjectDataReplyHandler(
+        this.node.setObjectDataReplyHandler(
                 objectDataReplyHandler
         );
 
-        return this.client;
+        return this.node;
     }
 
     @Override
@@ -55,16 +55,16 @@ public class ClientInitializer implements IInitializer<IClient> {
         try {
             boolean isSuccess;
             if (null == this.bootstrapLocation) {
-                isSuccess = this.client.start();
+                isSuccess = this.node.start();
             } else {
-                isSuccess = this.client.start(this.bootstrapLocation.getIpAddress(), this.bootstrapLocation.getPort());
+                isSuccess = this.node.start(this.bootstrapLocation.getIpAddress(), this.bootstrapLocation.getPort());
             }
 
             if (! isSuccess) {
                 throw new InitializationStartException("Could not start client");
             }
 
-            this.clientManager = this.client.getClientManager();
+            this.nodeManager = this.node.getNodeManager();
         } catch (ConnectionException e) {
             throw new InitializationStartException(e);
         }
@@ -74,7 +74,7 @@ public class ClientInitializer implements IInitializer<IClient> {
     public void stop()
             throws InitializationStopException {
 
-        this.client.shutdown();
+        this.node.shutdown();
     }
 
 
@@ -83,8 +83,8 @@ public class ClientInitializer implements IInitializer<IClient> {
      *
      * @return The client manager
      */
-    public IClientManager getClientManager() {
-        return clientManager;
+    public INodeManager getNodeManager() {
+        return nodeManager;
     }
 
 }

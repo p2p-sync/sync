@@ -43,11 +43,11 @@ import org.rmatil.sync.core.syncer.file.SyncFileChangeListener;
 import org.rmatil.sync.core.syncer.sharing.SharingSyncer;
 import org.rmatil.sync.event.aggregator.api.IEventAggregator;
 import org.rmatil.sync.event.aggregator.api.IEventListener;
-import org.rmatil.sync.network.api.IClient;
-import org.rmatil.sync.network.api.IClientManager;
+import org.rmatil.sync.network.api.INode;
+import org.rmatil.sync.network.api.INodeManager;
 import org.rmatil.sync.network.api.IUser;
-import org.rmatil.sync.network.core.Client;
 import org.rmatil.sync.network.core.ConnectionConfiguration;
+import org.rmatil.sync.network.core.Node;
 import org.rmatil.sync.network.core.model.ClientDevice;
 import org.rmatil.sync.network.core.model.User;
 import org.rmatil.sync.persistence.api.IStorageAdapter;
@@ -68,22 +68,53 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+/**
+ * The main application. Provides functionality to synchronise
+ * files and folders among clients of multiple users.
+ * Furthermore, it allows to share particular files with specific users.
+ */
 public class Sync {
 
+    /**
+     * The root path of the synced folder
+     */
     protected Path rootPath;
 
+    /**
+     * The storage adapter managing the synced folder
+     */
     protected IStorageAdapter storageAdapter;
 
+    /**
+     * A syncer to allow sharing of files
+     */
     protected SharingSyncer sharingSyncer;
 
-    protected IClientManager clientManager;
+    /**
+     * A manager to allow changing of user / node related content
+     */
+    protected INodeManager nodeManager;
 
-    protected IClient client;
+    /**
+     * The node which back ups this application
+     */
+    protected INode node;
 
+    /**
+     * An event aggregator aggregating file system events
+     */
     protected IEventAggregator eventAggregator;
 
+    /**
+     * The scheduled executor service for the background syncer
+     */
     protected ScheduledExecutorService backgroundSyncerExecutorService;
 
+    /**
+     * Creates a new Sync application.
+     *
+     * @param rootPath The path to the synced folder
+     */
     public Sync(Path rootPath) {
         this.rootPath = rootPath;
     }
@@ -292,11 +323,11 @@ public class Sync {
         objectStoreInitializer.start();
 
         // Init client
-        this.client = new Client(null, user, null);
+        this.node = new Node(null, user, null);
         LocalStateObjectDataReplyHandler objectDataReplyHandler = new LocalStateObjectDataReplyHandler(
                 this.storageAdapter,
                 objectStore,
-                this.client,
+                this.node,
                 globalEventBus,
                 null,
                 null,
@@ -332,20 +363,20 @@ public class Sync {
                 user,
                 bootstrapLocation
         );
-        this.client = clientInitializer.init();
+        this.node = clientInitializer.init();
         clientInitializer.start();
 
         // TODO: fix cycle with wrapper around client
-        objectDataReplyHandler.setClient(this.client);
+        objectDataReplyHandler.setNode(this.node);
 
-        this.clientManager = clientInitializer.getClientManager();
+        this.nodeManager = clientInitializer.getNodeManager();
 
-        objectDataReplyHandler.setClientManager(this.clientManager);
+        objectDataReplyHandler.setNodeManager(this.nodeManager);
 
         FileSyncer fileSyncer = new FileSyncer(
-                this.client.getUser(),
-                this.client,
-                this.clientManager,
+                this.node.getUser(),
+                this.node,
+                this.nodeManager,
                 new LocalStorageAdapter(rootPath),
                 objectStore,
                 globalEventBus
@@ -377,16 +408,16 @@ public class Sync {
 
         IBackgroundSyncer backgroundSyncer = new NonBlockingBackgroundSyncer(
                 this.eventAggregator,
-                this.client,
-                this.clientManager,
+                this.node,
+                this.nodeManager,
                 objectStore,
                 this.storageAdapter,
                 globalEventBus
         );
 
         this.sharingSyncer = new SharingSyncer(
-                this.client,
-                this.clientManager,
+                this.node,
+                this.nodeManager,
                 this.storageAdapter,
                 objectStore
         );
@@ -396,15 +427,22 @@ public class Sync {
         this.backgroundSyncerExecutorService.scheduleAtFixedRate(backgroundSyncer, 0L, 600L, TimeUnit.SECONDS);
 
         // now set the peer address once we know it
-        return new ClientDevice(userName, clientId, client.getPeerAddress());
+        return new ClientDevice(userName, clientId, node.getPeerAddress());
     }
 
+    /**
+     * Shuts down the application and the node backing it up
+     */
     public void shutdown() {
         this.backgroundSyncerExecutorService.shutdown();
         this.eventAggregator.stop();
-        this.client.shutdown();
+        this.node.shutdown();
     }
 
+    /**
+     * Returns the root path
+     * @return
+     */
     public Path getRootPath() {
         return rootPath;
     }
@@ -413,12 +451,12 @@ public class Sync {
         return sharingSyncer;
     }
 
-    public IClientManager getClientManager() {
-        return clientManager;
+    public INodeManager getNodeManager() {
+        return nodeManager;
     }
 
-    public IClient getClient() {
-        return client;
+    public INode getNode() {
+        return node;
     }
 
     public IEventAggregator getEventAggregator() {

@@ -3,7 +3,7 @@ package org.rmatil.sync.test.messaging.fileexchange.demand;
 import org.junit.Test;
 import org.rmatil.sync.core.messaging.fileexchange.demand.FileDemandResponse;
 import org.rmatil.sync.network.core.model.ClientDevice;
-import org.rmatil.sync.network.core.model.ClientLocation;
+import org.rmatil.sync.network.core.model.NodeLocation;
 import org.rmatil.sync.network.core.model.Data;
 import org.rmatil.sync.test.base.BaseMessageTest;
 
@@ -23,7 +23,7 @@ public class FileDemandResponseTest extends BaseMessageTest {
     protected static final long           TOTAL_NR_OF_CHUNKS = 1;
     protected static final long           TOTAL_FILE_SIZE    = 0;
     protected static final Data           DATA               = new Data(new byte[0], false);
-    protected static final ClientLocation RECEIVER_ADDRESS   = new ClientLocation(UUID.randomUUID(), null);
+    protected static final NodeLocation RECEIVER_ADDRESS   = new NodeLocation(UUID.randomUUID(), null);
 
     @Test
     public void test() {
@@ -54,6 +54,6 @@ public class FileDemandResponseTest extends BaseMessageTest {
         assertEquals("TotalNrOfChunks is not equal", TOTAL_NR_OF_CHUNKS, filePushRequest.getTotalNrOfChunks());
         assertEquals("TotalFileSize is not equal", TOTAL_FILE_SIZE, filePushRequest.getTotalFileSize());
         assertEquals("Data is not equal", DATA, filePushRequest.getData());
-        assertEquals("Receiver addresses should contain clientLocation", RECEIVER_ADDRESS, filePushRequest.getReceiverAddress());
+        assertEquals("Receiver addresses should contain nodeLocation", RECEIVER_ADDRESS, filePushRequest.getReceiverAddress());
     }
 }

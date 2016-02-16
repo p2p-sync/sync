@@ -3,7 +3,7 @@ package org.rmatil.sync.core.messaging.fileexchange.offer;
 import org.rmatil.sync.core.messaging.StatusCode;
 import org.rmatil.sync.core.messaging.base.ARequest;
 import org.rmatil.sync.network.core.model.ClientDevice;
-import org.rmatil.sync.network.core.model.ClientLocation;
+import org.rmatil.sync.network.core.model.NodeLocation;
 
 import java.util.List;
 import java.util.UUID;
@@ -26,7 +26,7 @@ public class FileOfferRequest extends ARequest {
      * @param event             The event to propagate to other clients
      * @param receiverAddresses All client locations which should receive this request
      */
-    public FileOfferRequest(UUID exchangeId, StatusCode statusCode, ClientDevice clientDevice, SerializableEvent event, List<ClientLocation> receiverAddresses) {
+    public FileOfferRequest(UUID exchangeId, StatusCode statusCode, ClientDevice clientDevice, SerializableEvent event, List<NodeLocation> receiverAddresses) {
         super(exchangeId, statusCode, clientDevice, receiverAddresses);
         this.event = event;
     }

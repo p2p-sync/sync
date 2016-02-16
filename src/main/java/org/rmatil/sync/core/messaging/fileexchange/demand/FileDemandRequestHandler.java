@@ -5,11 +5,11 @@ import org.rmatil.sync.core.eventbus.IBusEvent;
 import org.rmatil.sync.core.init.client.ILocalStateRequestCallback;
 import org.rmatil.sync.core.messaging.StatusCode;
 import org.rmatil.sync.core.security.IAccessManager;
-import org.rmatil.sync.network.api.IClient;
+import org.rmatil.sync.network.api.INode;
 import org.rmatil.sync.network.api.IRequest;
 import org.rmatil.sync.network.api.IResponse;
 import org.rmatil.sync.network.core.model.ClientDevice;
-import org.rmatil.sync.network.core.model.ClientLocation;
+import org.rmatil.sync.network.core.model.NodeLocation;
 import org.rmatil.sync.network.core.model.Data;
 import org.rmatil.sync.persistence.api.IFileMetaInfo;
 import org.rmatil.sync.persistence.api.IPathElement;
@@ -50,7 +50,7 @@ public class FileDemandRequestHandler implements ILocalStateRequestCallback {
     /**
      * The client to send responses
      */
-    protected IClient client;
+    protected INode node;
 
     /**
      * The file demand request which have been received
@@ -84,8 +84,8 @@ public class FileDemandRequestHandler implements ILocalStateRequestCallback {
     }
 
     @Override
-    public void setClient(IClient iClient) {
-        this.client = iClient;
+    public void setNode(INode INode) {
+        this.node = INode;
     }
 
     @Override
@@ -107,7 +107,7 @@ public class FileDemandRequestHandler implements ILocalStateRequestCallback {
         try {
             logger.info("Getting requested chunk " + this.request.getChunkCounter() + " for exchange " + this.request.getExchangeId());
 
-            if (! this.client.getUser().getUserName().equals(this.request.getClientDevice().getUserName()) && ! this.accessManager.hasAccess(this.request.getClientDevice().getUserName(), AccessType.READ, this.request.getRelativeFilePath())) {
+            if (! this.node.getUser().getUserName().equals(this.request.getClientDevice().getUserName()) && ! this.accessManager.hasAccess(this.request.getClientDevice().getUserName(), AccessType.READ, this.request.getRelativeFilePath())) {
                 logger.warn("Failed to get requested chunk due to missing access rights on file " + this.request.getRelativeFilePath() + " for user " + this.request.getClientDevice().getUserName() + " on exchange " + this.request.getExchangeId());
                 this.sendResponse(this.createErrorResponse(StatusCode.ACCESS_DENIED, -1, -1));
                 return;
@@ -170,7 +170,7 @@ public class FileDemandRequestHandler implements ILocalStateRequestCallback {
             IResponse response = new FileDemandResponse(
                     this.request.getExchangeId(),
                     StatusCode.ACCEPTED,
-                    new ClientDevice(this.client.getUser().getUserName(), this.client.getClientDeviceId(), this.client.getPeerAddress()),
+                    new ClientDevice(this.node.getUser().getUserName(), this.node.getClientDeviceId(), this.node.getPeerAddress()),
                     checksum,
                     this.request.getRelativeFilePath(),
                     fileMetaInfo.isFile(),
@@ -179,7 +179,7 @@ public class FileDemandRequestHandler implements ILocalStateRequestCallback {
                     totalNrOfChunks,
                     fileMetaInfo.getTotalFileSize(),
                     data,
-                    new ClientLocation(this.request.getClientDevice().getClientDeviceId(), this.request.getClientDevice().getPeerAddress()),
+                    new NodeLocation(this.request.getClientDevice().getClientDeviceId(), this.request.getClientDevice().getPeerAddress()),
                     sharers
             );
 
@@ -194,7 +194,7 @@ public class FileDemandRequestHandler implements ILocalStateRequestCallback {
         return new FileDemandResponse(
                 this.request.getExchangeId(),
                 statusCode,
-                new ClientDevice(this.client.getUser().getUserName(), this.client.getClientDeviceId(), this.client.getPeerAddress()),
+                new ClientDevice(this.node.getUser().getUserName(), this.node.getClientDeviceId(), this.node.getPeerAddress()),
                 "",
                 this.request.getRelativeFilePath(),
                 true,
@@ -203,7 +203,7 @@ public class FileDemandRequestHandler implements ILocalStateRequestCallback {
                 totalNrOfChunks,
                 - 1,
                 null,
-                new ClientLocation(this.request.getClientDevice().getClientDeviceId(), this.request.getClientDevice().getPeerAddress()),
+                new NodeLocation(this.request.getClientDevice().getClientDeviceId(), this.request.getClientDevice().getPeerAddress()),
                 new HashSet<>()
         );
     }
@@ -214,10 +214,10 @@ public class FileDemandRequestHandler implements ILocalStateRequestCallback {
      * @param iResponse The response to send back
      */
     protected void sendResponse(IResponse iResponse) {
-        if (null == this.client) {
+        if (null == this.node) {
             throw new IllegalStateException("A client instance is required to send a response back");
         }
 
-        this.client.sendDirect(iResponse.getReceiverAddress().getPeerAddress(), iResponse);
+        this.node.sendDirect(iResponse.getReceiverAddress().getPeerAddress(), iResponse);
     }
 }

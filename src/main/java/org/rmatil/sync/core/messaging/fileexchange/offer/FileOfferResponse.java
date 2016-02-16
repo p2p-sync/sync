@@ -3,7 +3,8 @@ package org.rmatil.sync.core.messaging.fileexchange.offer;
 import org.rmatil.sync.core.messaging.StatusCode;
 import org.rmatil.sync.core.messaging.base.AResponse;
 import org.rmatil.sync.network.core.model.ClientDevice;
-import org.rmatil.sync.network.core.model.ClientLocation;
+import org.rmatil.sync.network.core.model.NodeLocation;
+import org.rmatil.sync.network.core.model.NodeLocation;
 
 import java.util.UUID;
 
@@ -19,7 +20,7 @@ public class FileOfferResponse extends AResponse {
      * @param clientDevice    The client device which is sending this response
      * @param receiverAddress The address of the client to which this response should be sent
      */
-    public FileOfferResponse(UUID exchangeId, StatusCode statusCode, ClientDevice clientDevice, ClientLocation receiverAddress) {
+    public FileOfferResponse(UUID exchangeId, StatusCode statusCode, ClientDevice clientDevice, NodeLocation receiverAddress) {
         super(exchangeId, statusCode, clientDevice, receiverAddress);
     }
 

@@ -8,8 +8,8 @@ import org.rmatil.sync.core.init.objecstore.ObjectStoreFileChangeListener;
 import org.rmatil.sync.core.model.RemoteClientLocation;
 import org.rmatil.sync.core.syncer.file.FileSyncer;
 import org.rmatil.sync.event.aggregator.api.IEventAggregator;
-import org.rmatil.sync.network.api.IClient;
-import org.rmatil.sync.network.api.IClientManager;
+import org.rmatil.sync.network.api.INode;
+import org.rmatil.sync.network.api.INodeManager;
 import org.rmatil.sync.network.core.ConnectionConfiguration;
 import org.rmatil.sync.network.core.model.ClientDevice;
 import org.rmatil.sync.persistence.api.IStorageAdapter;
@@ -48,8 +48,8 @@ public class BaseIT extends BaseNetworkHandlerTest {
     protected static IStorageAdapter STORAGE_ADAPTER_4;
     protected static IObjectStore    OBJECT_STORE_4;
 
-    protected static IClient CLIENT_3;
-    protected static IClient CLIENT_4;
+    protected static INode CLIENT_3;
+    protected static INode CLIENT_4;
 
     protected static FileSyncer FILE_SYNCER_3;
     protected static FileSyncer FILE_SYNCER_4;
@@ -57,8 +57,8 @@ public class BaseIT extends BaseNetworkHandlerTest {
     protected static IEventAggregator EVENT_AGGREGATOR_3;
     protected static IEventAggregator EVENT_AGGREGATOR_4;
 
-    protected static IClientManager CLIENT_MANAGER_3;
-    protected static IClientManager CLIENT_MANAGER_4;
+    protected static INodeManager CLIENT_MANAGER_3;
+    protected static INodeManager CLIENT_MANAGER_4;
 
     protected static ClientDevice CLIENT_DEVICE_3;
     protected static ClientDevice CLIENT_DEVICE_4;
@@ -126,8 +126,8 @@ public class BaseIT extends BaseNetworkHandlerTest {
                 )
         );
 
-        CLIENT_MANAGER_3 = CLIENT_3.getClientManager();
-        CLIENT_MANAGER_4 = CLIENT_4.getClientManager();
+        CLIENT_MANAGER_3 = CLIENT_3.getNodeManager();
+        CLIENT_MANAGER_4 = CLIENT_4.getNodeManager();
 
         FILE_SYNCER_3 = createFileSyncer(CLIENT_3, ROOT_TEST_DIR3, OBJECT_STORE_3, GLOBAL_EVENT_BUS_3);
         FILE_SYNCER_4 = createFileSyncer(CLIENT_4, ROOT_TEST_DIR4, OBJECT_STORE_4, GLOBAL_EVENT_BUS_4);

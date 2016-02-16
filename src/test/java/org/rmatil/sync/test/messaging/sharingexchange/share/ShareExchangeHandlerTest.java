@@ -14,7 +14,7 @@ import org.rmatil.sync.core.model.RemoteClientLocation;
 import org.rmatil.sync.core.security.AccessManager;
 import org.rmatil.sync.event.aggregator.core.events.CreateEvent;
 import org.rmatil.sync.network.core.ConnectionConfiguration;
-import org.rmatil.sync.network.core.model.ClientLocation;
+import org.rmatil.sync.network.core.model.NodeLocation;
 import org.rmatil.sync.persistence.exceptions.InputOutputException;
 import org.rmatil.sync.test.messaging.base.BaseNetworkHandlerTest;
 import org.rmatil.sync.version.api.AccessType;
@@ -70,7 +70,7 @@ public class ShareExchangeHandlerTest extends BaseNetworkHandlerTest {
                 )
         );
 
-        CLIENT_MANAGER_2 = CLIENT_2.getClientManager();
+        CLIENT_MANAGER_2 = CLIENT_2.getNodeManager();
     }
 
     @Before
@@ -117,7 +117,7 @@ public class ShareExchangeHandlerTest extends BaseNetworkHandlerTest {
 
         ShareExchangeHandler shareExchangeHandler = new ShareExchangeHandler(
                 CLIENT_1,
-                new ClientLocation(CLIENT_2.getClientDeviceId(), CLIENT_2.getPeerAddress()),
+                new NodeLocation(CLIENT_2.getClientDeviceId(), CLIENT_2.getPeerAddress()),
                 STORAGE_ADAPTER_1,
                 OBJECT_STORE_1,
                 TEST_FILE_1.toString(),
@@ -200,7 +200,7 @@ public class ShareExchangeHandlerTest extends BaseNetworkHandlerTest {
 
         ShareExchangeHandler shareExchangeHandler = new ShareExchangeHandler(
                 CLIENT_1,
-                new ClientLocation(CLIENT_2.getClientDeviceId(), CLIENT_2.getPeerAddress()),
+                new NodeLocation(CLIENT_2.getClientDeviceId(), CLIENT_2.getPeerAddress()),
                 STORAGE_ADAPTER_1,
                 OBJECT_STORE_1,
                 TEST_FILE_1.toString(),
@@ -270,7 +270,7 @@ public class ShareExchangeHandlerTest extends BaseNetworkHandlerTest {
         shareRequestHandler.setGlobalEventBus(GLOBAL_EVENT_BUS_1);
         shareRequestHandler.setObjectStore(OBJECT_STORE_1);
         shareRequestHandler.setStorageAdapter(STORAGE_ADAPTER_1);
-        shareRequestHandler.setClient(CLIENT_1);
+        shareRequestHandler.setNode(CLIENT_1);
         shareRequestHandler.setRequest(new ShareRequest(null, null, null, null, null, null, null, null, false, - 1L, - 1L, - 1L, null, - 1));
 
         String uniqueFile = shareRequestHandler.getUniqueFileName(TEST_UNIQUE_FILE.toString(), true);

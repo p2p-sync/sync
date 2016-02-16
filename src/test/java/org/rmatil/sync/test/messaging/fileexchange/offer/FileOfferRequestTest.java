@@ -6,7 +6,7 @@ import org.rmatil.sync.core.messaging.fileexchange.offer.FileOfferRequest;
 import org.rmatil.sync.core.messaging.fileexchange.offer.SerializableEvent;
 import org.rmatil.sync.event.aggregator.core.events.MoveEvent;
 import org.rmatil.sync.network.core.model.ClientDevice;
-import org.rmatil.sync.network.core.model.ClientLocation;
+import org.rmatil.sync.network.core.model.NodeLocation;
 import org.rmatil.sync.test.base.BaseMessageTest;
 
 import java.nio.file.Path;
@@ -30,7 +30,7 @@ public class FileOfferRequestTest extends BaseMessageTest {
     protected static final boolean        IS_FILE          = true;
     protected static final UUID           CLIENT_DEVICE_ID = UUID.randomUUID();
     protected static final ClientDevice   CLIENT_DEVICE    = new ClientDevice("Norman Gordon", CLIENT_DEVICE_ID, null);
-    protected static final ClientLocation CLIENT_LOCATION  = new ClientLocation(CLIENT_DEVICE_ID, null);
+    protected static final NodeLocation CLIENT_LOCATION  = new NodeLocation(CLIENT_DEVICE_ID, null);
 
     protected static MoveEvent         moveEvent;
     protected static SerializableEvent serializableEvent;
@@ -38,7 +38,7 @@ public class FileOfferRequestTest extends BaseMessageTest {
 
     @BeforeClass
     public static void setUp() {
-        List<ClientLocation> clientLocations = new ArrayList<>();
+        List<NodeLocation> clientLocations = new ArrayList<>();
         clientLocations.add(CLIENT_LOCATION);
 
         moveEvent = new MoveEvent(
@@ -66,6 +66,6 @@ public class FileOfferRequestTest extends BaseMessageTest {
         assertEquals("StatusCode is not equal", STATUS_CODE, fileOfferRequest.getStatusCode());
         assertEquals("ClientDevice not equal", CLIENT_DEVICE, fileOfferRequest.getClientDevice());
         assertEquals("Event is not equal", serializableEvent, fileOfferRequest.getEvent());
-        assertThat("Receiver addresses should contain clientLocation", fileOfferRequest.getReceiverAddresses(), hasItem(CLIENT_LOCATION));
+        assertThat("Receiver addresses should contain nodeLocation", fileOfferRequest.getReceiverAddresses(), hasItem(CLIENT_LOCATION));
     }
 }

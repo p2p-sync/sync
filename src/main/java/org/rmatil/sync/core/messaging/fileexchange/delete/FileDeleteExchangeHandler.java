@@ -6,11 +6,11 @@ import org.rmatil.sync.core.eventbus.IgnoreBusEvent;
 import org.rmatil.sync.core.init.client.ILocalStateResponseCallback;
 import org.rmatil.sync.core.messaging.StatusCode;
 import org.rmatil.sync.event.aggregator.core.events.DeleteEvent;
-import org.rmatil.sync.network.api.IClient;
-import org.rmatil.sync.network.api.IClientManager;
+import org.rmatil.sync.network.api.INode;
+import org.rmatil.sync.network.api.INodeManager;
 import org.rmatil.sync.network.core.ANetworkHandler;
 import org.rmatil.sync.network.core.model.ClientDevice;
-import org.rmatil.sync.network.core.model.ClientLocation;
+import org.rmatil.sync.network.core.model.NodeLocation;
 import org.rmatil.sync.persistence.api.IStorageAdapter;
 import org.rmatil.sync.version.api.IObjectStore;
 import org.rmatil.sync.version.core.model.PathObject;
@@ -50,7 +50,7 @@ public class FileDeleteExchangeHandler extends ANetworkHandler<FileDeleteExchang
     /**
      * The client manager to get the client locations from
      */
-    protected IClientManager clientManager;
+    protected INodeManager nodeManager;
 
     /**
      * The object store
@@ -71,25 +71,25 @@ public class FileDeleteExchangeHandler extends ANetworkHandler<FileDeleteExchang
     /**
      * The client location to send the requests to
      */
-    protected List<ClientLocation> receivers;
+    protected List<NodeLocation> receivers;
 
     /**
      * @param exchangeId     The exchange id for this exchange
      * @param clientDevice   The client device from the client starting the exchange
      * @param storageAdapter The storage adapter to access the synced folder
-     * @param clientManager  The client manager to access client locations
+     * @param nodeManager  The client manager to access client locations
      * @param client         The client to send the actual message
      * @param objectStore    The object store
      * @param globalEventBus The global event bus to send events to
      * @param receivers      The receiver addresses which should receive the delete requests
      * @param deleteEvent    The actual delete event to propagate
      */
-    public FileDeleteExchangeHandler(UUID exchangeId, ClientDevice clientDevice, IStorageAdapter storageAdapter, IClientManager clientManager, IClient client, IObjectStore objectStore, MBassador<IBusEvent> globalEventBus, List<ClientLocation> receivers, DeleteEvent deleteEvent) {
+    public FileDeleteExchangeHandler(UUID exchangeId, ClientDevice clientDevice, IStorageAdapter storageAdapter, INodeManager nodeManager, INode client, IObjectStore objectStore, MBassador<IBusEvent> globalEventBus, List<NodeLocation> receivers, DeleteEvent deleteEvent) {
         super(client);
         this.exchangeId = exchangeId;
         this.clientDevice = clientDevice;
         this.storageAdapter = storageAdapter;
-        this.clientManager = clientManager;
+        this.nodeManager = nodeManager;
         this.globalEventBus = globalEventBus;
         this.objectStore = objectStore;
         this.receivers = receivers;
@@ -106,7 +106,7 @@ public class FileDeleteExchangeHandler extends ANetworkHandler<FileDeleteExchang
                 Path filePathToDelete = Paths.get(entry.getAbsolutePath());
 
                 // remove the fileId
-                this.client.getIdentifierManager().removeIdentifier(filePathToDelete.toString());
+                this.node.getIdentifierManager().removeIdentifier(filePathToDelete.toString());
 
                 this.globalEventBus.publish(
                         new IgnoreBusEvent(

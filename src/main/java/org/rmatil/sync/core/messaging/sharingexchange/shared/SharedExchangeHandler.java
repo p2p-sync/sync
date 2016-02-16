@@ -1,12 +1,12 @@
 package org.rmatil.sync.core.messaging.sharingexchange.shared;
 
 import org.rmatil.sync.core.messaging.StatusCode;
-import org.rmatil.sync.network.api.IClient;
-import org.rmatil.sync.network.api.IClientManager;
+import org.rmatil.sync.network.api.INode;
+import org.rmatil.sync.network.api.INodeManager;
 import org.rmatil.sync.network.api.IResponse;
 import org.rmatil.sync.network.core.ANetworkHandler;
 import org.rmatil.sync.network.core.model.ClientDevice;
-import org.rmatil.sync.network.core.model.ClientLocation;
+import org.rmatil.sync.network.core.model.NodeLocation;
 import org.rmatil.sync.persistence.exceptions.InputOutputException;
 import org.rmatil.sync.version.api.AccessType;
 import org.rmatil.sync.version.api.IObjectStore;
@@ -21,7 +21,7 @@ public class SharedExchangeHandler extends ANetworkHandler<SharedExchangeHandler
 
     private static final Logger logger = LoggerFactory.getLogger(SharedExchangeHandler.class);
 
-    protected IClientManager clientManager;
+    protected INodeManager nodeManager;
 
     protected IObjectStore objectStore;
 
@@ -35,9 +35,9 @@ public class SharedExchangeHandler extends ANetworkHandler<SharedExchangeHandler
 
     protected UUID exchangeId;
 
-    public SharedExchangeHandler(IClient client, IClientManager clientManager, IObjectStore objectStore, String sharer, AccessType accessType, String relativeFilePath, UUID exchangeId) {
+    public SharedExchangeHandler(INode client, INodeManager nodeManager, IObjectStore objectStore, String sharer, AccessType accessType, String relativeFilePath, UUID exchangeId) {
         super(client);
-        this.clientManager = clientManager;
+        this.nodeManager = nodeManager;
         this.objectStore = objectStore;
         this.sharer = sharer;
         this.accessType = accessType;
@@ -50,11 +50,11 @@ public class SharedExchangeHandler extends ANetworkHandler<SharedExchangeHandler
     public void run() {
         try {
             // Fetch client locations from the DHT
-            List<ClientLocation> clientLocations;
+            List<NodeLocation> clientLocations;
             try {
-                clientLocations = this.clientManager.getClientLocations(super.client.getUser());
+                clientLocations = this.nodeManager.getNodeLocations(super.node.getUser());
             } catch (InputOutputException e) {
-                logger.error("Could not fetch client locations from user " + super.client.getUser().getUserName() + ". Message: " + e.getMessage());
+                logger.error("Could not fetch client locations from user " + super.node.getUser().getUserName() + ". Message: " + e.getMessage());
                 return;
             }
 
@@ -63,9 +63,9 @@ public class SharedExchangeHandler extends ANetworkHandler<SharedExchangeHandler
                     this.exchangeId,
                     StatusCode.NONE,
                     new ClientDevice(
-                            super.client.getUser().getUserName(),
-                            super.client.getClientDeviceId(),
-                            super.client.getPeerAddress()
+                            super.node.getUser().getUserName(),
+                            super.node.getClientDeviceId(),
+                            super.node.getPeerAddress()
                     ),
                     clientLocations,
                     this.sharer,
@@ -87,7 +87,7 @@ public class SharedExchangeHandler extends ANetworkHandler<SharedExchangeHandler
             // set it to our self
             if (null == this.objectStore.getSharerManager().getOwner(this.relativeFilePath)) {
                 this.objectStore.getSharerManager().addOwner(
-                        this.client.getUser().getUserName(),
+                        this.node.getUser().getUserName(),
                         this.relativeFilePath
                 );
             }

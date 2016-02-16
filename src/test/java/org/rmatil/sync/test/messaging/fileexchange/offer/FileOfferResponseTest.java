@@ -4,7 +4,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.rmatil.sync.core.messaging.fileexchange.offer.FileOfferResponse;
 import org.rmatil.sync.network.core.model.ClientDevice;
-import org.rmatil.sync.network.core.model.ClientLocation;
+import org.rmatil.sync.network.core.model.NodeLocation;
 import org.rmatil.sync.test.base.BaseMessageTest;
 
 import java.util.UUID;
@@ -15,7 +15,7 @@ public class FileOfferResponseTest extends BaseMessageTest {
 
     protected static final UUID           CLIENT_DEVICE_ID = UUID.randomUUID();
     protected static final ClientDevice   CLIENT_DEVICE    = new ClientDevice("Norman Gordon", CLIENT_DEVICE_ID, null);
-    protected static final ClientLocation CLIENT_LOCATION  = new ClientLocation(CLIENT_DEVICE_ID, null);
+    protected static final NodeLocation CLIENT_LOCATION  = new NodeLocation(CLIENT_DEVICE_ID, null);
 
     protected static FileOfferResponse fileOfferResponse;
 
@@ -34,6 +34,6 @@ public class FileOfferResponseTest extends BaseMessageTest {
         assertEquals("ExchangeId not equal", EXCHANGE_ID, fileOfferResponse.getExchangeId());
         assertEquals("StatusCode not equal", STATUS_CODE, fileOfferResponse.getStatusCode());
         assertEquals("ClientDevice not equal", CLIENT_DEVICE, fileOfferResponse.getClientDevice());
-        assertEquals("ClientLocation not equal", CLIENT_LOCATION, fileOfferResponse.getReceiverAddress());
+        assertEquals("NodeLocation not equal", CLIENT_LOCATION, fileOfferResponse.getReceiverAddress());
     }
 }

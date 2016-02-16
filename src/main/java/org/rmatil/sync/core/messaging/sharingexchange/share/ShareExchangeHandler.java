@@ -3,12 +3,12 @@ package org.rmatil.sync.core.messaging.sharingexchange.share;
 import org.rmatil.sync.core.messaging.StatusCode;
 import org.rmatil.sync.core.messaging.chunk.Chunk;
 import org.rmatil.sync.core.messaging.chunk.ChunkProvider;
-import org.rmatil.sync.network.api.IClient;
+import org.rmatil.sync.network.api.INode;
 import org.rmatil.sync.network.api.IRequest;
 import org.rmatil.sync.network.api.IResponse;
 import org.rmatil.sync.network.core.ANetworkHandler;
 import org.rmatil.sync.network.core.model.ClientDevice;
-import org.rmatil.sync.network.core.model.ClientLocation;
+import org.rmatil.sync.network.core.model.NodeLocation;
 import org.rmatil.sync.persistence.api.IStorageAdapter;
 import org.rmatil.sync.persistence.core.local.LocalPathElement;
 import org.rmatil.sync.persistence.exceptions.InputOutputException;
@@ -39,7 +39,7 @@ public class ShareExchangeHandler extends ANetworkHandler<ShareExchangeHandlerRe
     /**
      * The client location to which this share should be sent
      */
-    protected ClientLocation receiverAddress;
+    protected NodeLocation receiverAddress;
 
     /**
      * The storage adapter to read the file chunks from
@@ -106,7 +106,7 @@ public class ShareExchangeHandler extends ANetworkHandler<ShareExchangeHandlerRe
      * @param isFile                         Whether the path represents a file or directory
      * @param exchangeId                     The exchangeId
      */
-    public ShareExchangeHandler(IClient client, ClientLocation receiverAddress, IStorageAdapter storageAdapter, IObjectStore objectStore, String relativeFilePath, String relativeFilePathToSharedFolder, AccessType accessType, UUID fileId, boolean isFile, UUID exchangeId) {
+    public ShareExchangeHandler(INode client, NodeLocation receiverAddress, IStorageAdapter storageAdapter, IObjectStore objectStore, String relativeFilePath, String relativeFilePathToSharedFolder, AccessType accessType, UUID fileId, boolean isFile, UUID exchangeId) {
         super(client);
         this.receiverAddress = receiverAddress;
         this.storageAdapter = storageAdapter;
@@ -146,10 +146,10 @@ public class ShareExchangeHandler extends ANetworkHandler<ShareExchangeHandlerRe
         }
 
         if (- 1 < ((ShareResponse) response).getChunkCounter()) {
-            this.sendChunk(((ShareResponse) response).getChunkCounter(), response.getExchangeId(), new ClientLocation(response.getClientDevice().getClientDeviceId(), response.getClientDevice().getPeerAddress()));
+            this.sendChunk(((ShareResponse) response).getChunkCounter(), response.getExchangeId(), new NodeLocation(response.getClientDevice().getClientDeviceId(), response.getClientDevice().getPeerAddress()));
         } else {
             // exchange is finished
-            super.client.getObjectDataReplyHandler().removeResponseCallbackHandler(response.getExchangeId());
+            super.node.getObjectDataReplyHandler().removeResponseCallbackHandler(response.getExchangeId());
 
             super.onResponse(response);
 
@@ -183,7 +183,7 @@ public class ShareExchangeHandler extends ANetworkHandler<ShareExchangeHandlerRe
         return new ShareExchangeHandlerResult();
     }
 
-    protected void sendChunk(long chunkCounter, UUID exchangeId, ClientLocation sharer) {
+    protected void sendChunk(long chunkCounter, UUID exchangeId, NodeLocation sharer) {
         Chunk chunk = new Chunk(
                 "",
                 "",
@@ -218,9 +218,9 @@ public class ShareExchangeHandler extends ANetworkHandler<ShareExchangeHandlerRe
                 exchangeId,
                 statusCode,
                 new ClientDevice(
-                        super.client.getUser().getUserName(),
-                        super.client.getClientDeviceId(),
-                        super.client.getPeerAddress()
+                        super.node.getUser().getUserName(),
+                        super.node.getClientDeviceId(),
+                        super.node.getPeerAddress()
                 ),
                 sharer,
                 this.fileId,

@@ -10,11 +10,11 @@ import org.rmatil.sync.core.messaging.StatusCode;
 import org.rmatil.sync.core.security.IAccessManager;
 import org.rmatil.sync.event.aggregator.core.events.CreateEvent;
 import org.rmatil.sync.event.aggregator.core.events.ModifyEvent;
-import org.rmatil.sync.network.api.IClient;
+import org.rmatil.sync.network.api.INode;
 import org.rmatil.sync.network.api.IRequest;
 import org.rmatil.sync.network.api.IResponse;
 import org.rmatil.sync.network.core.model.ClientDevice;
-import org.rmatil.sync.network.core.model.ClientLocation;
+import org.rmatil.sync.network.core.model.NodeLocation;
 import org.rmatil.sync.persistence.api.IPathElement;
 import org.rmatil.sync.persistence.api.IStorageAdapter;
 import org.rmatil.sync.persistence.api.StorageType;
@@ -44,7 +44,7 @@ public class FilePushRequestHandler implements ILocalStateRequestCallback {
     /**
      * The client to send back messages
      */
-    protected IClient client;
+    protected INode node;
 
     /**
      * The file push request from the sender
@@ -77,8 +77,8 @@ public class FilePushRequestHandler implements ILocalStateRequestCallback {
     }
 
     @Override
-    public void setClient(IClient iClient) {
-        this.client = iClient;
+    public void setNode(INode INode) {
+        this.node = INode;
     }
 
     @Override
@@ -100,7 +100,7 @@ public class FilePushRequestHandler implements ILocalStateRequestCallback {
         try {
             logger.info("Writing chunk " + this.request.getChunkCounter() + " for file " + this.request.getRelativeFilePath() + " for exchangeId " + this.request.getExchangeId());
 
-            if (! this.client.getUser().getUserName().equals(this.request.getClientDevice().getUserName()) && ! this.accessManager.hasAccess(this.request.getClientDevice().getUserName(), AccessType.WRITE, this.request.getRelativeFilePath())) {
+            if (! this.node.getUser().getUserName().equals(this.request.getClientDevice().getUserName()) && ! this.accessManager.hasAccess(this.request.getClientDevice().getUserName(), AccessType.WRITE, this.request.getRelativeFilePath())) {
                 logger.warn("Failed to write chunk " + this.request.getChunkCounter() + " for file " + this.request.getRelativeFilePath() + " due to missing access rights of user " + this.request.getClientDevice().getUserName() + " on exchange " + this.request.getExchangeId());
                 this.sendResponse(this.createResponse(- 1));
                 return;
@@ -185,9 +185,9 @@ public class FilePushRequestHandler implements ILocalStateRequestCallback {
         return new FilePushResponse(
                 this.request.getExchangeId(),
                 StatusCode.ACCEPTED,
-                new ClientDevice(this.client.getUser().getUserName(), this.client.getClientDeviceId(), this.client.getPeerAddress()),
+                new ClientDevice(this.node.getUser().getUserName(), this.node.getClientDeviceId(), this.node.getPeerAddress()),
                 this.request.getRelativeFilePath(),
-                new ClientLocation(this.request.getClientDevice().getClientDeviceId(), this.request.getClientDevice().getPeerAddress()),
+                new NodeLocation(this.request.getClientDevice().getClientDeviceId(), this.request.getClientDevice().getPeerAddress()),
                 requestingChunk
         );
     }
@@ -198,11 +198,11 @@ public class FilePushRequestHandler implements ILocalStateRequestCallback {
      * @param iResponse The response to send back
      */
     protected void sendResponse(IResponse iResponse) {
-        if (null == this.client) {
+        if (null == this.node) {
             throw new IllegalStateException("A client instance is required to send a response back");
         }
 
-        this.client.sendDirect(iResponse.getReceiverAddress().getPeerAddress(), iResponse);
+        this.node.sendDirect(iResponse.getReceiverAddress().getPeerAddress(), iResponse);
     }
 
     /**

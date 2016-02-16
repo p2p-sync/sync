@@ -7,10 +7,10 @@ import org.rmatil.sync.core.init.client.ILocalStateRequestCallback;
 import org.rmatil.sync.core.messaging.StatusCode;
 import org.rmatil.sync.core.security.IAccessManager;
 import org.rmatil.sync.event.aggregator.core.events.MoveEvent;
-import org.rmatil.sync.network.api.IClient;
+import org.rmatil.sync.network.api.INode;
 import org.rmatil.sync.network.api.IRequest;
 import org.rmatil.sync.network.core.model.ClientDevice;
-import org.rmatil.sync.network.core.model.ClientLocation;
+import org.rmatil.sync.network.core.model.NodeLocation;
 import org.rmatil.sync.persistence.api.IPathElement;
 import org.rmatil.sync.persistence.api.IStorageAdapter;
 import org.rmatil.sync.persistence.api.StorageType;
@@ -50,7 +50,7 @@ public class FileMoveRequestHandler implements ILocalStateRequestCallback {
     /**
      * The client to send back messages
      */
-    protected IClient client;
+    protected INode node;
 
     /**
      * The file move request from the sender
@@ -83,8 +83,8 @@ public class FileMoveRequestHandler implements ILocalStateRequestCallback {
     }
 
     @Override
-    public void setClient(IClient iClient) {
-        this.client = iClient;
+    public void setNode(INode INode) {
+        this.node = INode;
     }
 
     @Override
@@ -106,7 +106,7 @@ public class FileMoveRequestHandler implements ILocalStateRequestCallback {
         try {
             logger.info("Moving path from " + this.request.getOldPath() + " to " + this.request.getNewPath());
 
-            if (! this.client.getUser().getUserName().equals(this.request.getClientDevice().getUserName()) && ! this.accessManager.hasAccess(this.request.getClientDevice().getUserName(), AccessType.WRITE, this.request.getOldPath())) {
+            if (! this.node.getUser().getUserName().equals(this.request.getClientDevice().getUserName()) && ! this.accessManager.hasAccess(this.request.getClientDevice().getUserName(), AccessType.WRITE, this.request.getOldPath())) {
                 logger.warn("Moving path failed due to missing access rights on file " + this.request.getOldPath() + " for user " + this.request.getClientDevice().getUserName() + " on exchange " + this.request.getExchangeId());
                 this.sendResponse(StatusCode.ACCESS_DENIED);
                 return;
@@ -139,17 +139,17 @@ public class FileMoveRequestHandler implements ILocalStateRequestCallback {
      * @param statusCode The status code to use in the response
      */
     protected void sendResponse(StatusCode statusCode) {
-        this.client.sendDirect(
+        this.node.sendDirect(
                 this.request.getClientDevice().getPeerAddress(),
                 new FileMoveResponse(
                         this.request.getExchangeId(),
                         statusCode,
                         new ClientDevice(
-                                this.client.getUser().getUserName(),
-                                this.client.getClientDeviceId(),
-                                this.client.getPeerAddress()
+                                this.node.getUser().getUserName(),
+                                this.node.getClientDeviceId(),
+                                this.node.getPeerAddress()
                         ),
-                        new ClientLocation(
+                        new NodeLocation(
                                 this.request.getClientDevice().getClientDeviceId(),
                                 this.request.getClientDevice().getPeerAddress()
                         )

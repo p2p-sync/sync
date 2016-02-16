@@ -16,7 +16,7 @@ import org.rmatil.sync.event.aggregator.core.events.ModifyEvent;
 import org.rmatil.sync.network.api.INode;
 import org.rmatil.sync.network.api.INodeManager;
 import org.rmatil.sync.network.core.model.ClientDevice;
-import org.rmatil.sync.network.core.model.ClientLocation;
+import org.rmatil.sync.network.core.model.NodeLocation;
 import org.rmatil.sync.persistence.api.IPathElement;
 import org.rmatil.sync.persistence.api.IStorageAdapter;
 import org.rmatil.sync.persistence.api.StorageType;
@@ -64,12 +64,12 @@ public class NonBlockingBackgroundSyncer implements IBackgroundSyncer {
     /**
      * The client to use to exchange messages
      */
-    protected INode client;
+    protected INode node;
 
     /**
      * The client manager to fetch client locations from
      */
-    protected INodeManager clientManager;
+    protected INodeManager nodeManager;
 
     /**
      * The object store of the synchronised folder
@@ -88,16 +88,16 @@ public class NonBlockingBackgroundSyncer implements IBackgroundSyncer {
 
     /**
      * @param eventAggregator The event aggregator to pause
-     * @param client The client to exchange messages
-     * @param clientManager The client manager to fetch client locations from
+     * @param node The client to exchange messages
+     * @param nodeManager The client manager to fetch client locations from
      * @param objectStore The object store for the synchronised folder
      * @param storageAdapter The storage adapter of the synchronised folder
      * @param globalEventBus The global event bus to push events to
      */
-    public NonBlockingBackgroundSyncer(IEventAggregator eventAggregator, INode client, INodeManager clientManager, IObjectStore objectStore, IStorageAdapter storageAdapter, MBassador<IBusEvent> globalEventBus) {
+    public NonBlockingBackgroundSyncer(IEventAggregator eventAggregator, INode node, INodeManager nodeManager, IObjectStore objectStore, IStorageAdapter storageAdapter, MBassador<IBusEvent> globalEventBus) {
         this.eventAggregator = eventAggregator;
-        this.client = client;
-        this.clientManager = clientManager;
+        this.node = node;
+        this.nodeManager = nodeManager;
         this.objectStore = objectStore;
         this.storageAdapter = storageAdapter;
         this.globalEventBus = globalEventBus;
@@ -111,12 +111,12 @@ public class NonBlockingBackgroundSyncer implements IBackgroundSyncer {
             this.eventAggregator.stop();
 
             FetchObjectStoreExchangeHandler fetchObjectStoreExchangeHandler = new FetchObjectStoreExchangeHandler(
-                    this.client,
-                    this.clientManager,
+                    this.node,
+                    this.nodeManager,
                     exchangeId
             );
 
-            this.client.getObjectDataReplyHandler().addResponseCallbackHandler(exchangeId, fetchObjectStoreExchangeHandler);
+            this.node.getObjectDataReplyHandler().addResponseCallbackHandler(exchangeId, fetchObjectStoreExchangeHandler);
 
             Thread fetchObjectStoreExchangeHandlerThread = new Thread(fetchObjectStoreExchangeHandler);
             fetchObjectStoreExchangeHandlerThread.setName("FetchObjectStoreExchangeHandler-" + exchangeId);
@@ -130,7 +130,7 @@ public class NonBlockingBackgroundSyncer implements IBackgroundSyncer {
                 logger.error("Got interrupted while waiting for fetching all object stores");
             }
 
-            this.client.getObjectDataReplyHandler().removeResponseCallbackHandler(exchangeId);
+            this.node.getObjectDataReplyHandler().removeResponseCallbackHandler(exchangeId);
 
             if (! fetchObjectStoreExchangeHandler.isCompleted()) {
                 logger.error("FetchObjectStoreExchangeHandler should be completed after awaiting. Since we do not know about the other clients object store, we abort background sync for exchange " + exchangeId);
@@ -182,7 +182,7 @@ public class NonBlockingBackgroundSyncer implements IBackgroundSyncer {
                 logger.debug("Creating conflict file " + entry.getKey());
                 Path conflictFilePath = ConflictHandler.createConflictFile(
                         this.globalEventBus,
-                        this.client.getClientDeviceId().toString(),
+                        this.node.getClientDeviceId().toString(),
                         this.objectStore,
                         this.storageAdapter,
                         new LocalPathElement(entry.getKey())
@@ -240,10 +240,10 @@ public class NonBlockingBackgroundSyncer implements IBackgroundSyncer {
 
                 FileDemandExchangeHandler fileDemandExchangeHandler = new FileDemandExchangeHandler(
                         this.storageAdapter,
-                        this.client,
-                        this.clientManager,
+                        this.node,
+                        this.nodeManager,
                         this.globalEventBus,
-                        new ClientLocation(
+                        new NodeLocation(
                                 entry.getValue().getClientDeviceId(),
                                 entry.getValue().getPeerAddress()
                         ),
@@ -251,7 +251,7 @@ public class NonBlockingBackgroundSyncer implements IBackgroundSyncer {
                         subExchangeId
                 );
 
-                this.client.getObjectDataReplyHandler().addResponseCallbackHandler(subExchangeId, fileDemandExchangeHandler);
+                this.node.getObjectDataReplyHandler().addResponseCallbackHandler(subExchangeId, fileDemandExchangeHandler);
 
                 Thread fileDemandExchangeHandlerThread = new Thread(fileDemandExchangeHandler);
                 fileDemandExchangeHandlerThread.setName("FileDemandExchangeHandlerThread-" + subExchangeId);
@@ -263,7 +263,7 @@ public class NonBlockingBackgroundSyncer implements IBackgroundSyncer {
                     logger.error("Got interrupted while waiting for fileDemandExchangeHandler " + subExchangeId + " to complete. Message: " + e.getMessage());
                 }
 
-                this.client.getObjectDataReplyHandler().removeResponseCallbackHandler(subExchangeId);
+                this.node.getObjectDataReplyHandler().removeResponseCallbackHandler(subExchangeId);
 
                 if (! fileDemandExchangeHandler.isCompleted()) {
                     logger.error("FileDemandExchangeHandler " + subExchangeId + " should be completed after wait.");
@@ -271,7 +271,7 @@ public class NonBlockingBackgroundSyncer implements IBackgroundSyncer {
             }
 
             // start event aggregator
-            logger.info("Starting event aggregator on client (" + this.client.getPeerAddress().inetAddress().getHostName() + ":" + this.client.getPeerAddress().tcpPort() + "): Non-blocking background sync " + exchangeId);
+            logger.info("Starting event aggregator on client (" + this.node.getPeerAddress().inetAddress().getHostName() + ":" + this.node.getPeerAddress().tcpPort() + "): Non-blocking background sync " + exchangeId);
             this.eventAggregator.start();
 
             logger.info("Reconciling local disk changes with merged object store (non-blocking background sync " + exchangeId + ")");

@@ -3,7 +3,7 @@ package org.rmatil.sync.test.messaging.sharingexchange.share;
 import org.junit.Test;
 import org.rmatil.sync.core.messaging.sharingexchange.share.ShareResponse;
 import org.rmatil.sync.network.core.model.ClientDevice;
-import org.rmatil.sync.network.core.model.ClientLocation;
+import org.rmatil.sync.network.core.model.NodeLocation;
 import org.rmatil.sync.test.base.BaseMessageTest;
 
 import java.util.UUID;
@@ -14,7 +14,7 @@ public class ShareResponseTest extends BaseMessageTest {
 
     protected static final UUID           FILE_ID          = UUID.randomUUID();
     protected static final ClientDevice   CLIENT_DEVICE    = new ClientDevice("Inverness McKenzie", UUID.randomUUID(), null);
-    protected static final ClientLocation RECEIVER_ADDRESS = new ClientLocation(UUID.randomUUID(), null);
+    protected static final NodeLocation RECEIVER_ADDRESS = new NodeLocation(UUID.randomUUID(), null);
     protected static final long           CHUNK_COUNTER    = 12L;
 
     @Test

@@ -5,11 +5,11 @@ import org.rmatil.sync.core.eventbus.IBusEvent;
 import org.rmatil.sync.core.init.client.ILocalStateRequestCallback;
 import org.rmatil.sync.core.messaging.StatusCode;
 import org.rmatil.sync.core.security.IAccessManager;
-import org.rmatil.sync.network.api.IClient;
+import org.rmatil.sync.network.api.INode;
 import org.rmatil.sync.network.api.IRequest;
 import org.rmatil.sync.network.api.IResponse;
 import org.rmatil.sync.network.core.model.ClientDevice;
-import org.rmatil.sync.network.core.model.ClientLocation;
+import org.rmatil.sync.network.core.model.NodeLocation;
 import org.rmatil.sync.persistence.api.IStorageAdapter;
 import org.rmatil.sync.version.api.IObjectStore;
 import org.rmatil.sync.version.core.model.PathObject;
@@ -33,7 +33,7 @@ public class UnsharedRequestHandler implements ILocalStateRequestCallback {
     /**
      * The client to send responses
      */
-    protected IClient client;
+    protected INode node;
 
     /**
      * The unshared request which have been received
@@ -66,8 +66,8 @@ public class UnsharedRequestHandler implements ILocalStateRequestCallback {
     }
 
     @Override
-    public void setClient(IClient iClient) {
-        this.client = iClient;
+    public void setNode(INode INode) {
+        this.node = INode;
     }
 
     @Override
@@ -90,7 +90,7 @@ public class UnsharedRequestHandler implements ILocalStateRequestCallback {
             // add file id from request to the attached file path
             logger.info("Starting to unshare file for id " + this.request.getFileId() + " with sharer " + this.request.getSharer());
 
-            String fileName = this.client.getIdentifierManager().getKey(this.request.getFileId());
+            String fileName = this.node.getIdentifierManager().getKey(this.request.getFileId());
 
             logger.debug("Found file " + fileName + " for fileId " + this.request.getFileId());
 
@@ -122,16 +122,16 @@ public class UnsharedRequestHandler implements ILocalStateRequestCallback {
                 this.request.getExchangeId(),
                 statusCode,
                 new ClientDevice(
-                        this.client.getUser().getUserName(),
-                        this.client.getClientDeviceId(),
-                        this.client.getPeerAddress()
+                        this.node.getUser().getUserName(),
+                        this.node.getClientDeviceId(),
+                        this.node.getPeerAddress()
                 ),
-                new ClientLocation(
+                new NodeLocation(
                         this.request.getClientDevice().getClientDeviceId(),
                         this.request.getClientDevice().getPeerAddress()
                 )
         );
 
-        this.client.sendDirect(response.getReceiverAddress().getPeerAddress(), response);
+        this.node.sendDirect(response.getReceiverAddress().getPeerAddress(), response);
     }
 }

@@ -3,7 +3,7 @@ package org.rmatil.sync.test.messaging.fileexchange.move;
 import org.junit.Test;
 import org.rmatil.sync.core.messaging.fileexchange.move.FileMoveRequest;
 import org.rmatil.sync.network.core.model.ClientDevice;
-import org.rmatil.sync.network.core.model.ClientLocation;
+import org.rmatil.sync.network.core.model.NodeLocation;
 import org.rmatil.sync.test.base.BaseMessageTest;
 
 import java.util.UUID;
@@ -18,7 +18,7 @@ public class FileMoveResponseTest extends BaseMessageTest {
     protected static final String         OLD_RELATIVE_FILE_PATH = "path/to/some/file.txt";
     protected static final String         NEW_RELATIVE_FILE_PATH = "path/to/some/new/file.txt";
     protected static final boolean        IS_FILE                = true;
-    protected static final ClientLocation RECEIVER_ADDRESS       = new ClientLocation(UUID.randomUUID(), null);
+    protected static final NodeLocation RECEIVER_ADDRESS       = new NodeLocation(UUID.randomUUID(), null);
 
 
     @Test
@@ -39,6 +39,6 @@ public class FileMoveResponseTest extends BaseMessageTest {
         assertEquals("OldRelativeFilePath is not equal", OLD_RELATIVE_FILE_PATH, fileMoveRequest.getOldPath());
         assertEquals("NewRelativeFilePath is not equal", NEW_RELATIVE_FILE_PATH, fileMoveRequest.getNewPath());
         assertEquals("Is File is not equal", IS_FILE, fileMoveRequest.isFile());
-        assertThat("Receiver addresses should contain clientLocation", fileMoveRequest.getReceiverAddresses(), hasItem(RECEIVER_ADDRESS));
+        assertThat("Receiver addresses should contain nodeLocation", fileMoveRequest.getReceiverAddresses(), hasItem(RECEIVER_ADDRESS));
     }
 }

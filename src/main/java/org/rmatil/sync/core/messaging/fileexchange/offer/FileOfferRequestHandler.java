@@ -12,11 +12,11 @@ import org.rmatil.sync.event.aggregator.core.events.CreateEvent;
 import org.rmatil.sync.event.aggregator.core.events.DeleteEvent;
 import org.rmatil.sync.event.aggregator.core.events.ModifyEvent;
 import org.rmatil.sync.event.aggregator.core.events.MoveEvent;
-import org.rmatil.sync.network.api.IClient;
+import org.rmatil.sync.network.api.INode;
 import org.rmatil.sync.network.api.IRequest;
 import org.rmatil.sync.network.api.IResponse;
 import org.rmatil.sync.network.core.model.ClientDevice;
-import org.rmatil.sync.network.core.model.ClientLocation;
+import org.rmatil.sync.network.core.model.NodeLocation;
 import org.rmatil.sync.persistence.api.IFileMetaInfo;
 import org.rmatil.sync.persistence.api.IStorageAdapter;
 import org.rmatil.sync.persistence.api.StorageType;
@@ -64,7 +64,7 @@ public class FileOfferRequestHandler implements ILocalStateRequestCallback {
     /**
      * The client to send back messages
      */
-    protected IClient client;
+    protected INode node;
 
     /**
      * The file offer request from the sender
@@ -97,8 +97,8 @@ public class FileOfferRequestHandler implements ILocalStateRequestCallback {
     }
 
     @Override
-    public void setClient(IClient iClient) {
-        this.client = iClient;
+    public void setNode(INode INode) {
+        this.node = INode;
     }
 
     @Override
@@ -118,7 +118,7 @@ public class FileOfferRequestHandler implements ILocalStateRequestCallback {
     @Override
     public void run() {
         try {
-            if (! this.client.getUser().getUserName().equals(this.request.getClientDevice().getUserName()) && ! this.accessManager.hasAccess(this.request.getClientDevice().getUserName(), AccessType.WRITE, this.request.getEvent().getPath())) {
+            if (! this.node.getUser().getUserName().equals(this.request.getClientDevice().getUserName()) && ! this.accessManager.hasAccess(this.request.getClientDevice().getUserName(), AccessType.WRITE, this.request.getEvent().getPath())) {
                 logger.warn("Failed to positively return the offer from user " + this.request.getClientDevice().getUserName() + " for file " + this.request.getEvent().getPath() + " due to missing access rights on exchange " + this.request.getExchangeId());
                 this.sendResponse(this.createResponse(StatusCode.ACCESS_DENIED));
                 return;
@@ -182,11 +182,11 @@ public class FileOfferRequestHandler implements ILocalStateRequestCallback {
      * @param iResponse The response to send
      */
     protected void sendResponse(IResponse iResponse) {
-        if (null == this.client) {
+        if (null == this.node) {
             throw new IllegalStateException("A client instance is required to send a response back");
         }
 
-        this.client.sendDirect(iResponse.getReceiverAddress().getPeerAddress(), iResponse);
+        this.node.sendDirect(iResponse.getReceiverAddress().getPeerAddress(), iResponse);
     }
 
     /**
@@ -195,9 +195,9 @@ public class FileOfferRequestHandler implements ILocalStateRequestCallback {
      * @return The FileOfferResponse representing the result of this client
      */
     protected FileOfferResponse createResponse(StatusCode statusCode) {
-        ClientDevice sendingClient = new ClientDevice(this.client.getUser().getUserName(), this.client.getClientDeviceId(), this.client.getPeerAddress());
+        ClientDevice sendingClient = new ClientDevice(this.node.getUser().getUserName(), this.node.getClientDeviceId(), this.node.getPeerAddress());
         // the sender becomes the receiver
-        ClientLocation receiver = new ClientLocation(this.request.getClientDevice().getClientDeviceId(), this.request.getClientDevice().getPeerAddress());
+        NodeLocation receiver = new NodeLocation(this.request.getClientDevice().getClientDeviceId(), this.request.getClientDevice().getPeerAddress());
 
         return new FileOfferResponse(
                 this.request.getExchangeId(),
@@ -298,7 +298,7 @@ public class FileOfferRequestHandler implements ILocalStateRequestCallback {
         Path conflictFilePath;
         try {
             IFileMetaInfo fileMetaInfo = this.storageAdapter.getMetaInformation(pathElement);
-            conflictFilePath = Paths.get(Naming.getConflictFileName(pathElement.getPath(), true, fileMetaInfo.getFileExtension(), this.client.getClientDeviceId().toString()));
+            conflictFilePath = Paths.get(Naming.getConflictFileName(pathElement.getPath(), true, fileMetaInfo.getFileExtension(), this.node.getClientDeviceId().toString()));
             this.globalEventBus.publish(new IgnoreBusEvent(
                     new MoveEvent(
                             Paths.get(pathElement.getPath()),

@@ -11,11 +11,11 @@ import org.rmatil.sync.core.messaging.StatusCode;
 import org.rmatil.sync.core.security.IAccessManager;
 import org.rmatil.sync.event.aggregator.core.events.CreateEvent;
 import org.rmatil.sync.event.aggregator.core.events.IEvent;
-import org.rmatil.sync.network.api.IClient;
+import org.rmatil.sync.network.api.INode;
 import org.rmatil.sync.network.api.IRequest;
 import org.rmatil.sync.network.api.IResponse;
 import org.rmatil.sync.network.core.model.ClientDevice;
-import org.rmatil.sync.network.core.model.ClientLocation;
+import org.rmatil.sync.network.core.model.NodeLocation;
 import org.rmatil.sync.persistence.api.IPathElement;
 import org.rmatil.sync.persistence.api.IStorageAdapter;
 import org.rmatil.sync.persistence.api.StorageType;
@@ -47,7 +47,7 @@ public class ShareRequestHandler implements ILocalStateRequestCallback {
     /**
      * The client to send back messages
      */
-    protected IClient client;
+    protected INode node;
 
     /**
      * The file share request from the sender
@@ -80,8 +80,8 @@ public class ShareRequestHandler implements ILocalStateRequestCallback {
     }
 
     @Override
-    public void setClient(IClient iClient) {
-        this.client = iClient;
+    public void setNode(INode INode) {
+        this.node = INode;
     }
 
     @Override
@@ -108,7 +108,7 @@ public class ShareRequestHandler implements ILocalStateRequestCallback {
 
             // check if a file already exists in the DHT for the fileId,
             // maybe the file just changed while transmitting
-            String relativePath = this.client.getIdentifierManager().getKey(this.request.getFileId());
+            String relativePath = this.node.getIdentifierManager().getKey(this.request.getFileId());
 
             // setup shared folder and object store if the file does not exist yet
             if (0 == this.request.getChunkCounter() && null == relativePath) {
@@ -127,7 +127,7 @@ public class ShareRequestHandler implements ILocalStateRequestCallback {
                 relativePath = this.getUniqueFileName(relPathToSyncedFolder, this.request.isFile());
 
                 // add the fileId so that each client can fetch it from the original
-                this.client.getIdentifierManager().addIdentifier(relativePath, this.request.getFileId());
+                this.node.getIdentifierManager().addIdentifier(relativePath, this.request.getFileId());
 
                 this.objectStore.onCreateFile(relativePath, null);
                 // adds the owner to the file but not as sharer
@@ -165,7 +165,7 @@ public class ShareRequestHandler implements ILocalStateRequestCallback {
             } else {
                 // we have written a chunk of the file already -> get the file name
                 pathObject = this.objectStore.getObjectManager().getObjectForPath(
-                        this.client.getIdentifierManager().getKey(this.request.getFileId())
+                        this.node.getIdentifierManager().getKey(this.request.getFileId())
                 );
 
                 pathElement = new LocalPathElement(pathObject.getAbsolutePath());
@@ -259,12 +259,12 @@ public class ShareRequestHandler implements ILocalStateRequestCallback {
                     this.request.getExchangeId(),
                     StatusCode.ACCEPTED,
                     new ClientDevice(
-                            this.client.getUser().getUserName(),
-                            this.client.getClientDeviceId(),
-                            this.client.getPeerAddress()
+                            this.node.getUser().getUserName(),
+                            this.node.getClientDeviceId(),
+                            this.node.getPeerAddress()
                     ),
                     this.request.getFileId(),
-                    new ClientLocation(
+                    new NodeLocation(
                             this.request.getClientDevice().getClientDeviceId(),
                             this.request.getClientDevice().getPeerAddress()
                     ),
@@ -304,11 +304,11 @@ public class ShareRequestHandler implements ILocalStateRequestCallback {
      * @param iResponse The response to send back
      */
     public void sendResponse(IResponse iResponse) {
-        if (null == this.client) {
+        if (null == this.node) {
             throw new IllegalStateException("A client instance is required to send a response back");
         }
 
-        this.client.sendDirect(iResponse.getReceiverAddress().getPeerAddress(), iResponse);
+        this.node.sendDirect(iResponse.getReceiverAddress().getPeerAddress(), iResponse);
     }
 
     /**

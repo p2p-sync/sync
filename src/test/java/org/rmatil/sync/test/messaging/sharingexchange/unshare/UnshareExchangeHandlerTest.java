@@ -6,7 +6,7 @@ import org.rmatil.sync.core.messaging.sharingexchange.unshare.UnshareExchangeHan
 import org.rmatil.sync.core.messaging.sharingexchange.unshare.UnshareExchangeHandlerResult;
 import org.rmatil.sync.core.model.RemoteClientLocation;
 import org.rmatil.sync.network.core.ConnectionConfiguration;
-import org.rmatil.sync.network.core.model.ClientLocation;
+import org.rmatil.sync.network.core.model.NodeLocation;
 import org.rmatil.sync.persistence.exceptions.InputOutputException;
 import org.rmatil.sync.test.messaging.base.BaseNetworkHandlerTest;
 import org.rmatil.sync.version.api.AccessType;
@@ -57,7 +57,7 @@ public class UnshareExchangeHandlerTest extends BaseNetworkHandlerTest {
                 )
         );
 
-        CLIENT_MANAGER_2 = CLIENT_2.getClientManager();
+        CLIENT_MANAGER_2 = CLIENT_2.getNodeManager();
 
         Files.createDirectory(ROOT_TEST_DIR1.resolve(TEST_DIR_1));
         Files.createDirectory(ROOT_TEST_DIR2.resolve(TEST_DIR_1));
@@ -94,7 +94,7 @@ public class UnshareExchangeHandlerTest extends BaseNetworkHandlerTest {
             throws InterruptedException, IOException, InputOutputException {
         UnshareExchangeHandler unshareExchangeHandler = new UnshareExchangeHandler(
                 CLIENT_1,
-                new ClientLocation(CLIENT_2.getClientDeviceId(), CLIENT_2.getPeerAddress()),
+                new NodeLocation(CLIENT_2.getClientDeviceId(), CLIENT_2.getPeerAddress()),
                 FILE_ID,
                 EXCHANGE_ID
         );

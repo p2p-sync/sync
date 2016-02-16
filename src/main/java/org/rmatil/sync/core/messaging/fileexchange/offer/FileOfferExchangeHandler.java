@@ -7,13 +7,13 @@ import org.rmatil.sync.core.init.client.ILocalStateResponseCallback;
 import org.rmatil.sync.core.messaging.StatusCode;
 import org.rmatil.sync.event.aggregator.core.events.IEvent;
 import org.rmatil.sync.event.aggregator.core.events.MoveEvent;
-import org.rmatil.sync.network.api.IClient;
-import org.rmatil.sync.network.api.IClientManager;
+import org.rmatil.sync.network.api.INode;
+import org.rmatil.sync.network.api.INodeManager;
 import org.rmatil.sync.network.api.IRequest;
 import org.rmatil.sync.network.api.IResponse;
 import org.rmatil.sync.network.core.ANetworkHandler;
 import org.rmatil.sync.network.core.model.ClientDevice;
-import org.rmatil.sync.network.core.model.ClientLocation;
+import org.rmatil.sync.network.core.model.NodeLocation;
 import org.rmatil.sync.persistence.api.IStorageAdapter;
 import org.rmatil.sync.persistence.core.local.LocalPathElement;
 import org.rmatil.sync.persistence.exceptions.InputOutputException;
@@ -53,7 +53,7 @@ public class FileOfferExchangeHandler extends ANetworkHandler<FileOfferExchangeH
     /**
      * A storage adapter to access the synchronized folder
      */
-    protected IClientManager clientManager;
+    protected INodeManager nodeManager;
 
     /**
      * The client device information
@@ -88,18 +88,18 @@ public class FileOfferExchangeHandler extends ANetworkHandler<FileOfferExchangeH
     /**
      * @param exchangeId       The exchange id used for the file offer handling
      * @param clientDevice     The client device used to identify the sending client for any file offer requests
-     * @param clientManager    The client manager to access client locations
+     * @param nodeManager    The client manager to access client locations
      * @param client           The client to send messages
      * @param objectStore      The object store to get versions of a particular file
      * @param storageAdapter   The storage adapter for the synchronized folder
      * @param globalEventBus   The global event bus to add events to
      * @param eventToPropagate The actual event to check for conflicts
      */
-    public FileOfferExchangeHandler(UUID exchangeId, ClientDevice clientDevice, IClientManager clientManager, IClient client, IObjectStore objectStore, IStorageAdapter storageAdapter, MBassador<IBusEvent> globalEventBus, IEvent eventToPropagate) {
+    public FileOfferExchangeHandler(UUID exchangeId, ClientDevice clientDevice, INodeManager nodeManager, INode client, IObjectStore objectStore, IStorageAdapter storageAdapter, MBassador<IBusEvent> globalEventBus, IEvent eventToPropagate) {
         super(client);
         this.clientDevice = clientDevice;
         this.exchangeId = exchangeId;
-        this.clientManager = clientManager;
+        this.nodeManager = nodeManager;
         this.objectStore = objectStore;
         this.storageAdapter = storageAdapter;
         this.globalEventBus = globalEventBus;
@@ -132,9 +132,9 @@ public class FileOfferExchangeHandler extends ANetworkHandler<FileOfferExchangeH
 
                         // move also file id
                         try {
-                            UUID fileId = this.client.getIdentifierManager().getValue(oldPath.toString());
-                            this.client.getIdentifierManager().addIdentifier(relPath.toString(), fileId);
-                            this.client.getIdentifierManager().removeIdentifier(oldPath.toString());
+                            UUID fileId = this.node.getIdentifierManager().getValue(oldPath.toString());
+                            this.node.getIdentifierManager().addIdentifier(relPath.toString(), fileId);
+                            this.node.getIdentifierManager().removeIdentifier(oldPath.toString());
                         } catch (InputOutputException e) {
                             logger.error("Failed to move file id for file " + oldPath.toString() + ". Message: " + e.getMessage(), e);
                         }
@@ -155,11 +155,11 @@ public class FileOfferExchangeHandler extends ANetworkHandler<FileOfferExchangeH
             }
 
             // Fetch client locations from the DHT
-            List<ClientLocation> clientLocations;
+            List<NodeLocation> clientLocations;
             try {
-                clientLocations = this.clientManager.getClientLocations(super.client.getUser());
+                clientLocations = this.nodeManager.getNodeLocations(super.node.getUser());
             } catch (InputOutputException e) {
-                logger.error("Could not fetch client locations from user " + super.client.getUser().getUserName() + ". Message: " + e.getMessage());
+                logger.error("Could not fetch client locations from user " + super.node.getUser().getUserName() + ". Message: " + e.getMessage());
                 return;
             }
 
@@ -176,10 +176,10 @@ public class FileOfferExchangeHandler extends ANetworkHandler<FileOfferExchangeH
             if (pathObject.isShared()) {
                 // send changes back to owner too, if we have write access
                 // and the owner is not the user from this client
-                if (! this.client.getUser().getUserName().equals(pathObject.getOwner()) && AccessType.WRITE.equals(pathObject.getAccessType())) {
+                if (! this.node.getUser().getUserName().equals(pathObject.getOwner()) && AccessType.WRITE.equals(pathObject.getAccessType())) {
                     // we got write permissions, so we send the changes also back to the original owner of the file
                     try {
-                        clientLocations.addAll(this.clientManager.getClientLocations(pathObject.getOwner()));
+                        clientLocations.addAll(this.nodeManager.getNodeLocations(pathObject.getOwner()));
                     } catch (InputOutputException e) {
                         logger.error("Could not fetch client locations of owner " + pathObject.getOwner() + " for file " + pathObject.getAbsolutePath() + ". Will therefore skip to notify his clients.");
                     }
@@ -188,7 +188,7 @@ public class FileOfferExchangeHandler extends ANetworkHandler<FileOfferExchangeH
                 for (Sharer entry : pathObject.getSharers()) {
                     try {
                         // ask sharer's clients to get the changes too
-                        List<ClientLocation> sharerLocations = this.clientManager.getClientLocations(entry.getUsername());
+                        List<NodeLocation> sharerLocations = this.nodeManager.getNodeLocations(entry.getUsername());
 
                         // only add one client of the sharer. He may propagate the change then
                         // to his clients, and if a conflict occurs, there will be a new file

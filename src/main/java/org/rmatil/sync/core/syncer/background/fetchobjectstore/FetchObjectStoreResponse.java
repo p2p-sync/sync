@@ -3,7 +3,7 @@ package org.rmatil.sync.core.syncer.background.fetchobjectstore;
 import org.rmatil.sync.core.messaging.StatusCode;
 import org.rmatil.sync.core.messaging.base.AResponse;
 import org.rmatil.sync.network.core.model.ClientDevice;
-import org.rmatil.sync.network.core.model.ClientLocation;
+import org.rmatil.sync.network.core.model.NodeLocation;
 
 import java.util.UUID;
 
@@ -24,7 +24,7 @@ public class FetchObjectStoreResponse extends AResponse {
      * @param receiverAddress The client which had sent the corresponding request to this response
      * @param objectStore     The object store as zip file
      */
-    public FetchObjectStoreResponse(UUID exchangeId, StatusCode statusCode, ClientDevice clientDevice, ClientLocation receiverAddress, byte[] objectStore) {
+    public FetchObjectStoreResponse(UUID exchangeId, StatusCode statusCode, ClientDevice clientDevice, NodeLocation receiverAddress, byte[] objectStore) {
         super(exchangeId, statusCode, clientDevice, receiverAddress);
         this.objectStore = objectStore;
     }

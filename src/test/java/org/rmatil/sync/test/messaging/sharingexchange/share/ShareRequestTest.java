@@ -3,7 +3,7 @@ package org.rmatil.sync.test.messaging.sharingexchange.share;
 import org.junit.Test;
 import org.rmatil.sync.core.messaging.sharingexchange.share.ShareRequest;
 import org.rmatil.sync.network.core.model.ClientDevice;
-import org.rmatil.sync.network.core.model.ClientLocation;
+import org.rmatil.sync.network.core.model.NodeLocation;
 import org.rmatil.sync.network.core.model.Data;
 import org.rmatil.sync.test.base.BaseMessageTest;
 import org.rmatil.sync.version.api.AccessType;
@@ -27,7 +27,7 @@ public class ShareRequestTest extends BaseMessageTest {
     protected static final long           TOTAL_NR_OF_CHUNKS             = 1;
     protected static final long           TOTAL_FILE_SIZE                = 0;
     protected static final Data           DATA                           = new Data(new byte[0], false);
-    protected static final ClientLocation RECEIVER_ADDRESS               = new ClientLocation(UUID.randomUUID(), null);
+    protected static final NodeLocation RECEIVER_ADDRESS               = new NodeLocation(UUID.randomUUID(), null);
 
     @Test
     public void test() {
@@ -59,6 +59,6 @@ public class ShareRequestTest extends BaseMessageTest {
         assertEquals("TotalNrOfChunks is not equal", TOTAL_NR_OF_CHUNKS, shareRequest.getTotalNrOfChunks());
         assertEquals("TotalFileSize is not equal", TOTAL_FILE_SIZE, shareRequest.getTotalFileSize());
         assertEquals("Data is not equal", DATA, shareRequest.getData());
-        assertThat("Receiver addresses should contain clientLocation", shareRequest.getReceiverAddresses(), hasItem(RECEIVER_ADDRESS));
+        assertThat("Receiver addresses should contain nodeLocation", shareRequest.getReceiverAddresses(), hasItem(RECEIVER_ADDRESS));
     }
 }

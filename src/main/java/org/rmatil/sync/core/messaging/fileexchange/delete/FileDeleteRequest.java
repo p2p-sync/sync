@@ -3,7 +3,7 @@ package org.rmatil.sync.core.messaging.fileexchange.delete;
 import org.rmatil.sync.core.messaging.StatusCode;
 import org.rmatil.sync.core.messaging.base.ARequest;
 import org.rmatil.sync.network.core.model.ClientDevice;
-import org.rmatil.sync.network.core.model.ClientLocation;
+import org.rmatil.sync.network.core.model.NodeLocation;
 
 import java.util.List;
 import java.util.UUID;
@@ -27,7 +27,7 @@ public class FileDeleteRequest extends ARequest {
      * @param receiverAddresses All client locations which should receive this request
      * @param pathToDelete      The path which should be deleted
      */
-    public FileDeleteRequest(UUID exchangeId, StatusCode statusCode, ClientDevice clientDevice, List<ClientLocation> receiverAddresses, String pathToDelete) {
+    public FileDeleteRequest(UUID exchangeId, StatusCode statusCode, ClientDevice clientDevice, List<NodeLocation> receiverAddresses, String pathToDelete) {
         super(exchangeId, statusCode, clientDevice, receiverAddresses);
         this.pathToDelete = pathToDelete;
     }

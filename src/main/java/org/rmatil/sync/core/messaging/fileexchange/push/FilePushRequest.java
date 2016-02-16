@@ -3,7 +3,7 @@ package org.rmatil.sync.core.messaging.fileexchange.push;
 import org.rmatil.sync.core.messaging.StatusCode;
 import org.rmatil.sync.core.messaging.base.ARequest;
 import org.rmatil.sync.network.core.model.ClientDevice;
-import org.rmatil.sync.network.core.model.ClientLocation;
+import org.rmatil.sync.network.core.model.NodeLocation;
 import org.rmatil.sync.network.core.model.Data;
 import org.rmatil.sync.version.api.AccessType;
 import org.rmatil.sync.version.core.model.Sharer;
@@ -99,7 +99,7 @@ public class FilePushRequest extends ARequest {
      * @param data             The actual chunk data
      * @param receiverAddress  The receiver of this request
      */
-    public FilePushRequest(UUID exchangeId, StatusCode statusCode, ClientDevice clientDevice, String checksum, String owner, AccessType accessType, Set<Sharer> sharers, String relativeFilePath, boolean isFile, long chunkCounter, int chunkSize, long totalNrOfChunks, long totalFileSize, Data data, ClientLocation receiverAddress) {
+    public FilePushRequest(UUID exchangeId, StatusCode statusCode, ClientDevice clientDevice, String checksum, String owner, AccessType accessType, Set<Sharer> sharers, String relativeFilePath, boolean isFile, long chunkCounter, int chunkSize, long totalNrOfChunks, long totalFileSize, Data data, NodeLocation receiverAddress) {
         super(exchangeId, statusCode, clientDevice, new ArrayList<>());
         this.checksum = checksum;
         this.owner = owner;

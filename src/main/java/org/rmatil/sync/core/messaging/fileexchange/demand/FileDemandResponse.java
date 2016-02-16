@@ -4,7 +4,7 @@ package org.rmatil.sync.core.messaging.fileexchange.demand;
 import org.rmatil.sync.core.messaging.StatusCode;
 import org.rmatil.sync.core.messaging.base.AResponse;
 import org.rmatil.sync.network.core.model.ClientDevice;
-import org.rmatil.sync.network.core.model.ClientLocation;
+import org.rmatil.sync.network.core.model.NodeLocation;
 import org.rmatil.sync.network.core.model.Data;
 import org.rmatil.sync.version.core.model.Sharer;
 
@@ -84,7 +84,7 @@ public class FileDemandResponse extends AResponse {
      * @param receiverAddress  The receiver of this request
      * @param sharers          All sharers of this file
      */
-    public FileDemandResponse(UUID exchangeId, StatusCode statusCode, ClientDevice clientDevice, String checksum, String relativeFilePath, boolean isFile, long chunkCounter, int chunkSize, long totalNrOfChunks, long totalFileSize, Data data, ClientLocation receiverAddress, Set<Sharer> sharers) {
+    public FileDemandResponse(UUID exchangeId, StatusCode statusCode, ClientDevice clientDevice, String checksum, String relativeFilePath, boolean isFile, long chunkCounter, int chunkSize, long totalNrOfChunks, long totalFileSize, Data data, NodeLocation receiverAddress, Set<Sharer> sharers) {
         super(exchangeId, statusCode, clientDevice, receiverAddress);
         this.checksum = checksum;
         this.relativeFilePath = relativeFilePath;

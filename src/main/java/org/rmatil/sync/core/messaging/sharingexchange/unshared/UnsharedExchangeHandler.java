@@ -1,11 +1,11 @@
 package org.rmatil.sync.core.messaging.sharingexchange.unshared;
 
 import org.rmatil.sync.core.messaging.StatusCode;
-import org.rmatil.sync.network.api.IClient;
-import org.rmatil.sync.network.api.IClientManager;
+import org.rmatil.sync.network.api.INode;
+import org.rmatil.sync.network.api.INodeManager;
 import org.rmatil.sync.network.core.ANetworkHandler;
 import org.rmatil.sync.network.core.model.ClientDevice;
-import org.rmatil.sync.network.core.model.ClientLocation;
+import org.rmatil.sync.network.core.model.NodeLocation;
 import org.rmatil.sync.persistence.exceptions.InputOutputException;
 import org.rmatil.sync.version.api.IObjectStore;
 import org.slf4j.Logger;
@@ -18,7 +18,7 @@ public class UnsharedExchangeHandler extends ANetworkHandler<UnsharedExchangeHan
 
     private static final Logger logger = LoggerFactory.getLogger(UnsharedExchangeHandler.class);
 
-    protected IClientManager clientManager;
+    protected INodeManager nodeManager;
 
     protected IObjectStore objectStore;
 
@@ -30,9 +30,9 @@ public class UnsharedExchangeHandler extends ANetworkHandler<UnsharedExchangeHan
 
     protected UUID exchangeId;
 
-    public UnsharedExchangeHandler(IClient client, IClientManager clientManager, IObjectStore objectStore, String relativeFilePath, UUID fileId, String sharer, UUID exchangeId) {
+    public UnsharedExchangeHandler(INode client, INodeManager nodeManager, IObjectStore objectStore, String relativeFilePath, UUID fileId, String sharer, UUID exchangeId) {
         super(client);
-        this.clientManager = clientManager;
+        this.nodeManager = nodeManager;
         this.objectStore = objectStore;
         this.relativeFilePath = relativeFilePath;
         this.fileId = fileId;
@@ -46,11 +46,11 @@ public class UnsharedExchangeHandler extends ANetworkHandler<UnsharedExchangeHan
             logger.info("Sending unshare request for own clients. Exchange " + this.exchangeId);
 
             // Fetch client locations from the DHT
-            List<ClientLocation> clientLocations;
+            List<NodeLocation> clientLocations;
             try {
-                clientLocations = this.clientManager.getClientLocations(super.client.getUser());
+                clientLocations = this.nodeManager.getNodeLocations(super.node.getUser());
             } catch (InputOutputException e) {
-                logger.error("Could not fetch client locations from user " + super.client.getUser().getUserName() + ". Message: " + e.getMessage());
+                logger.error("Could not fetch client locations from user " + super.node.getUser().getUserName() + ". Message: " + e.getMessage());
                 return;
             }
 
@@ -58,9 +58,9 @@ public class UnsharedExchangeHandler extends ANetworkHandler<UnsharedExchangeHan
                     this.exchangeId,
                     StatusCode.NONE,
                     new ClientDevice(
-                            super.client.getUser().getUserName(),
-                            super.client.getClientDeviceId(),
-                            super.client.getPeerAddress()
+                            super.node.getUser().getUserName(),
+                            super.node.getClientDeviceId(),
+                            super.node.getPeerAddress()
                     ),
                     clientLocations,
                     this.sharer,

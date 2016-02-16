@@ -19,12 +19,12 @@ import org.rmatil.sync.event.aggregator.core.events.DeleteEvent;
 import org.rmatil.sync.event.aggregator.core.events.IEvent;
 import org.rmatil.sync.event.aggregator.core.events.ModifyEvent;
 import org.rmatil.sync.event.aggregator.core.events.MoveEvent;
-import org.rmatil.sync.network.api.IClient;
-import org.rmatil.sync.network.api.IClientManager;
+import org.rmatil.sync.network.api.INode;
+import org.rmatil.sync.network.api.INodeManager;
 import org.rmatil.sync.network.api.IUser;
 import org.rmatil.sync.network.core.ANetworkHandler;
 import org.rmatil.sync.network.core.model.ClientDevice;
-import org.rmatil.sync.network.core.model.ClientLocation;
+import org.rmatil.sync.network.core.model.NodeLocation;
 import org.rmatil.sync.persistence.api.IStorageAdapter;
 import org.rmatil.sync.persistence.core.local.LocalPathElement;
 import org.rmatil.sync.persistence.exceptions.InputOutputException;
@@ -50,8 +50,8 @@ public class FileSyncer implements IFileSyncer {
     public static final int NUMBER_OF_SYNCS = 1;
 
     protected       IUser           user;
-    protected       IClient         client;
-    protected       IClientManager  clientManager;
+    protected       INode           node;
+    protected       INodeManager    nodeManager;
     protected       IStorageAdapter storageAdapter;
     protected       IObjectStore    objectStore;
     protected final List<IEvent>    eventsToIgnore;
@@ -61,15 +61,15 @@ public class FileSyncer implements IFileSyncer {
 
     protected ClientDevice clientDevice;
 
-    public FileSyncer(IUser user, IClient client, IClientManager clientManager, IStorageAdapter storageAdapter, IObjectStore objectStore, MBassador<IBusEvent> globalEventBus) {
+    public FileSyncer(IUser user, INode node, INodeManager nodeManager, IStorageAdapter storageAdapter, IObjectStore objectStore, MBassador<IBusEvent> globalEventBus) {
         this.user = user;
-        this.client = client;
-        this.clientManager = clientManager;
+        this.node = node;
+        this.nodeManager = nodeManager;
         this.storageAdapter = storageAdapter;
         this.objectStore = objectStore;
         this.globalEventBus = globalEventBus;
 
-        this.clientDevice = new ClientDevice(user.getUserName(), this.client.getClientDeviceId(), this.client.getPeerAddress());
+        this.clientDevice = new ClientDevice(user.getUserName(), this.node.getClientDeviceId(), this.node.getPeerAddress());
 
         syncExecutor = Executors.newFixedThreadPool(NUMBER_OF_SYNCS);
 
@@ -96,7 +96,7 @@ public class FileSyncer implements IFileSyncer {
                 if (eventToCheck.getEventName().equals(event.getEventName()) &&
                         eventToCheck.getPath().toString().equals(event.getPath().toString())) {
 
-                    logger.info("Ignoring syncing of event " + event.getEventName() + " for path " + event.getPath().toString() + " on client " + this.client.getPeerAddress().inetAddress().getHostName() + ":" + this.client.getPeerAddress().tcpPort() + ")");
+                    logger.info("Ignoring syncing of event " + event.getEventName() + " for path " + event.getPath().toString() + " on client " + this.node.getPeerAddress().inetAddress().getHostName() + ":" + this.node.getPeerAddress().tcpPort() + ")");
                     this.eventsToIgnore.remove(event);
                     return;
                 }
@@ -108,7 +108,7 @@ public class FileSyncer implements IFileSyncer {
             // a move of a directory.
             try {
                 if (this.storageAdapter.isDir(new LocalPathElement(event.getPath().toString()))) {
-                    logger.info("Skipping received modified event for directory " + event.getPath().toString() + " on client " + this.client.getPeerAddress().inetAddress().getHostName() + ":" + this.client.getPeerAddress().tcpPort() + ")");
+                    logger.info("Skipping received modified event for directory " + event.getPath().toString() + " on client " + this.node.getPeerAddress().inetAddress().getHostName() + ":" + this.node.getPeerAddress().tcpPort() + ")");
                     return;
                 }
             } catch (InputOutputException e) {
@@ -116,7 +116,7 @@ public class FileSyncer implements IFileSyncer {
             }
         }
 
-        logger.debug("Syncing event " + event.getEventName() + " for path " + event.getPath().toString() + " on client " + this.client.getPeerAddress().inetAddress().getHostName() + ":" + this.client.getPeerAddress().tcpPort() + ")");
+        logger.debug("Syncing event " + event.getEventName() + " for path " + event.getPath().toString() + " on client " + this.node.getPeerAddress().inetAddress().getHostName() + ":" + this.node.getPeerAddress().tcpPort() + ")");
 
         UUID fileExchangeId = UUID.randomUUID();
 
@@ -124,8 +124,8 @@ public class FileSyncer implements IFileSyncer {
         FileOfferExchangeHandler fileOfferExchangeHandler = new FileOfferExchangeHandler(
                 fileExchangeId,
                 this.clientDevice,
-                this.clientManager,
-                this.client,
+                this.nodeManager,
+                this.node,
                 this.objectStore,
                 this.storageAdapter,
                 this.globalEventBus,
@@ -134,7 +134,7 @@ public class FileSyncer implements IFileSyncer {
 
         logger.debug("Starting file offer exchange handler for exchangeId " + fileExchangeId);
 
-        this.client.getObjectDataReplyHandler().addResponseCallbackHandler(fileExchangeId, fileOfferExchangeHandler);
+        this.node.getObjectDataReplyHandler().addResponseCallbackHandler(fileExchangeId, fileOfferExchangeHandler);
         Thread fileOfferExchangeHandlerThread = new Thread(fileOfferExchangeHandler);
         fileOfferExchangeHandlerThread.setName("FileOfferExchangeHandler-" + fileExchangeId);
         fileOfferExchangeHandlerThread.start();
@@ -146,7 +146,7 @@ public class FileSyncer implements IFileSyncer {
             logger.error("Failed to await for file offer exchange " + fileExchangeId + ". Message: " + e.getMessage());
         }
 
-        this.client.getObjectDataReplyHandler().removeResponseCallbackHandler(fileExchangeId);
+        this.node.getObjectDataReplyHandler().removeResponseCallbackHandler(fileExchangeId);
 
         if (! fileOfferExchangeHandler.isCompleted()) {
             logger.error("No result received from clients for request " + fileExchangeId + ". Aborting file offering");
@@ -157,7 +157,7 @@ public class FileSyncer implements IFileSyncer {
 
         boolean hasConflictDetected = false;
         boolean hasOfferAccepted = true;
-        List<ClientLocation> acceptedAndInNeedClients = new ArrayList<>();
+        List<NodeLocation> acceptedAndInNeedClients = new ArrayList<>();
 
         for (FileOfferResponse response : result.getFileOfferResponses()) {
             if (StatusCode.CONFLICT.equals(response.getStatusCode())) {
@@ -174,7 +174,7 @@ public class FileSyncer implements IFileSyncer {
 
             if (StatusCode.ACCEPTED.equals(response.getStatusCode())) {
                 // we need to send the request to this client
-                acceptedAndInNeedClients.add(new ClientLocation(
+                acceptedAndInNeedClients.add(new NodeLocation(
                         response.getClientDevice().getClientDeviceId(),
                         response.getClientDevice().getPeerAddress()
                 ));
@@ -211,8 +211,8 @@ public class FileSyncer implements IFileSyncer {
                     fileExchangeId,
                     this.clientDevice,
                     this.storageAdapter,
-                    this.clientManager,
-                    this.client,
+                    this.nodeManager,
+                    this.node,
                     this.objectStore,
                     this.globalEventBus,
                     acceptedAndInNeedClients,
@@ -227,8 +227,8 @@ public class FileSyncer implements IFileSyncer {
                     fileExchangeId,
                     this.clientDevice,
                     this.storageAdapter,
-                    this.clientManager,
-                    this.client,
+                    this.nodeManager,
+                    this.node,
                     this.globalEventBus,
                     acceptedAndInNeedClients,
                     (MoveEvent) event
@@ -242,8 +242,8 @@ public class FileSyncer implements IFileSyncer {
                     fileExchangeId,
                     this.clientDevice,
                     this.storageAdapter,
-                    this.clientManager,
-                    this.client,
+                    this.nodeManager,
+                    this.node,
                     this.objectStore,
                     acceptedAndInNeedClients,
                     event.getPath().toString()
@@ -254,7 +254,7 @@ public class FileSyncer implements IFileSyncer {
             exchangeHandlerThread.setName("FilePushExchangeHandler-" + fileExchangeId);
         }
 
-        this.client.getObjectDataReplyHandler().addResponseCallbackHandler(fileExchangeId, exchangeHandler);
+        this.node.getObjectDataReplyHandler().addResponseCallbackHandler(fileExchangeId, exchangeHandler);
         exchangeHandlerThread.start();
 
         logger.debug("Waiting for exchange " + fileExchangeId + " to complete...");
@@ -264,7 +264,7 @@ public class FileSyncer implements IFileSyncer {
             e.printStackTrace();
         }
 
-        this.client.getObjectDataReplyHandler().removeResponseCallbackHandler(fileExchangeId);
+        this.node.getObjectDataReplyHandler().removeResponseCallbackHandler(fileExchangeId);
 
         if (! exchangeHandler.isCompleted()) {
             logger.error("No result received from clients for request " + fileExchangeId + ". Aborting file sync");
