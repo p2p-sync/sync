@@ -13,8 +13,8 @@ import org.rmatil.sync.core.syncer.background.fetchobjectstore.FetchObjectStoreE
 import org.rmatil.sync.event.aggregator.api.IEventAggregator;
 import org.rmatil.sync.event.aggregator.core.events.DeleteEvent;
 import org.rmatil.sync.event.aggregator.core.events.ModifyEvent;
-import org.rmatil.sync.network.api.IClient;
-import org.rmatil.sync.network.api.IClientManager;
+import org.rmatil.sync.network.api.INode;
+import org.rmatil.sync.network.api.INodeManager;
 import org.rmatil.sync.network.core.model.ClientDevice;
 import org.rmatil.sync.network.core.model.ClientLocation;
 import org.rmatil.sync.persistence.api.IPathElement;
@@ -64,12 +64,12 @@ public class NonBlockingBackgroundSyncer implements IBackgroundSyncer {
     /**
      * The client to use to exchange messages
      */
-    protected IClient client;
+    protected INode client;
 
     /**
      * The client manager to fetch client locations from
      */
-    protected IClientManager clientManager;
+    protected INodeManager clientManager;
 
     /**
      * The object store of the synchronised folder
@@ -94,7 +94,7 @@ public class NonBlockingBackgroundSyncer implements IBackgroundSyncer {
      * @param storageAdapter The storage adapter of the synchronised folder
      * @param globalEventBus The global event bus to push events to
      */
-    public NonBlockingBackgroundSyncer(IEventAggregator eventAggregator, IClient client, IClientManager clientManager, IObjectStore objectStore, IStorageAdapter storageAdapter, MBassador<IBusEvent> globalEventBus) {
+    public NonBlockingBackgroundSyncer(IEventAggregator eventAggregator, INode client, INodeManager clientManager, IObjectStore objectStore, IStorageAdapter storageAdapter, MBassador<IBusEvent> globalEventBus) {
         this.eventAggregator = eventAggregator;
         this.client = client;
         this.clientManager = clientManager;
@@ -169,7 +169,12 @@ public class NonBlockingBackgroundSyncer implements IBackgroundSyncer {
             logger.info("Removing all (" + deletedPaths.size() + ") deleted files");
             for (Map.Entry<String, ClientDevice> entry : deletedPaths.entrySet()) {
                 logger.debug("Removing deleted path " + entry.getKey());
-                this.storageAdapter.delete(new LocalPathElement(entry.getKey()));
+
+                IPathElement elementToDelete = new LocalPathElement(entry.getKey());
+                // only delete the file on disk if it actually exists
+                if (this.storageAdapter.exists(StorageType.DIRECTORY, elementToDelete) || this.storageAdapter.exists(StorageType.FILE, elementToDelete)) {
+                    this.storageAdapter.delete(elementToDelete);
+                }
             }
 
             logger.info("Creating all (" + conflictPaths.size() + ") conflict files");
