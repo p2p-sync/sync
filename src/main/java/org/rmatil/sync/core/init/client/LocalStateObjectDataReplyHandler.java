@@ -4,6 +4,8 @@ import net.engio.mbassy.bus.MBassador;
 import net.tomp2p.peers.PeerAddress;
 import org.rmatil.sync.core.eventbus.IBusEvent;
 import org.rmatil.sync.core.messaging.StatusCode;
+import org.rmatil.sync.core.messaging.fileexchange.demand.FileDemandRequest;
+import org.rmatil.sync.core.messaging.fileexchange.demand.FileDemandResponse;
 import org.rmatil.sync.core.messaging.fileexchange.offer.FileOfferRequest;
 import org.rmatil.sync.core.messaging.fileexchange.offer.FileOfferResponse;
 import org.rmatil.sync.core.security.IAccessManager;
@@ -119,26 +121,63 @@ public class LocalStateObjectDataReplyHandler extends ObjectDataReplyHandler {
         if (request instanceof IRequest) {
 
             // check if any other exchange is in progress
-            if (request instanceof FileOfferRequest &&
-                    ! this.exchangeInProgress((FileOfferRequest) request) &&
-                    this.affectedFileIsInProgress((FileOfferRequest) request)) {
 
-                logger.error("There are already exchanges in progress for the file affected by request " + ((IRequest) request).getExchangeId() + ". Returning a unaccepted file offer response");
+            if (request instanceof FileOfferRequest) {
+                FileOfferRequest fileOfferRequest = (FileOfferRequest) request;
 
-                this.node.sendDirect(
-                        ((IRequest) request).getClientDevice().getPeerAddress(),
-                        new FileOfferResponse(
-                                ((IRequest) request).getExchangeId(),
-                                StatusCode.DENIED,
-                                new ClientDevice(this.node.getUser().getUserName(), this.node.getClientDeviceId(), this.node.getPeerAddress()),
-                                new NodeLocation(
-                                        ((IRequest) request).getClientDevice().getClientDeviceId(),
-                                        ((IRequest) request).getClientDevice().getPeerAddress()
-                                )
-                        )
-                );
+                if (! this.exchangeInProgress(fileOfferRequest.getExchangeId(), fileOfferRequest.getEvent().getPath()) &&
+                        this.affectedFileIsInProgress(fileOfferRequest.getEvent().getPath())) {
 
-                return null;
+                    logger.error("There are already exchanges in progress for the file affected by offer request " + ((IRequest) request).getExchangeId() + ". Returning a denied file offer response");
+
+                    this.node.sendDirect(
+                            ((IRequest) request).getClientDevice().getPeerAddress(),
+                            new FileOfferResponse(
+                                    ((IRequest) request).getExchangeId(),
+                                    StatusCode.DENIED,
+                                    new ClientDevice(this.node.getUser().getUserName(), this.node.getClientDeviceId(), this.node.getPeerAddress()),
+                                    new NodeLocation(
+                                            ((IRequest) request).getClientDevice().getClientDeviceId(),
+                                            ((IRequest) request).getClientDevice().getPeerAddress()
+                                    )
+                            )
+                    );
+
+                    return null;
+                }
+
+            } else if (request instanceof FileDemandRequest) {
+                FileDemandRequest fileDemandRequest = (FileDemandRequest) request;
+
+                if (! this.exchangeInProgress(fileDemandRequest.getExchangeId(), fileDemandRequest.getRelativeFilePath()) &&
+                        this.affectedFileIsInProgress(fileDemandRequest.getRelativeFilePath())) {
+
+                    logger.error("There are already exchanges in progress for the file affected by demand request " + ((IRequest) request).getExchangeId() + ". Returning a denied file demand response");
+
+                    this.node.sendDirect(
+                            ((IRequest) request).getClientDevice().getPeerAddress(),
+                            new FileDemandResponse(
+                                    ((IRequest) request).getExchangeId(),
+                                    StatusCode.DENIED,
+                                    new ClientDevice(this.node.getUser().getUserName(), this.node.getClientDeviceId(), this.node.getPeerAddress()),
+                                    null,
+                                    ((FileDemandRequest) request).getRelativeFilePath(),
+                                    true,
+                                    - 1,
+                                    - 1,
+                                    - 1,
+                                    - 1,
+                                    null,
+                                    new NodeLocation(
+                                            ((IRequest) request).getClientDevice().getClientDeviceId(),
+                                            ((IRequest) request).getClientDevice().getPeerAddress()
+                                    ),
+                                    null
+                            )
+                    );
+
+                    return null;
+                }
             }
 
             if (this.requestCallbackHandlers.containsKey(request.getClass())) {
@@ -201,12 +240,10 @@ public class LocalStateObjectDataReplyHandler extends ObjectDataReplyHandler {
         return null;
     }
 
-    protected boolean exchangeInProgress(FileOfferRequest request) {
-        String relativePath = request.getEvent().getPath();
-
+    protected boolean exchangeInProgress(UUID exchangeId, String relativePath) {
         Set<UUID> exchangesInProgress = this.pathsInProgress.get(relativePath);
 
-        if (null != exchangesInProgress && exchangesInProgress.contains(request.getExchangeId())) {
+        if (null != exchangesInProgress && exchangesInProgress.contains(exchangeId)) {
             // exchange is still in progress, we allow incoming requests for this exchange
             return true;
         }
@@ -215,9 +252,7 @@ public class LocalStateObjectDataReplyHandler extends ObjectDataReplyHandler {
         return false;
     }
 
-    protected boolean affectedFileIsInProgress(FileOfferRequest request) {
-        String relativePath = request.getEvent().getPath();
-
+    protected boolean affectedFileIsInProgress(String relativePath) {
         Set<UUID> exchangesInProgress = this.pathsInProgress.get(relativePath);
 
         Path path = Paths.get(relativePath);
