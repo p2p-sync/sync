@@ -224,7 +224,7 @@ public abstract class BaseNetworkHandlerTest extends BaseTest {
     private static KeyPair createKeyPair() {
         KeyPairGenerator keyPairGenerator;
         try {
-            keyPairGenerator = KeyPairGenerator.getInstance("DSA");
+            keyPairGenerator = KeyPairGenerator.getInstance("RSA");
         } catch (NoSuchAlgorithmException e) {
             throw new InitializationException(e);
         }

@@ -13,6 +13,7 @@ import org.rmatil.sync.network.core.Node;
 import org.rmatil.sync.network.core.exception.ConnectionException;
 import org.rmatil.sync.network.core.messaging.ObjectDataReplyHandler;
 
+import java.security.InvalidKeyException;
 import java.util.UUID;
 
 public class ClientInitializer implements IInitializer<INode> {
@@ -65,7 +66,7 @@ public class ClientInitializer implements IInitializer<INode> {
             }
 
             this.nodeManager = this.node.getNodeManager();
-        } catch (ConnectionException e) {
+        } catch (ConnectionException | InvalidKeyException e) {
             throw new InitializationStartException(e);
         }
     }
