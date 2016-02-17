@@ -37,7 +37,7 @@ import java.util.*;
 /**
  * Starts a synchronization process only on the client running this instance.
  * All other clients will not be affected by the synchronization, removing the need
- * of master election as is done in {@link BlockingBackgroundSyncer}.
+ * of master election as is done in the deprecated BlockingBackgroundSyncer.
  *
  * The procedure of syncing is as following:
  *
