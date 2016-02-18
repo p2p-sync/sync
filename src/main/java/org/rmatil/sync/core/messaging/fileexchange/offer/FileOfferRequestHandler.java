@@ -2,6 +2,7 @@ package org.rmatil.sync.core.messaging.fileexchange.offer;
 
 import net.engio.mbassy.bus.MBassador;
 import org.rmatil.sync.commons.path.Naming;
+import org.rmatil.sync.core.ConflictHandler;
 import org.rmatil.sync.core.eventbus.CreateBusEvent;
 import org.rmatil.sync.core.eventbus.IBusEvent;
 import org.rmatil.sync.core.eventbus.IgnoreBusEvent;
@@ -153,7 +154,13 @@ public class FileOfferRequestHandler implements ILocalStateRequestCallback {
                             CONFLICT_TYPE hasVersionConflict = this.hasVersionConflict(pathElement);
                             if (CONFLICT_TYPE.CONFLICT == hasVersionConflict) {
                                 statusCode = StatusCode.CONFLICT;
-                                this.createConflictFile(pathElement);
+                                ConflictHandler.createConflictFile(
+                                        this.globalEventBus,
+                                        this.node.getClientDeviceId().toString(),
+                                        this.objectStore,
+                                        this.storageAdapter,
+                                        pathElement
+                                );
                             } else if (CONFLICT_TYPE.NO_CONFLICT_REQUEST_REQUIRED == hasVersionConflict) {
                                 statusCode = StatusCode.ACCEPTED;
                             } else {
@@ -273,59 +280,5 @@ public class FileOfferRequestHandler implements ILocalStateRequestCallback {
         }
 
         return CONFLICT_TYPE.NO_CONFLICT_REQUEST_REQUIRED;
-    }
-
-    /**
-     * Create a conflict file for the given path element
-     *
-     * @param pathElement The path element for which to create a conflict file
-     */
-    protected void createConflictFile(LocalPathElement pathElement) {
-        logger.info("Creating conflict file for file " + pathElement.getPath());
-        PathObject pathObject;
-        try {
-            pathObject = this.objectStore.getObjectManager().getObjectForPath(pathElement.getPath());
-        } catch (InputOutputException e) {
-            logger.error("Failed to check file versions of file " + pathElement.getPath() + ". Message: " + e.getMessage() + ". Indicating that a conflict happened", e);
-            return;
-        }
-
-        // compare local and remote file versions
-        List<Version> localFileVersions = pathObject.getVersions();
-        Version lastLocalFileVersion = localFileVersions.size() > 0 ? localFileVersions.get(localFileVersions.size() - 1) : null;
-        String lastLocalFileVersionHash = (null != lastLocalFileVersion) ? lastLocalFileVersion.getHash() : null;
-
-        Path conflictFilePath;
-        try {
-            IFileMetaInfo fileMetaInfo = this.storageAdapter.getMetaInformation(pathElement);
-            conflictFilePath = Paths.get(Naming.getConflictFileName(pathElement.getPath(), true, fileMetaInfo.getFileExtension(), this.node.getClientDeviceId().toString()));
-            this.globalEventBus.publish(new IgnoreBusEvent(
-                    new MoveEvent(
-                            Paths.get(pathElement.getPath()),
-                            conflictFilePath,
-                            conflictFilePath.getFileName().toString(),
-                            lastLocalFileVersionHash,
-                            System.currentTimeMillis()
-                    )
-            ));
-            this.globalEventBus.publish(new CreateBusEvent(
-                    new CreateEvent(
-                            conflictFilePath,
-                            conflictFilePath.getFileName().toString(),
-                            lastLocalFileVersionHash,
-                            System.currentTimeMillis()
-                    )
-            ));
-
-        } catch (InputOutputException e) {
-            logger.error("Can not read meta information for file " + pathElement.getPath() + ". Moving the conflict file failed");
-            return;
-        }
-
-        try {
-            this.storageAdapter.move(StorageType.FILE, pathElement, new LocalPathElement(conflictFilePath.toString()));
-        } catch (InputOutputException e) {
-            logger.error("Can not move conflict file " + pathElement.getPath() + " to " + conflictFilePath.toString() + ". Message: " + e.getMessage());
-        }
     }
 }
