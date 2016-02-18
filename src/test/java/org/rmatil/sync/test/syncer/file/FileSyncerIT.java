@@ -58,12 +58,12 @@ public class FileSyncerIT extends BaseIT {
         EXECUTOR_SERVICE_2.scheduleAtFixedRate(syncFileChangeListener2, 0, 10, TimeUnit.SECONDS);
         GLOBAL_EVENT_BUS_2.subscribe(syncFileChangeListener2);
 
-        SyncFileChangeListener syncFileChangeListener3 = new SyncFileChangeListener(FILE_SYNCER_1);
+	SyncFileChangeListener syncFileChangeListener3 = new SyncFileChangeListener(FILE_SYNCER_3);
         EXECUTOR_SERVICE_3 = Executors.newSingleThreadScheduledExecutor();
         EXECUTOR_SERVICE_3.scheduleAtFixedRate(syncFileChangeListener3, 0, 10, TimeUnit.SECONDS);
         GLOBAL_EVENT_BUS_3.subscribe(syncFileChangeListener3);
 
-        SyncFileChangeListener syncFileChangeListener4 = new SyncFileChangeListener(FILE_SYNCER_1);
+	SyncFileChangeListener syncFileChangeListener4 = new SyncFileChangeListener(FILE_SYNCER_4);
         EXECUTOR_SERVICE_4 = Executors.newSingleThreadScheduledExecutor();
         EXECUTOR_SERVICE_4.scheduleAtFixedRate(syncFileChangeListener4, 0, 10, TimeUnit.SECONDS);
         GLOBAL_EVENT_BUS_4.subscribe(syncFileChangeListener4);
