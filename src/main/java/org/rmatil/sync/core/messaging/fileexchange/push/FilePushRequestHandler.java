@@ -113,16 +113,28 @@ public class FilePushRequestHandler implements ILocalStateRequestCallback {
 
             StorageType storageType = this.request.isFile() ? StorageType.FILE : StorageType.DIRECTORY;
 
-            this.publishIgnoreEvents(localPathElement);
+            if (0 == this.request.getChunkCounter()) {
+                // add sharers to object store only on the first request
+                this.publishAddOwnerAndAccessTypeToObjectStore();
+                this.publishAddSharerToObjectStore();
+            }
 
-            if (this.request.isFile() && StatusCode.FILE_CHANGED.equals(this.request.getStatusCode())) {
+            if (this.request.isFile() && StatusCode.FILE_CHANGED.equals(this.request.getStatusCode()) &&
+                    this.storageAdapter.exists(storageType, localPathElement)) {
                 // we have to clean up the file again to prevent the
                 // file being larger than expected after the change
+                this.publishIgnoreModifyEvent();
                 this.storageAdapter.persist(storageType, localPathElement, new byte[0]);
             }
 
             if (this.request.isFile()) {
                 try {
+                    if (! this.storageAdapter.exists(StorageType.FILE, localPathElement)) {
+                        this.publishIgnoreCreateEvent();
+                    } else {
+                        this.publishIgnoreModifyEvent();
+                    }
+
                     this.storageAdapter.persist(StorageType.FILE, localPathElement, this.request.getChunkCounter() * this.request.getChunkSize(), this.request.getData().getContent());
                 } catch (InputOutputException e) {
                     logger.error("Could not write chunk " + this.request.getChunkCounter() + " of file " + this.request.getRelativeFilePath() + ". Message: " + e.getMessage(), e);
@@ -130,6 +142,7 @@ public class FilePushRequestHandler implements ILocalStateRequestCallback {
             } else {
                 try {
                     if (! this.storageAdapter.exists(StorageType.DIRECTORY, localPathElement)) {
+                        this.publishIgnoreCreateEvent();
                         this.storageAdapter.persist(StorageType.DIRECTORY, localPathElement, null);
                     }
                 } catch (InputOutputException e) {
@@ -158,6 +171,7 @@ public class FilePushRequestHandler implements ILocalStateRequestCallback {
                         // restart to fetch the whole file
                         requestingChunk = 0;
 
+                        this.publishIgnoreModifyEvent();
                         this.storageAdapter.persist(storageType, localPathElement, new byte[0]);
                     }
                 } catch (InputOutputException e) {
@@ -205,60 +219,41 @@ public class FilePushRequestHandler implements ILocalStateRequestCallback {
         this.node.sendDirect(iResponse.getReceiverAddress().getPeerAddress(), iResponse);
     }
 
-    /**
-     * Publish ignore events based on the request
-     *
-     * @param localPathElement The path element for which to publish ignore events
-     */
-    protected void publishIgnoreEvents(IPathElement localPathElement) {
-        // if the chunk counter is greater than 0
-        // we only modify the existing file, so we generate an ignore modify event
-        if (this.request.getChunkCounter() > 0) {
-            this.globalEventBus.publish(new IgnoreBusEvent(
-                    new ModifyEvent(
-                            Paths.get(this.request.getRelativeFilePath()),
-                            Paths.get(this.request.getRelativeFilePath()).getFileName().toString(),
-                            "weIgnoreTheHash",
-                            System.currentTimeMillis()
-                    )
-            ));
-        } else {
-            // we check for local existence, if the file already exists, we just ignore the
-            // modify event, otherwise we ignore the create event
-            try {
-                if (this.storageAdapter.exists(StorageType.FILE, localPathElement) || this.storageAdapter.exists(StorageType.DIRECTORY, localPathElement)) {
-                    this.globalEventBus.publish(new IgnoreBusEvent(
-                            new ModifyEvent(
-                                    Paths.get(this.request.getRelativeFilePath()),
-                                    Paths.get(this.request.getRelativeFilePath()).getFileName().toString(),
-                                    "weIgnoreTheHash",
-                                    System.currentTimeMillis()
-                            )
-                    ));
-                } else {
-                    this.globalEventBus.publish(new IgnoreBusEvent(
-                            new CreateEvent(
-                                    Paths.get(this.request.getRelativeFilePath()),
-                                    Paths.get(this.request.getRelativeFilePath()).getFileName().toString(),
-                                    "weIgnoreTheHash",
-                                    System.currentTimeMillis()
-                            )
-                    ));
+    protected void publishIgnoreModifyEvent() {
+        this.globalEventBus.publish(new IgnoreBusEvent(
+                new ModifyEvent(
+                        Paths.get(this.request.getRelativeFilePath()),
+                        Paths.get(this.request.getRelativeFilePath()).getFileName().toString(),
+                        "weIgnoreTheHash",
+                        System.currentTimeMillis()
+                )
+        ));
 
-                    this.globalEventBus.publish(new AddSharerToObjectStoreBusEvent(
-                            this.request.getRelativeFilePath(),
-                            this.request.getSharers()
-                    ));
+    }
 
-                    this.globalEventBus.publish(new AddOwnerAndAccessTypeToObjectStoreBusEvent(
-                            this.request.getOwner(),
-                            this.request.getAccessType(),
-                            this.request.getRelativeFilePath()
-                    ));
-                }
-            } catch (InputOutputException e) {
-                logger.error("Can not determine whether the file " + localPathElement.getPath() + " exists. Message: " + e.getMessage() + ". Just checking the chunk counters...");
-            }
-        }
+    protected void publishIgnoreCreateEvent() {
+        this.globalEventBus.publish(new IgnoreBusEvent(
+                new CreateEvent(
+                        Paths.get(this.request.getRelativeFilePath()),
+                        Paths.get(this.request.getRelativeFilePath()).getFileName().toString(),
+                        "weIgnoreTheHash",
+                        System.currentTimeMillis()
+                )
+        ));
+    }
+
+    protected void publishAddSharerToObjectStore() {
+        this.globalEventBus.publish(new AddSharerToObjectStoreBusEvent(
+                this.request.getRelativeFilePath(),
+                this.request.getSharers()
+        ));
+    }
+
+    protected void publishAddOwnerAndAccessTypeToObjectStore() {
+        this.globalEventBus.publish(new AddOwnerAndAccessTypeToObjectStoreBusEvent(
+                this.request.getOwner(),
+                this.request.getAccessType(),
+                this.request.getRelativeFilePath()
+        ));
     }
 }
