@@ -23,6 +23,7 @@ import org.rmatil.sync.persistence.core.local.LocalPathElement;
 import org.rmatil.sync.persistence.exceptions.InputOutputException;
 import org.rmatil.sync.version.api.AccessType;
 import org.rmatil.sync.version.api.IObjectStore;
+import org.rmatil.sync.version.api.PathType;
 import org.rmatil.sync.version.core.model.PathObject;
 import org.rmatil.sync.version.core.model.Version;
 import org.slf4j.Logger;
@@ -103,6 +104,9 @@ public class ShareRequestHandler implements ILocalStateRequestCallback {
         try {
             logger.info("Writing chunk " + this.request.getChunkCounter() + " for file " + this.request.getFileId() + " (" + this.request.getRelativePathToSharedFolder() + ") for exchangeId " + this.request.getExchangeId());
 
+            this.createSharedDirsIfNotExisting();
+
+
             IPathElement pathElement;
             PathObject pathObject;
 
@@ -110,11 +114,10 @@ public class ShareRequestHandler implements ILocalStateRequestCallback {
             // maybe the file just changed while transmitting
             String relativePath = this.node.getIdentifierManager().getKey(this.request.getFileId());
 
+            PathType pathType = this.request.isFile() ? PathType.FILE : PathType.DIRECTORY;
+
             // setup shared folder and object store if the file does not exist yet
             if (0 == this.request.getChunkCounter() && null == relativePath) {
-                // create shared dirs, if not exists
-                this.createSharedDirs();
-
                 // make a local relative path for the file
                 String relPathToSyncedFolder;
                 if (AccessType.WRITE == this.request.getAccessType()) {
@@ -122,6 +125,8 @@ public class ShareRequestHandler implements ILocalStateRequestCallback {
                 } else {
                     relPathToSyncedFolder = Config.DEFAULT.getSharedWithOthersReadOnlyFolderName() + "/" + this.request.getRelativePathToSharedFolder();
                 }
+
+                // TODO: https://github.com/p2p-sync/sync/issues/18
 
                 // create a unique file name in the shared folder
                 relativePath = this.getUniqueFileName(relPathToSyncedFolder, this.request.isFile());
@@ -137,9 +142,10 @@ public class ShareRequestHandler implements ILocalStateRequestCallback {
                         relativePath
                 );
 
-                // also set the access type
+                // also set the access type and the path type
                 pathObject = this.objectStore.getObjectManager().getObjectForPath(relativePath);
                 pathObject.setAccessType(this.request.getAccessType());
+                pathObject.setPathType(pathType);
                 this.objectStore.getObjectManager().writeObject(pathObject);
 
                 // since we generated an unique filename, the file is guaranteed to not exist
@@ -284,7 +290,7 @@ public class ShareRequestHandler implements ILocalStateRequestCallback {
      *
      * @throws InputOutputException If creating the dirs failed
      */
-    protected void createSharedDirs()
+    protected void createSharedDirsIfNotExisting()
             throws InputOutputException {
         IPathElement readOnlySharedFolder = new LocalPathElement(Config.DEFAULT.getSharedWithOthersReadOnlyFolderName());
         IPathElement readWriteSharedFolder = new LocalPathElement(Config.DEFAULT.getSharedWithOthersReadWriteFolderName());
