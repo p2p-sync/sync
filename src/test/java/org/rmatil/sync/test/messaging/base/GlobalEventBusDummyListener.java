@@ -34,6 +34,11 @@ public class GlobalEventBusDummyListener {
         this.receivedBusEvents.add(addSharerToObjectStoreBusEvent);
     }
 
+    @Handler
+    public synchronized void handlAddOwnerAndAccessTypeToObjectStoreBusEvent(AddOwnerAndAccessTypeToObjectStoreBusEvent addOwnerAndAccessTypeToObjectStoreBusEvent) {
+        this.receivedBusEvents.add(addOwnerAndAccessTypeToObjectStoreBusEvent);
+    }
+
     public synchronized void clear() {
         this.receivedBusEvents.clear();
     }
