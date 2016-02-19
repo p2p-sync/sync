@@ -96,8 +96,8 @@ public class FileSyncer implements IFileSyncer {
                 if (eventToCheck.getEventName().equals(event.getEventName()) &&
                         eventToCheck.getPath().toString().equals(event.getPath().toString())) {
 
-                    logger.info("Ignoring syncing of event " + event.getEventName() + " for path " + event.getPath().toString() + " on client " + this.node.getPeerAddress().inetAddress().getHostName() + ":" + this.node.getPeerAddress().tcpPort() + ")");
-                    this.eventsToIgnore.remove(event);
+                    logger.info("Ignoring (" + this.toString() + ") syncing of event " + event.getEventName() + " for path " + event.getPath().toString() + " on client " + this.node.getPeerAddress().inetAddress().getHostName() + ":" + this.node.getPeerAddress().tcpPort() + ")");
+                    this.eventsToIgnore.remove(eventToCheck);
                     return;
                 }
             }
