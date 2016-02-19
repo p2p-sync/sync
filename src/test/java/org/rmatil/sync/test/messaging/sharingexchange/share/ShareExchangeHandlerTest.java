@@ -4,7 +4,9 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.rmatil.sync.core.config.Config;
+import org.rmatil.sync.core.eventbus.CreateBusEvent;
 import org.rmatil.sync.core.eventbus.IBusEvent;
+import org.rmatil.sync.core.eventbus.IgnoreBusEvent;
 import org.rmatil.sync.core.eventbus.IgnoreObjectStoreUpdateBusEvent;
 import org.rmatil.sync.core.messaging.sharingexchange.share.ShareExchangeHandler;
 import org.rmatil.sync.core.messaging.sharingexchange.share.ShareExchangeHandlerResult;
@@ -13,11 +15,13 @@ import org.rmatil.sync.core.messaging.sharingexchange.share.ShareRequestHandler;
 import org.rmatil.sync.core.model.RemoteClientLocation;
 import org.rmatil.sync.core.security.AccessManager;
 import org.rmatil.sync.event.aggregator.core.events.CreateEvent;
+import org.rmatil.sync.event.aggregator.core.events.ModifyEvent;
 import org.rmatil.sync.network.core.ConnectionConfiguration;
 import org.rmatil.sync.network.core.model.NodeLocation;
 import org.rmatil.sync.persistence.exceptions.InputOutputException;
 import org.rmatil.sync.test.messaging.base.BaseNetworkHandlerTest;
 import org.rmatil.sync.version.api.AccessType;
+import org.rmatil.sync.version.api.PathType;
 import org.rmatil.sync.version.core.model.PathObject;
 
 import java.io.IOException;
@@ -28,6 +32,8 @@ import java.nio.file.Paths;
 import java.util.List;
 import java.util.UUID;
 
+import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.*;
 
 public class ShareExchangeHandlerTest extends BaseNetworkHandlerTest {
@@ -81,6 +87,9 @@ public class ShareExchangeHandlerTest extends BaseNetworkHandlerTest {
 
         createTestDirs();
         createObjectStoreDirs();
+
+        createSharedDirsIfNotExisting(ROOT_TEST_DIR1);
+        createSharedDirsIfNotExisting(ROOT_TEST_DIR2);
 
         Files.createDirectory(ROOT_TEST_DIR1.resolve(TEST_DIR_1));
         Files.createDirectory(ROOT_TEST_DIR2.resolve(TEST_DIR_1));
@@ -157,38 +166,50 @@ public class ShareExchangeHandlerTest extends BaseNetworkHandlerTest {
 
         assertArrayEquals("Content is not equal", expectedContent, actualContent);
 
-        // now check, that all delete events are ignored (incl children)
-        CreateEvent createEvent = new CreateEvent(
-                Paths.get(Config.DEFAULT.getSharedWithOthersReadWriteFolderName()).resolve(TEST_FILE_1.getFileName()),
-                TEST_FILE_1.getFileName().toString(),
-                "weIgnoreTheHash",
-                System.currentTimeMillis()
-        );
-
-        IgnoreObjectStoreUpdateBusEvent expectedEvent1 = new IgnoreObjectStoreUpdateBusEvent(
-                createEvent
-        );
-
         List<IBusEvent> listener2Events = EVENT_BUS_LISTENER_2.getReceivedBusEvents();
 
-        assertEquals("Listener should only contain all 1 events", 1, listener2Events.size());
+        assertEquals("Listener should only contain all 7 events", 7, listener2Events.size());
+        assertThat("1st event should be an IgnoreBusEvent", listener2Events.get(0), is(instanceOf(IgnoreBusEvent.class)));
+        assertThat("1st event should be an IgnoreBusEvent (CreateEvent)", listener2Events.get(0).getEvent(), is(instanceOf(CreateEvent.class)));
+        assertThat("2nd event should be an IgnoreObjectStoreUpdateBusEvent", listener2Events.get(1), is(instanceOf(IgnoreObjectStoreUpdateBusEvent.class)));
+        assertThat("2nd event should be an IgnoreObjectStoreUpdateBusEvent (CreateEvent)", listener2Events.get(1).getEvent(), is(instanceOf(CreateEvent.class)));
 
-        IBusEvent actualEvent1 = listener2Events.get(0);
+        assertThat("3rd event should be an IgnoreBusEvent", listener2Events.get(2), is(instanceOf(IgnoreBusEvent.class)));
+        assertThat("3rd event should be an IgnoreBusEvent (ModifyEvent)", listener2Events.get(2).getEvent(), is(instanceOf(ModifyEvent.class)));
+        assertThat("4th event should be an IgnoreObjectStoreUpdateBusEvent", listener2Events.get(3), is(instanceOf(IgnoreObjectStoreUpdateBusEvent.class)));
+        assertThat("4th event should be an IgnoreObjectStoreUpdateBusEvent (ModifyEvent)", listener2Events.get(3).getEvent(), is(instanceOf(ModifyEvent.class)));
 
-        assertEquals("Expected create event", expectedEvent1.getEvent().getEventName(), actualEvent1.getEvent().getEventName());
-        assertEquals("Expected path for testFile1", expectedEvent1.getEvent().getPath().toString(), actualEvent1.getEvent().getPath().toString());
-        assertEquals("Expected name testFile1", expectedEvent1.getEvent().getName(), actualEvent1.getEvent().getName());
-        assertEquals("Expected different hash", expectedEvent1.getEvent().getHash(), actualEvent1.getEvent().getHash());
+        assertThat("5th event should be an IgnoreBusEvent", listener2Events.get(4), is(instanceOf(IgnoreBusEvent.class)));
+        assertThat("5th event should be an IgnoreBusEvent (ModifyEvent)", listener2Events.get(4).getEvent(), is(instanceOf(ModifyEvent.class)));
+        assertThat("6th event should be an IgnoreObjectStoreUpdateBusEvent", listener2Events.get(5), is(instanceOf(IgnoreObjectStoreUpdateBusEvent.class)));
+        assertThat("6th event should be an IgnoreObjectStoreUpdateBusEvent (ModifyEvent)", listener2Events.get(5).getEvent(), is(instanceOf(ModifyEvent.class)));
+
+        assertThat("7th event should be an CreateBusEvent", listener2Events.get(6), is(instanceOf(CreateBusEvent.class)));
+        assertThat("7th event should be an CreateBusEvent (CreateEvent)", listener2Events.get(6).getEvent(), is(instanceOf(CreateEvent.class)));
+
+        String sharedTestFile = Paths.get(Config.DEFAULT.getSharedWithOthersReadWriteFolderName()).resolve(TEST_FILE_1.getFileName()).toString();
+
+        // check that the object store contains the file
+        assertNotNull("PathObject should exist for shared file", OBJECT_STORE_2.getObjectManager().getObjectForPath(sharedTestFile));
 
         // now check that the object store contains the sharer
-        PathObject sharedObject = OBJECT_STORE_2.getObjectManager().getObjectForPath(Paths.get(Config.DEFAULT.getSharedWithOthersReadWriteFolderName()).resolve(TEST_FILE_1.getFileName()).toString());
+        PathObject sharedObject = OBJECT_STORE_2.getObjectManager().getObjectForPath(sharedTestFile);
 
-        assertNotNull("SharedObject should not be null", sharedObject);
-        // since the client 2 did not share with anyone. Instead client1 shared with client2.
-        // -> only the owner should be set
+        // since client2 did not share with anyone, no sharer should be set.
+        // Instead the owner (i.e. user1) should be specified
         assertFalse("File should not be shared", sharedObject.isShared());
+        assertEquals("AccessType should be write", AccessType.WRITE, sharedObject.getAccessType());
         assertEquals("Owner should be equal to client1's user", CLIENT_1.getUser().getUserName(), sharedObject.getOwner());
         assertEquals("Sharer should not contain any user", 0, sharedObject.getSharers().size());
+        assertEquals("File should be file", PathType.FILE, sharedObject.getPathType());
+        assertFalse("File should not be deleted", sharedObject.isDeleted());
+        assertEquals("Only one version should be set", 1, sharedObject.getVersions().size());
+        assertNotNull("The version should not be null", sharedObject.getVersions().get(0));
+
+        // check that the same file id as on client1 is also set on client2
+        String relativePath = CLIENT_2.getIdentifierManager().getKey(FILE_ID);
+        assertNotNull("There must be a path for the file id", relativePath);
+        assertEquals("The shared path must be equal", sharedTestFile, relativePath);
 
         EVENT_BUS_LISTENER_2.clear();
     }
