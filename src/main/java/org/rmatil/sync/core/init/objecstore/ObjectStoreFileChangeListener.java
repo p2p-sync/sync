@@ -3,6 +3,7 @@ package org.rmatil.sync.core.init.objecstore;
 import net.engio.mbassy.listener.Handler;
 import org.rmatil.sync.core.eventbus.AddOwnerAndAccessTypeToObjectStoreBusEvent;
 import org.rmatil.sync.core.eventbus.AddSharerToObjectStoreBusEvent;
+import org.rmatil.sync.core.eventbus.CleanModifyOsIgnoreEventsBusEvent;
 import org.rmatil.sync.core.eventbus.IgnoreObjectStoreUpdateBusEvent;
 import org.rmatil.sync.event.aggregator.api.IEventListener;
 import org.rmatil.sync.event.aggregator.core.events.*;
@@ -39,9 +40,26 @@ public class ObjectStoreFileChangeListener implements IEventListener {
 
     @Handler
     public void handleBusEvent(IgnoreObjectStoreUpdateBusEvent ignoreBusEvent) {
-        logger.debug("Got notified from event bus: " + ignoreBusEvent.getEvent().getEventName() + " for file " + ignoreBusEvent.getEvent().getPath().toString());
+        logger.debug("Got notified from event bus: IgnoreObjectStoreUpdateBusEvent " + ignoreBusEvent.getEvent().getEventName() + " for file " + ignoreBusEvent.getEvent().getPath().toString());
         this.ignoredEvents.add(ignoreBusEvent.getEvent());
     }
+
+    @Handler
+    public void handleCleanOsIgnoreEvents(CleanModifyOsIgnoreEventsBusEvent event) {
+        logger.debug("Got clean up ignore events event from global event bus for file " + event.getRelativePath());
+        synchronized (this.ignoredEvents) {
+            Iterator<IEvent> itr = this.ignoredEvents.iterator();
+            while (itr.hasNext()) {
+                IEvent ev = itr.next();
+                if (ev.getPath().toString().equals(event.getRelativePath()) &&
+                        ev instanceof ModifyEvent) {
+                    logger.trace("Remove modify event " + ev.getEventName());
+                    itr.remove();
+                }
+            }
+        }
+    }
+
 
     @Handler
     public void handleSharerEvent(AddSharerToObjectStoreBusEvent addSharerEvent) {

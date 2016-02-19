@@ -4,6 +4,7 @@ import net.engio.mbassy.bus.MBassador;
 import net.engio.mbassy.listener.Handler;
 import org.rmatil.sync.core.ConflictHandler;
 import org.rmatil.sync.core.api.IFileSyncer;
+import org.rmatil.sync.core.eventbus.CleanModifyIgnoreEventsBusEvent;
 import org.rmatil.sync.core.eventbus.CreateBusEvent;
 import org.rmatil.sync.core.eventbus.IBusEvent;
 import org.rmatil.sync.core.eventbus.IgnoreBusEvent;
@@ -32,10 +33,7 @@ import org.rmatil.sync.version.api.IObjectStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -82,6 +80,22 @@ public class FileSyncer implements IFileSyncer {
         logger.debug("Got ignore event from global event bus: " + event.getEvent().getEventName() + " for file " + event.getEvent().getPath().toString());
         synchronized (this.eventsToIgnore) {
             this.eventsToIgnore.add(event.getEvent());
+        }
+    }
+
+    @Handler
+    public void handleCleanIgnoreEvents(CleanModifyIgnoreEventsBusEvent event) {
+        logger.debug("Got clean up ignore events event from global event bus for file " + event.getRelativePath());
+        synchronized (this.eventsToIgnore) {
+            Iterator<IEvent> itr = this.eventsToIgnore.iterator();
+            while (itr.hasNext()) {
+                IEvent ev = itr.next();
+                if (ev.getPath().toString().equals(event.getRelativePath()) &&
+                        ev instanceof ModifyEvent) {
+                    logger.trace("Remove modify event " + ev.getEventName());
+                    itr.remove();
+                }
+            }
         }
     }
 
