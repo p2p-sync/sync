@@ -88,7 +88,7 @@ public class FileOfferExchangeHandler extends ANetworkHandler<FileOfferExchangeH
     /**
      * @param exchangeId       The exchange id used for the file offer handling
      * @param clientDevice     The client device used to identify the sending client for any file offer requests
-     * @param nodeManager    The client manager to access client locations
+     * @param nodeManager      The client manager to access client locations
      * @param client           The client to send messages
      * @param objectStore      The object store to get versions of a particular file
      * @param storageAdapter   The storage adapter for the synchronized folder
@@ -116,7 +116,7 @@ public class FileOfferExchangeHandler extends ANetworkHandler<FileOfferExchangeH
             try {
                 isDir = this.storageAdapter.isDir(new LocalPathElement(pathToCheck));
             } catch (InputOutputException e) {
-                logger.error("Could not check whether the file " + pathToCheck + " is a file or directory for exchange " + this.exchangeId);
+                logger.error("Could not check whether the file " + pathToCheck + " is a file or directory for exchange " + this.exchangeId + ". Message: " + e.getMessage(), e);
             }
 
             // since this sync is triggered by a move, the actual operation is already
