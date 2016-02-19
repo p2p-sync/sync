@@ -189,15 +189,17 @@ public abstract class BaseNetworkHandlerTest extends BaseTest {
         FILE_SYNCER_1 = createFileSyncer(CLIENT_1, ROOT_TEST_DIR1, OBJECT_STORE_1, GLOBAL_EVENT_BUS_1);
         FILE_SYNCER_2 = createFileSyncer(CLIENT_2, ROOT_TEST_DIR2, OBJECT_STORE_2, GLOBAL_EVENT_BUS_2);
 
-        GLOBAL_EVENT_BUS_1.subscribe(FILE_SYNCER_1);
-        GLOBAL_EVENT_BUS_2.subscribe(FILE_SYNCER_2);
-
         // Note: start the event aggregator manually in the subclasses
         EVENT_AGGREGATOR_1 = createEventAggregator(ROOT_TEST_DIR1, OBJECT_STORE_1, FILE_SYNCER_1, GLOBAL_EVENT_BUS_1);
         EVENT_AGGREGATOR_2 = createEventAggregator(ROOT_TEST_DIR2, OBJECT_STORE_2, FILE_SYNCER_2, GLOBAL_EVENT_BUS_2);
 
-        EVENT_AGGREGATOR_1.addListener(new ObjectStoreFileChangeListener(OBJECT_STORE_1));
-        EVENT_AGGREGATOR_2.addListener(new ObjectStoreFileChangeListener(OBJECT_STORE_2));
+        ObjectStoreFileChangeListener listener1 = new ObjectStoreFileChangeListener(OBJECT_STORE_1);
+        GLOBAL_EVENT_BUS_1.subscribe(listener1);
+        EVENT_AGGREGATOR_1.addListener(listener1);
+
+        ObjectStoreFileChangeListener listener2 = new ObjectStoreFileChangeListener(OBJECT_STORE_2);
+        GLOBAL_EVENT_BUS_2.subscribe(listener2);
+        EVENT_AGGREGATOR_2.addListener(listener2);
 
         CLIENT_DEVICE_1 = new ClientDevice(USERNAME, CLIENT_ID_1, CLIENT_1.getPeerAddress());
         CLIENT_DEVICE_2 = new ClientDevice(USERNAME, CLIENT_ID_2, CLIENT_2.getPeerAddress());
@@ -366,6 +368,7 @@ public abstract class BaseNetworkHandlerTest extends BaseTest {
         SyncFileChangeListener syncFileChangeListener = new SyncFileChangeListener(fileSyncer);
         ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor();
 
+        // TODO: use simple executor instead of scheduled one
         // the listener fetches all events every 10 seconds to propagate to other clients
         executorService.scheduleAtFixedRate(syncFileChangeListener, 0, 10, TimeUnit.SECONDS);
 

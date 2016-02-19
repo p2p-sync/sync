@@ -1,6 +1,7 @@
 package org.rmatil.sync.test.base;
 
 import org.rmatil.sync.core.init.objecstore.ObjectStoreInitializer;
+import org.rmatil.sync.persistence.exceptions.InputOutputException;
 import org.rmatil.sync.test.config.Config;
 import org.rmatil.sync.version.api.IObjectStore;
 
@@ -36,6 +37,26 @@ public class BaseTest {
         objectStoreInitializer1.start();
 
         return objectStore;
+    }
+
+    /**
+     * Create the sharedWithOthers (read/write) or sharedWithOthers (read) folders
+     * if the do not exist yet.
+     *
+     * @param rootDir The root dir in which to create the shared dirs
+     *
+     * @throws InputOutputException If creating the dirs failed
+     */
+    protected static void createSharedDirsIfNotExisting(Path rootDir)
+            throws InputOutputException, IOException {
+        if (! rootDir.resolve(org.rmatil.sync.core.config.Config.DEFAULT.getSharedWithOthersReadOnlyFolderName()).toFile().exists()) {
+            Files.createDirectory(rootDir.resolve(org.rmatil.sync.core.config.Config.DEFAULT.getSharedWithOthersReadOnlyFolderName()));
+        }
+
+        if (! rootDir.resolve(org.rmatil.sync.core.config.Config.DEFAULT.getSharedWithOthersReadWriteFolderName()).toFile().exists()) {
+            Files.createDirectory(rootDir.resolve(org.rmatil.sync.core.config.Config.DEFAULT.getSharedWithOthersReadWriteFolderName()));
+        }
+
     }
 
     /**

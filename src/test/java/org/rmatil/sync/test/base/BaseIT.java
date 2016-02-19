@@ -14,9 +14,9 @@ import org.rmatil.sync.network.core.ConnectionConfiguration;
 import org.rmatil.sync.network.core.model.ClientDevice;
 import org.rmatil.sync.persistence.api.IStorageAdapter;
 import org.rmatil.sync.persistence.core.local.LocalStorageAdapter;
+import org.rmatil.sync.persistence.exceptions.InputOutputException;
 import org.rmatil.sync.test.config.Config;
 import org.rmatil.sync.test.messaging.base.BaseNetworkHandlerTest;
-import org.rmatil.sync.test.messaging.base.GlobalEventBusDummyListener;
 import org.rmatil.sync.version.api.IObjectStore;
 
 import java.io.IOException;
@@ -38,9 +38,6 @@ public class BaseIT extends BaseNetworkHandlerTest {
 
     protected static MBassador<IBusEvent> GLOBAL_EVENT_BUS_3;
     protected static MBassador<IBusEvent> GLOBAL_EVENT_BUS_4;
-
-    protected static GlobalEventBusDummyListener EVENT_BUS_LISTENER_3;
-    protected static GlobalEventBusDummyListener EVENT_BUS_LISTENER_4;
 
     protected static IStorageAdapter STORAGE_ADAPTER_3;
     protected static IObjectStore    OBJECT_STORE_3;
@@ -65,18 +62,21 @@ public class BaseIT extends BaseNetworkHandlerTest {
 
     @BeforeClass
     public static void setUpIT()
-            throws IOException {
+            throws IOException, InputOutputException {
         createTestDirs();
         createObjectStoreDirs();
 
+        createSharedDirsIfNotExisting(ROOT_TEST_DIR1);
+        createSharedDirsIfNotExisting(ROOT_TEST_DIR2);
+        createSharedDirsIfNotExisting(ROOT_TEST_DIR3);
+        createSharedDirsIfNotExisting(ROOT_TEST_DIR4);
+
+        // unsubscribe dummy listeners
+        GLOBAL_EVENT_BUS_1.unsubscribe(EVENT_BUS_LISTENER_1);
+        GLOBAL_EVENT_BUS_2.unsubscribe(EVENT_BUS_LISTENER_2);
+
         GLOBAL_EVENT_BUS_3 = BaseNetworkHandlerTest.createGlobalEventBus();
         GLOBAL_EVENT_BUS_4 = BaseNetworkHandlerTest.createGlobalEventBus();
-
-        EVENT_BUS_LISTENER_3 = new GlobalEventBusDummyListener();
-        EVENT_BUS_LISTENER_4 = new GlobalEventBusDummyListener();
-
-        GLOBAL_EVENT_BUS_3.subscribe(EVENT_BUS_LISTENER_3);
-        GLOBAL_EVENT_BUS_4.subscribe(EVENT_BUS_LISTENER_4);
 
         STORAGE_ADAPTER_3 = new LocalStorageAdapter(ROOT_TEST_DIR3);
         STORAGE_ADAPTER_4 = new LocalStorageAdapter(ROOT_TEST_DIR4);
@@ -132,15 +132,17 @@ public class BaseIT extends BaseNetworkHandlerTest {
         FILE_SYNCER_3 = createFileSyncer(CLIENT_3, ROOT_TEST_DIR3, OBJECT_STORE_3, GLOBAL_EVENT_BUS_3);
         FILE_SYNCER_4 = createFileSyncer(CLIENT_4, ROOT_TEST_DIR4, OBJECT_STORE_4, GLOBAL_EVENT_BUS_4);
 
-        GLOBAL_EVENT_BUS_3.subscribe(FILE_SYNCER_3);
-        GLOBAL_EVENT_BUS_4.subscribe(FILE_SYNCER_4);
-
         // Note: start the event aggregator manually in the subclasses
         EVENT_AGGREGATOR_3 = createEventAggregator(ROOT_TEST_DIR3, OBJECT_STORE_3, FILE_SYNCER_3, GLOBAL_EVENT_BUS_3);
         EVENT_AGGREGATOR_4 = createEventAggregator(ROOT_TEST_DIR4, OBJECT_STORE_4, FILE_SYNCER_4, GLOBAL_EVENT_BUS_4);
 
-        EVENT_AGGREGATOR_3.addListener(new ObjectStoreFileChangeListener(OBJECT_STORE_3));
-        EVENT_AGGREGATOR_4.addListener(new ObjectStoreFileChangeListener(OBJECT_STORE_4));
+        ObjectStoreFileChangeListener listener3 = new ObjectStoreFileChangeListener(OBJECT_STORE_3);
+        GLOBAL_EVENT_BUS_3.subscribe(listener3);
+        EVENT_AGGREGATOR_3.addListener(listener3);
+
+        ObjectStoreFileChangeListener listener4 = new ObjectStoreFileChangeListener(OBJECT_STORE_4);
+        GLOBAL_EVENT_BUS_4.subscribe(listener4);
+        EVENT_AGGREGATOR_4.addListener(listener4);
 
         CLIENT_DEVICE_3 = new ClientDevice(USERNAME, CLIENT_ID_3, CLIENT_3.getPeerAddress());
         CLIENT_DEVICE_4 = new ClientDevice(USERNAME, CLIENT_ID_4, CLIENT_4.getPeerAddress());
