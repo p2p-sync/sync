@@ -1,10 +1,7 @@
 package org.rmatil.sync.core.messaging.fileexchange.push;
 
 import net.engio.mbassy.bus.MBassador;
-import org.rmatil.sync.core.eventbus.AddOwnerAndAccessTypeToObjectStoreBusEvent;
-import org.rmatil.sync.core.eventbus.AddSharerToObjectStoreBusEvent;
-import org.rmatil.sync.core.eventbus.IBusEvent;
-import org.rmatil.sync.core.eventbus.IgnoreBusEvent;
+import org.rmatil.sync.core.eventbus.*;
 import org.rmatil.sync.core.init.client.ILocalStateRequestCallback;
 import org.rmatil.sync.core.messaging.StatusCode;
 import org.rmatil.sync.core.security.IAccessManager;
@@ -166,6 +163,10 @@ public class FilePushRequestHandler implements ILocalStateRequestCallback {
                         // checksums match or the other side failed to compute one
                         // -> indicate we got all chunks
                         requestingChunk = - 1;
+                        // clean up all modify events
+                        this.globalEventBus.publish(new CleanModifyIgnoreEventsBusEvent(
+                                localPathElement.getPath()
+                        ));
                     } else {
                         logger.info("Checksums do not match (local: " + checksum + "/request:" + this.request.getChecksum() + "). Restarting to push file for exchange " + this.request.getExchangeId());
                         // restart to fetch the whole file

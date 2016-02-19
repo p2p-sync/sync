@@ -2,6 +2,7 @@ package org.rmatil.sync.core.messaging.fileexchange.demand;
 
 import net.engio.mbassy.bus.MBassador;
 import org.rmatil.sync.core.eventbus.AddSharerToObjectStoreBusEvent;
+import org.rmatil.sync.core.eventbus.CleanModifyIgnoreEventsBusEvent;
 import org.rmatil.sync.core.eventbus.IBusEvent;
 import org.rmatil.sync.core.eventbus.IgnoreBusEvent;
 import org.rmatil.sync.core.messaging.StatusCode;
@@ -88,7 +89,7 @@ public class FileDemandExchangeHandler extends ANetworkHandler<FileDemandExchang
     /**
      * @param storageAdapter The storage adapter to access the synced folder
      * @param client         The client to send messages
-     * @param nodeManager  The client manager to fetch other clients' locations
+     * @param nodeManager    The client manager to fetch other clients' locations
      * @param fetchAddress   The address from the client from which the file should be fetched
      * @param pathToFetch    The path to the file which is requested
      * @param exchangeId     The id of the exchange
@@ -196,6 +197,10 @@ public class FileDemandExchangeHandler extends ANetworkHandler<FileDemandExchang
                 if (null == fileDemandResponse.getChecksum() || fileDemandResponse.getChecksum().equals(checksum)) {
                     // checksums match or the other side failed to compute one
                     logger.info("Checksums match (" + fileDemandResponse.getChecksum() + " = " + checksum + "). Stopping FileDemand " + this.exchangeId);
+                    // clean all modify ignore events
+                    this.globalEventBus.publish(new CleanModifyIgnoreEventsBusEvent(
+                            localPathElement.getPath()
+                    ));
                     super.onResponse(response);
                     this.receivedAllChunksCountDownLatch.countDown();
                     return;
