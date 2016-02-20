@@ -15,10 +15,10 @@ import org.rmatil.sync.network.core.ANetworkHandler;
 import org.rmatil.sync.network.core.model.ClientDevice;
 import org.rmatil.sync.network.core.model.NodeLocation;
 import org.rmatil.sync.persistence.api.IStorageAdapter;
-import org.rmatil.sync.persistence.core.local.LocalPathElement;
 import org.rmatil.sync.persistence.exceptions.InputOutputException;
 import org.rmatil.sync.version.api.AccessType;
 import org.rmatil.sync.version.api.IObjectStore;
+import org.rmatil.sync.version.api.PathType;
 import org.rmatil.sync.version.core.model.PathObject;
 import org.rmatil.sync.version.core.model.Sharer;
 import org.rmatil.sync.version.core.model.Version;
@@ -112,12 +112,18 @@ public class FileOfferExchangeHandler extends ANetworkHandler<FileOfferExchangeH
         try {
             String pathToCheck = this.eventToPropagate.getEventName().equals(MoveEvent.EVENT_NAME) ? ((MoveEvent) this.eventToPropagate).getNewPath().toString() : this.eventToPropagate.getPath().toString();
 
-            boolean isDir = false;
+            PathObject pathObject;
+
             try {
-                isDir = this.storageAdapter.isDir(new LocalPathElement(pathToCheck));
+                pathObject = this.objectStore.getObjectManager().getObjectForPath(pathToCheck);
             } catch (InputOutputException e) {
-                logger.error("Could not check whether the file " + pathToCheck + " is a file or directory for exchange " + this.exchangeId + ". Message: " + e.getMessage(), e);
+                logger.error("Can not read path object from object store. Message: " + e.getMessage() + ". Aborting file offer exchange " + this.exchangeId);
+                return;
             }
+
+            // do not check using storage adapter since the file could've been deleted already
+            // -> offering for file delete
+            boolean isDir = pathObject.getPathType().equals(PathType.DIRECTORY);
 
             // since this sync is triggered by a move, the actual operation is already
             // done on this client, therefore we traverse the dir on the new path
@@ -160,15 +166,6 @@ public class FileOfferExchangeHandler extends ANetworkHandler<FileOfferExchangeH
                 clientLocations = this.nodeManager.getNodeLocations(super.node.getUser());
             } catch (InputOutputException e) {
                 logger.error("Could not fetch client locations from user " + super.node.getUser().getUserName() + ". Message: " + e.getMessage());
-                return;
-            }
-
-            PathObject pathObject;
-
-            try {
-                pathObject = this.objectStore.getObjectManager().getObjectForPath(pathToCheck);
-            } catch (InputOutputException e) {
-                logger.error("Can not read path object from object store. Message: " + e.getMessage() + ". Aborting file offer exchange " + this.exchangeId);
                 return;
             }
 
