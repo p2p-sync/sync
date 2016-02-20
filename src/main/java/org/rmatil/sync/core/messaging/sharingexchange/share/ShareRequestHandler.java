@@ -26,6 +26,7 @@ import org.rmatil.sync.version.core.model.PathObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.nio.file.Path;
 import java.nio.file.Paths;
 
 public class ShareRequestHandler implements ILocalStateRequestCallback {
@@ -106,12 +107,33 @@ public class ShareRequestHandler implements ILocalStateRequestCallback {
                     this.request.getFileId()
             );
 
+            Path relPathToSharedFolder = Paths.get(this.request.getRelativePathToSharedFolder());
             if (null == relativePath) {
+                // does also contain the filename
+
+                if (relPathToSharedFolder.getNameCount() > 1) {
+                    // also a parent is existing in the path
+
+                    Path parent;
+                    if (AccessType.WRITE == this.request.getAccessType()) {
+                        parent = Paths.get(Config.DEFAULT.getSharedWithOthersReadWriteFolderName()).resolve(relPathToSharedFolder.subpath(0, relPathToSharedFolder.getNameCount() - 1));
+                    } else {
+                        parent = Paths.get(Config.DEFAULT.getSharedWithOthersReadOnlyFolderName()).resolve(relPathToSharedFolder.subpath(0, relPathToSharedFolder.getNameCount() - 1));
+                    }
+
+                    // place the file in the root if it's parent does not exist anymore
+                    if (! this.storageAdapter.exists(StorageType.DIRECTORY, new LocalPathElement(parent.toString()))) {
+                        logger.info("Parent of file " + this.request.getRelativePathToSharedFolder() + " does not exist (anymore). Placing file at root of shared dir");
+                        relPathToSharedFolder = relPathToSharedFolder.getFileName();
+                    }
+                }
+
+
                 // find an unique file path and store it in the DHT
                 if (AccessType.WRITE == this.request.getAccessType()) {
-                    relativePath = Config.DEFAULT.getSharedWithOthersReadWriteFolderName() + "/" + this.request.getRelativePathToSharedFolder();
+                    relativePath = Config.DEFAULT.getSharedWithOthersReadWriteFolderName() + "/" + relPathToSharedFolder.toString();
                 } else {
-                    relativePath = Config.DEFAULT.getSharedWithOthersReadOnlyFolderName() + "/" + this.request.getRelativePathToSharedFolder();
+                    relativePath = Config.DEFAULT.getSharedWithOthersReadOnlyFolderName() + "/" + relPathToSharedFolder.toString();
                 }
 
                 relativePath = this.getUniqueFileName(relativePath, this.request.isFile());
