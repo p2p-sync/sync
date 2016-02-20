@@ -12,10 +12,14 @@ import org.rmatil.sync.network.core.model.ClientDevice;
 import org.rmatil.sync.network.core.model.NodeLocation;
 import org.rmatil.sync.persistence.api.IStorageAdapter;
 import org.rmatil.sync.persistence.core.local.LocalPathElement;
+import org.rmatil.sync.version.api.AccessType;
 import org.rmatil.sync.version.api.IObjectStore;
 import org.rmatil.sync.version.core.model.PathObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.ArrayList;
+import java.util.HashSet;
 
 public class UnshareRequestHandler implements ILocalStateRequestCallback {
 
@@ -97,14 +101,14 @@ public class UnshareRequestHandler implements ILocalStateRequestCallback {
 
             logger.info("Found file on path " + sharedObject.getAbsolutePath() + " for file with id " + this.request.getFileId());
 
-            this.objectStore.getSharerManager().removeSharer(
-                    this.request.getClientDevice().getUserName(),
-                    sharedObject.getAbsolutePath()
-            );
+            // reset values in case this gets shared again
+            // avoiding a delete sync back to the owner
+            sharedObject.setSharers(new HashSet<>());
+            sharedObject.setIsShared(false);
+            sharedObject.setAccessType(null);
+            sharedObject.setOwner(null);
 
-            this.objectStore.getSharerManager().removeOwner(
-                    sharedObject.getAbsolutePath()
-            );
+            this.objectStore.getObjectManager().writeObject(sharedObject);
 
             // remove the file
             this.storageAdapter.delete(new LocalPathElement(sharedObject.getAbsolutePath()));

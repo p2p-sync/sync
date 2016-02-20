@@ -215,7 +215,7 @@ public class SharingSyncer implements ISharingSyncer {
 
         this.node.getObjectDataReplyHandler().removeResponseCallbackHandler(exchangeId);
 
-        if (unsharedExchangeHandler.isCompleted()) {
+        if (! unsharedExchangeHandler.isCompleted()) {
             String msg = "UnsharedExchangeHandler should be completed after awaiting. Unsharing might not be complete on own clients. Aborting";
             logger.error(msg);
             throw new UnsharingFailedException(msg);
@@ -246,7 +246,7 @@ public class SharingSyncer implements ISharingSyncer {
 
         this.node.getObjectDataReplyHandler().removeResponseCallbackHandler(exchangeId);
 
-        if (unshareExchangeHandler.isCompleted()) {
+        if (! unshareExchangeHandler.isCompleted()) {
             String msg = "UnshareExchangeHandler should be completed after awaiting. Unsharing might not be complete on sharer's clients";
             logger.error(msg);
             throw new UnsharingFailedException(msg);
