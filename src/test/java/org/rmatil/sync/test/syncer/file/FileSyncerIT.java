@@ -225,7 +225,7 @@ public class FileSyncerIT extends BaseIT {
 
 
         System.err.println("Waiting, that unsharing is also propagated to client4");
-        Thread.sleep(90000L);
+        Thread.sleep(60000L);
         assertFalse("TestFile2 should not exist anymore on client4", Files.exists(expectedTestFile2));
         // check that no conflict file was created
         assertEquals("Only one file should be contained in the test dir", 1, expectedTestDir.toFile().listFiles().length);
@@ -248,5 +248,111 @@ public class FileSyncerIT extends BaseIT {
         assertEquals("PathType should be file", PathType.FILE, file2Object.getPathType());
         assertEquals("Only one version should be contained", 1, file2Object.getVersions().size());
 
+        // unsharing file 1
+        sharingSyncer.sync(unshareEvent2);
+        assertFalse("TestFile1 should not exist anymore on client3", Files.exists(expectedTestFile1));
+
+        PathObject file1ObjectClient1 = OBJECT_STORE_1.getObjectManager().getObjectForPath(TEST_FILE_1.toString());
+        assertNotNull("Pathobject for testFile1 should not be null", file1ObjectClient1);
+        assertFalse("File should not be shared", file1ObjectClient1.isShared());
+        assertNull("Owner should be null", file1ObjectClient1.getOwner());
+        assertNull("AccessType should be null", file1ObjectClient1.getAccessType());
+        assertEquals("One sharer should be inside", 1, file1ObjectClient1.getSharers().size());
+        assertEquals("Sharer's name should be user2", USERNAME_2, file1ObjectClient1.getSharers().iterator().next().getUsername());
+        assertEquals("Two sharing history entries should be present (share & unshare)", 2, file1ObjectClient1.getSharers().iterator().next().getSharingHistory().size());
+        assertEquals("Sharer's access type should be revoked", AccessType.ACCESS_REMOVED, file1ObjectClient1.getSharers().iterator().next().getAccessType());
+        assertEquals("PathType should be file", PathType.FILE, file1ObjectClient1.getPathType());
+        assertEquals("Only one version should be contained", 1, file1ObjectClient1.getVersions().size());
+
+        PathObject file1ObjectClient2 = OBJECT_STORE_2.getObjectManager().getObjectForPath(TEST_FILE_1.toString());
+        assertNotNull("Pathobject for testFile1 should not be null", file1ObjectClient2);
+        assertFalse("File should not be shared", file1ObjectClient2.isShared());
+        assertNull("Owner should be null", file1ObjectClient2.getOwner());
+        assertNull("AccessType should be null", file1ObjectClient2.getAccessType());
+        assertEquals("One sharer should be inside", 1, file1ObjectClient2.getSharers().size());
+        assertEquals("Sharer's name should be user2", USERNAME_2, file1ObjectClient2.getSharers().iterator().next().getUsername());
+        assertEquals("Two sharing history entries should be present (share & unshare)", 2, file1ObjectClient2.getSharers().iterator().next().getSharingHistory().size());
+        assertEquals("Sharer's access type should be revoked", AccessType.ACCESS_REMOVED, file1ObjectClient2.getSharers().iterator().next().getAccessType());
+        assertEquals("PathType should be file", PathType.FILE, file1ObjectClient2.getPathType());
+        assertEquals("Only one version should be contained", 1, file1ObjectClient2.getVersions().size());
+
+
+        System.err.println("Waiting, that unsharing is also propagated to client4");
+        Thread.sleep(60000L);
+        assertFalse("TestFile1 should not exist anymore on client4", Files.exists(expectedTestFile12));
+        // check that no conflict file was created
+        assertEquals("No file should be contained in the test dir", 0, expectedTestDir.toFile().listFiles().length);
+        // check object stores
+        file2Object = OBJECT_STORE_3.getObjectManager().getObjectForPath(Config.DEFAULT.getSharedWithOthersReadWriteFolderName() + "/" + TEST_FILE_1);
+        assertNotNull("Pathobject for testFile1 should not be null", file2Object);
+        assertFalse("File should not be shared", file2Object.isShared());
+        assertNull("Owner should be null", file2Object.getOwner());
+        assertNull("AccessType should be null", file2Object.getAccessType());
+        assertThat("No sharer should be inside", file2Object.getSharers(), is(empty()));
+        assertEquals("PathType should be file", PathType.FILE, file2Object.getPathType());
+        assertEquals("Only one version should be contained", 1, file2Object.getVersions().size());
+
+        file2Object = OBJECT_STORE_4.getObjectManager().getObjectForPath(Config.DEFAULT.getSharedWithOthersReadWriteFolderName() + "/" + TEST_FILE_1);
+        assertNotNull("Pathobject for testFile1 should not be null", file2Object);
+        assertFalse("File should not be shared", file2Object.isShared());
+        assertNull("Owner should be null", file2Object.getOwner());
+        assertNull("AccessType should be null", file2Object.getAccessType());
+        assertThat("No sharer should be inside", file2Object.getSharers(), is(empty()));
+        assertEquals("PathType should be file", PathType.FILE, file2Object.getPathType());
+        assertEquals("Only one version should be contained", 1, file2Object.getVersions().size());
+
+
+        // finally unshare the directory
+        sharingSyncer.sync(unshareEvent3);
+        assertFalse("TestDir should not exist anymore on client3", Files.exists(expectedTestDir));
+
+        PathObject dirObjectClient1 = OBJECT_STORE_1.getObjectManager().getObjectForPath(TEST_DIR.toString());
+        assertNotNull("Pathobject for testdir should not be null", dirObjectClient1);
+        assertFalse("File should not be shared", dirObjectClient1.isShared());
+        assertNull("Owner should be null", dirObjectClient1.getOwner());
+        assertNull("AccessType should be null", dirObjectClient1.getAccessType());
+        assertEquals("One sharer should be inside", 1, dirObjectClient1.getSharers().size());
+        assertEquals("Sharer's name should be user2", USERNAME_2, dirObjectClient1.getSharers().iterator().next().getUsername());
+        assertEquals("Two sharing history entries should be present (share & unshare)", 2, dirObjectClient1.getSharers().iterator().next().getSharingHistory().size());
+        assertEquals("Sharer's access type should be revoked", AccessType.ACCESS_REMOVED, dirObjectClient1.getSharers().iterator().next().getAccessType());
+        assertEquals("PathType should be dir", PathType.DIRECTORY, dirObjectClient1.getPathType());
+        assertEquals("Only one version should be contained", 1, dirObjectClient1.getVersions().size());
+
+        PathObject dirObjectClient2 = OBJECT_STORE_2.getObjectManager().getObjectForPath(TEST_DIR.toString());
+        assertNotNull("Pathobject for testdir should not be null", dirObjectClient2);
+        assertFalse("File should not be shared", dirObjectClient2.isShared());
+        assertNull("Owner should be null", dirObjectClient2.getOwner());
+        assertNull("AccessType should be null", dirObjectClient2.getAccessType());
+        assertEquals("One sharer should be inside", 1, dirObjectClient2.getSharers().size());
+        assertEquals("Sharer's name should be user2", USERNAME_2, dirObjectClient2.getSharers().iterator().next().getUsername());
+        assertEquals("Two sharing history entries should be present (share & unshare)", 2, dirObjectClient2.getSharers().iterator().next().getSharingHistory().size());
+        assertEquals("Sharer's access type should be revoked", AccessType.ACCESS_REMOVED, dirObjectClient2.getSharers().iterator().next().getAccessType());
+        assertEquals("PathType should be dir", PathType.DIRECTORY, dirObjectClient2.getPathType());
+        assertEquals("Only one version should be contained", 1, dirObjectClient2.getVersions().size());
+
+
+        System.err.println("Waiting, that unsharing is also propagated to client4");
+        Thread.sleep(60000L);
+        assertFalse("TestDir should not exist anymore on client4", Files.exists(expectedTestDir2));
+        // check that no conflict file was created
+        assertEquals("No file should be contained inside the root test dir", 0, ROOT_TEST_DIR4.resolve(Config.DEFAULT.getSharedWithOthersReadWriteFolderName()).toFile().listFiles().length);
+        // check object stores
+        file2Object = OBJECT_STORE_3.getObjectManager().getObjectForPath(Config.DEFAULT.getSharedWithOthersReadWriteFolderName() + "/" + TEST_DIR);
+        assertNotNull("Pathobject for test dir should not be null", file2Object);
+        assertFalse("File should not be shared", file2Object.isShared());
+        assertNull("Owner should be null", file2Object.getOwner());
+        assertNull("AccessType should be null", file2Object.getAccessType());
+        assertThat("No sharer should be inside", file2Object.getSharers(), is(empty()));
+        assertEquals("PathType should be dir", PathType.DIRECTORY, file2Object.getPathType());
+        assertEquals("Only five version should be contained (empty, file1, file2, file1, empty)", 5, file2Object.getVersions().size());
+
+        file2Object = OBJECT_STORE_4.getObjectManager().getObjectForPath(Config.DEFAULT.getSharedWithOthersReadWriteFolderName() + "/" + TEST_DIR);
+        assertNotNull("Pathobject for test dir should not be null", file2Object);
+        assertFalse("File should not be shared", file2Object.isShared());
+        assertNull("Owner should be null", file2Object.getOwner());
+        assertNull("AccessType should be null", file2Object.getAccessType());
+        assertThat("No sharer should be inside", file2Object.getSharers(), is(empty()));
+        assertEquals("PathType should be dir", PathType.DIRECTORY, file2Object.getPathType());
+        assertEquals("Only five version should be contained (empty, file1, file2, file1, empty)", 5, file2Object.getVersions().size());
     }
 }
