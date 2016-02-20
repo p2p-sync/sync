@@ -1,11 +1,8 @@
 package org.rmatil.sync.core.messaging.fileexchange.offer;
 
 import net.engio.mbassy.bus.MBassador;
-import org.rmatil.sync.commons.path.Naming;
 import org.rmatil.sync.core.ConflictHandler;
-import org.rmatil.sync.core.eventbus.CreateBusEvent;
 import org.rmatil.sync.core.eventbus.IBusEvent;
-import org.rmatil.sync.core.eventbus.IgnoreBusEvent;
 import org.rmatil.sync.core.init.client.ILocalStateRequestCallback;
 import org.rmatil.sync.core.messaging.StatusCode;
 import org.rmatil.sync.core.security.IAccessManager;
@@ -18,7 +15,6 @@ import org.rmatil.sync.network.api.IRequest;
 import org.rmatil.sync.network.api.IResponse;
 import org.rmatil.sync.network.core.model.ClientDevice;
 import org.rmatil.sync.network.core.model.NodeLocation;
-import org.rmatil.sync.persistence.api.IFileMetaInfo;
 import org.rmatil.sync.persistence.api.IStorageAdapter;
 import org.rmatil.sync.persistence.api.StorageType;
 import org.rmatil.sync.persistence.core.local.LocalPathElement;
@@ -31,8 +27,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.List;
+import java.util.UUID;
 
 /**
  * Handles an incoming {@link FileOfferRequest} by checking whether a file on the same
@@ -154,13 +150,25 @@ public class FileOfferRequestHandler implements ILocalStateRequestCallback {
                             CONFLICT_TYPE hasVersionConflict = this.hasVersionConflict(pathElement);
                             if (CONFLICT_TYPE.CONFLICT == hasVersionConflict) {
                                 statusCode = StatusCode.CONFLICT;
-                                ConflictHandler.createConflictFile(
+                                Path conflictFile = ConflictHandler.createConflictFile(
                                         this.globalEventBus,
                                         this.node.getClientDeviceId().toString(),
                                         this.objectStore,
                                         this.storageAdapter,
                                         pathElement
                                 );
+
+                                // move element in the IdentifierManager too
+                                UUID fileId = this.node.getIdentifierManager().getValue(pathElement.getPath());
+                                try {
+                                    if (null != conflictFile && null != fileId) {
+                                        this.node.getIdentifierManager().removeIdentifier(pathElement.getPath());
+                                        this.node.getIdentifierManager().addIdentifier(conflictFile.toString(), fileId);
+                                    }
+                                } catch (InputOutputException e) {
+                                    logger.error("Failed to move conflicting file with id " + fileId + " on path " + pathElement.getPath() + " to new path too. Message: " + e.getMessage());
+                                }
+
                             } else if (CONFLICT_TYPE.NO_CONFLICT_REQUEST_REQUIRED == hasVersionConflict) {
                                 statusCode = StatusCode.ACCEPTED;
                             } else {

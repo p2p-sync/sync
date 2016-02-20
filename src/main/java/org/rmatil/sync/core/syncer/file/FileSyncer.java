@@ -33,6 +33,7 @@ import org.rmatil.sync.version.api.IObjectStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -197,13 +198,26 @@ public class FileSyncer implements IFileSyncer {
 
         if (hasConflictDetected) {
             // all clients will have to check again for the conflict file
-            ConflictHandler.createConflictFile(
+            Path conflictFile = ConflictHandler.createConflictFile(
                     this.globalEventBus,
                     this.clientDevice.getClientDeviceId().toString(),
                     this.objectStore,
                     this.storageAdapter,
                     new LocalPathElement(event.getPath().toString())
             );
+
+            // move element in the IdentifierManager too
+            UUID fileId = null;
+            try {
+                fileId = this.node.getIdentifierManager().getValue(event.getPath().toString());
+                if (null != conflictFile && null != fileId) {
+                    this.node.getIdentifierManager().removeIdentifier(event.getPath().toString());
+                    this.node.getIdentifierManager().addIdentifier(conflictFile.toString(), fileId);
+                }
+            } catch (InputOutputException e) {
+                logger.error("Failed to move conflicting file with id " + fileId + " on path " + event.getPath().toString() + " to new path too. Message: " + e.getMessage());
+            }
+
             return;
         }
 

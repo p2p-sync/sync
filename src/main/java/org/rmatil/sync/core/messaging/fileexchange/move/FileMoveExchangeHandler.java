@@ -13,6 +13,7 @@ import org.rmatil.sync.network.core.model.ClientDevice;
 import org.rmatil.sync.network.core.model.NodeLocation;
 import org.rmatil.sync.persistence.api.IStorageAdapter;
 import org.rmatil.sync.persistence.core.local.LocalPathElement;
+import org.rmatil.sync.persistence.exceptions.InputOutputException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -65,6 +66,16 @@ public class FileMoveExchangeHandler extends ANetworkHandler<FileMoveExchangeHan
                     clientCounter--;
                     break;
                 }
+            }
+
+            // TODO: move path for file ID too if it exists...
+            // move element in the IdentifierManager too
+            UUID fileId = this.node.getIdentifierManager().getValue(this.moveEvent.getPath().toString());
+            try {
+                this.node.getIdentifierManager().removeIdentifier(this.moveEvent.getPath().toString());
+                this.node.getIdentifierManager().addIdentifier(this.moveEvent.getNewPath().toString(), fileId);
+            } catch (InputOutputException e) {
+                logger.error("Failed to move file with id " + fileId + " on path " + this.moveEvent.getPath().toString() + " to new path too. Message: " + e.getMessage());
             }
 
             this.moveCountDownLatch = new CountDownLatch(clientCounter);
