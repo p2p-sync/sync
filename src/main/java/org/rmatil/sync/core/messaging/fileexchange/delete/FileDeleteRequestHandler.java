@@ -18,12 +18,14 @@ import org.rmatil.sync.persistence.core.local.LocalPathElement;
 import org.rmatil.sync.persistence.exceptions.InputOutputException;
 import org.rmatil.sync.version.api.AccessType;
 import org.rmatil.sync.version.api.IObjectStore;
+import org.rmatil.sync.version.core.model.PathObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.HashSet;
 import java.util.stream.Stream;
 
 /**
@@ -116,14 +118,30 @@ public class FileDeleteRequestHandler implements ILocalStateRequestCallback {
                 if (this.storageAdapter.exists(StorageType.DIRECTORY, pathToDelete) || this.storageAdapter.exists(StorageType.FILE, pathToDelete)) {
                     // create ignore events for all dir contents
                     try (Stream<Path> paths = Files.walk(this.storageAdapter.getRootDir().resolve(pathToDelete.getPath()))) {
-                        paths.forEach((entry) -> this.globalEventBus.publish(new IgnoreBusEvent(
-                                new DeleteEvent(
-                                        this.storageAdapter.getRootDir().relativize(entry),
-                                        this.storageAdapter.getRootDir().relativize(entry).getFileName().toString(),
-                                        "weIgnoreTheHash",
-                                        System.currentTimeMillis()
-                                )
-                        )));
+                        paths.forEach((entry) -> {
+                            this.globalEventBus.publish(new IgnoreBusEvent(
+                                    new DeleteEvent(
+                                            this.storageAdapter.getRootDir().relativize(entry),
+                                            this.storageAdapter.getRootDir().relativize(entry).getFileName().toString(),
+                                            "weIgnoreTheHash",
+                                            System.currentTimeMillis()
+                                    )
+                            ));
+
+                            try {
+                                logger.trace("Removing sharing information from object store for file " + entry + " and exchange " + this.request.getExchangeId());
+                                // remove all connections to any sharers
+                                PathObject deletedObject = this.objectStore.getObjectManager().getObjectForPath(this.storageAdapter.getRootDir().relativize(entry).toString());
+                                deletedObject.setSharers(new HashSet<>());
+                                deletedObject.setIsShared(false);
+                                deletedObject.setAccessType(null);
+                                deletedObject.setOwner(null);
+
+                                this.objectStore.getObjectManager().writeObject(deletedObject);
+                            } catch (InputOutputException e) {
+                                logger.error("Failed to remove sharing information from object store: " + e.getMessage());
+                            }
+                        });
                     } catch (IOException e) {
                         logger.error("Could not create ignore events for the deletion of " + this.request.getPathToDelete() + ". Message: " + e.getMessage());
                     }
