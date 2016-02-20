@@ -142,30 +142,48 @@ public class ObjectStoreFileChangeListener implements IEventListener {
 
             // add sharers to the file, if there should be any
             synchronized (this.sharerToAdd) {
+                logger.trace("Looking for sharers to add to file " + event.getPath().toString());
+
                 Set<Sharer> sharers = this.sharerToAdd.get(event.getPath().toString());
-                if (null != sharers) {
+                // set the sharers only if not a delete event, since all sharers should be removed then
+                if (null != sharers && ! sharers.isEmpty() && ! (event instanceof DeleteEvent)) {
+                    logger.trace("Adding " + sharers.size() + " sharers to file " + event.getPath().toString());
+
                     try {
                         this.setSharers(event.getPath().toString(), sharers);
+                        // remove all sharers
+                        this.sharerToAdd.get(event.getPath().toString()).clear();
                     } catch (InputOutputException e) {
                         logger.error("Failed to write sharers for file " + event.getPath().toString() + ". Message: " + e.getMessage(), e);
                     }
+                } else if (null != sharers && ! sharers.isEmpty() && (event instanceof DeleteEvent)) {
+                    logger.trace("Removing sharers to add due to a delete event for file " + event.getPath().toString());
+                    // remove all sharers
+                    this.sharerToAdd.get(event.getPath().toString()).clear();
                 }
             }
 
             synchronized (this.ownersToAdd) {
-                AddOwnerAndAccessTypeToObjectStoreBusEvent addOwnerAndAccessTypeToObjectStoreBusEvent = this.ownersToAdd.get(event.getPath().toString());
-                if (null != addOwnerAndAccessTypeToObjectStoreBusEvent) {
+                logger.trace("Looking for owner and access type to add to file " + event.getPath().toString());
 
+                AddOwnerAndAccessTypeToObjectStoreBusEvent addOwnerAndAccessTypeToObjectStoreBusEvent = this.ownersToAdd.get(event.getPath().toString());
+                if (null != addOwnerAndAccessTypeToObjectStoreBusEvent && ! (event instanceof DeleteEvent)) {
+                    logger.trace("Adding owner and access type to file " + event.getPath().toString());
                     try {
                         this.setOwnerAndAccessType(
                                 addOwnerAndAccessTypeToObjectStoreBusEvent.getRelativeFilePath(),
                                 addOwnerAndAccessTypeToObjectStoreBusEvent.getOwner(),
                                 addOwnerAndAccessTypeToObjectStoreBusEvent.getAccessType()
                         );
+
+                        // remove entry
+                        this.ownersToAdd.remove(event.getPath().toString());
                     } catch (InputOutputException e) {
                         logger.error("Failed to write owner and access type for file " + event.getPath().toString() + ". Message: " + e.getMessage(), e);
                     }
-
+                } else if (null != addOwnerAndAccessTypeToObjectStoreBusEvent && (event instanceof DeleteEvent)) {
+                    logger.trace("Removing owner and access type to add due to a delete event for file " + event.getPath().toString());
+                    this.ownersToAdd.remove(event.getPath().toString());
                 }
             }
         }
