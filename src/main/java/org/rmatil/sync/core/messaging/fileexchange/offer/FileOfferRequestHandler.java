@@ -116,10 +116,9 @@ public class FileOfferRequestHandler implements ILocalStateRequestCallback {
     public void run() {
         try {
             LocalPathElement pathElement;
-            if (null != this.request.getOwner() &&
-                    this.node.getUser().getUserName().equals(this.request.getOwner()) &&
+            if ((null != this.request.getOwner() && this.node.getUser().getUserName().equals(this.request.getOwner())) ||
                     null != this.request.getFileId()) {
-                // we have to use our path
+                // we have to use our path: if we are either the owner or a sharer
                 pathElement = new LocalPathElement(this.node.getIdentifierManager().getKey(this.request.getFileId()));
             } else {
                 pathElement = new LocalPathElement(this.request.getEvent().getPath());

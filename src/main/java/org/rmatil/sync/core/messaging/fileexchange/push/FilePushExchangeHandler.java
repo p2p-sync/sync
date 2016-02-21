@@ -17,6 +17,7 @@ import org.rmatil.sync.persistence.core.local.LocalPathElement;
 import org.rmatil.sync.persistence.exceptions.InputOutputException;
 import org.rmatil.sync.version.api.AccessType;
 import org.rmatil.sync.version.api.IObjectStore;
+import org.rmatil.sync.version.core.model.PathObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -256,13 +257,24 @@ public class FilePushExchangeHandler extends ANetworkHandler<FilePushExchangeHan
         // check whether the chunk counter has changed
         StatusCode statusCode = (chunkCounter == chunk.getChunkCounter()) ? StatusCode.NONE : StatusCode.FILE_CHANGED;
 
+        // check whether we got access to the file
         UUID fileId = null;
-        if (null != chunk.getOwner()) {
-            try {
-                fileId = this.node.getIdentifierManager().getValue(this.relativeFilePath);
-            } catch (InputOutputException e) {
-                logger.error("Failed to get file id for " + this.relativeFilePath + ". Message: " + e.getMessage());
+        String owner = null;
+        try {
+            PathObject pathObject = this.objectStore.getObjectManager().getObjectForPath(this.relativeFilePath);
+            // if we are not the owner but have access to the file
+            if (null != pathObject.getOwner() &&
+                    ! this.node.getUser().getUserName().equals(pathObject.getOwner()) &&
+                    AccessType.WRITE.equals(pathObject.getAccessType())) {
+                try {
+                    fileId = this.node.getIdentifierManager().getValue(this.relativeFilePath);
+                    owner = pathObject.getOwner();
+                } catch (InputOutputException e) {
+                    logger.error("Failed to get file id for " + this.relativeFilePath + ". Message: " + e.getMessage());
+                }
             }
+        } catch (InputOutputException e) {
+            logger.error("Failed to read path object for " + this.relativeFilePath + ". Message: " + e.getMessage());
         }
 
         IRequest request = new FilePushRequest(
@@ -271,7 +283,7 @@ public class FilePushExchangeHandler extends ANetworkHandler<FilePushExchangeHan
                 this.clientDevice,
                 chunk.getChecksum(),
                 fileId,
-                chunk.getOwner(),
+                owner,
                 chunk.getAccessType(),
                 chunk.getSharers(),
                 this.relativeFilePath,

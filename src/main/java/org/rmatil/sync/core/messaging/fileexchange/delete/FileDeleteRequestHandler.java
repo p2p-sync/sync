@@ -106,10 +106,9 @@ public class FileDeleteRequestHandler implements ILocalStateRequestCallback {
             logger.info("Deleting path on " + this.request.getPathToDelete());
 
             LocalPathElement pathToDelete;
-            if (null != this.request.getOwner() &&
-                    this.node.getUser().getUserName().equals(this.request.getOwner()) &&
+            if ((null != this.request.getOwner() && this.node.getUser().getUserName().equals(this.request.getOwner())) ||
                     null != this.request.getFileId()) {
-                // we have to use our path
+                // we have to use our path: if we are either the owner or a sharer
                 pathToDelete = new LocalPathElement(this.node.getIdentifierManager().getKey(this.request.getFileId()));
             } else {
                 pathToDelete = new LocalPathElement(this.request.getPathToDelete());
