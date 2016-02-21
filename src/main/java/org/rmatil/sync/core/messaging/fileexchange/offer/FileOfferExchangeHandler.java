@@ -169,19 +169,27 @@ public class FileOfferExchangeHandler extends ANetworkHandler<FileOfferExchangeH
                 return;
             }
 
+            // send changes back to owner too, if we have write access
+            // and the owner is not the user from this client
+            if (null != pathObject.getOwner() &&
+                    ! this.node.getUser().getUserName().equals(pathObject.getOwner()) &&
+                    AccessType.WRITE.equals(pathObject.getAccessType())) {
+                // we got write permissions, so we send the changes also back to the original owner of the file
+                try {
+                    List<NodeLocation> ownerLocations = this.nodeManager.getNodeLocations(pathObject.getOwner());
+
+                    // only add one client of the owner. He may propagate the change then
+                    // to his own clients. Conflicts get detected there, if any
+                    if (! ownerLocations.isEmpty()) {
+                        clientLocations.add(ownerLocations.get(0));
+                    }
+                    
+                } catch (InputOutputException e) {
+                    logger.error("Could not fetch client locations of owner " + pathObject.getOwner() + " for file " + pathObject.getAbsolutePath() + ". Will therefore skip to notify his clients.");
+                }
+            }
 
             if (pathObject.isShared()) {
-                // send changes back to owner too, if we have write access
-                // and the owner is not the user from this client
-                if (! this.node.getUser().getUserName().equals(pathObject.getOwner()) && AccessType.WRITE.equals(pathObject.getAccessType())) {
-                    // we got write permissions, so we send the changes also back to the original owner of the file
-                    try {
-                        clientLocations.addAll(this.nodeManager.getNodeLocations(pathObject.getOwner()));
-                    } catch (InputOutputException e) {
-                        logger.error("Could not fetch client locations of owner " + pathObject.getOwner() + " for file " + pathObject.getAbsolutePath() + ". Will therefore skip to notify his clients.");
-                    }
-                }
-
                 for (Sharer entry : pathObject.getSharers()) {
                     try {
                         // ask sharer's clients to get the changes too
