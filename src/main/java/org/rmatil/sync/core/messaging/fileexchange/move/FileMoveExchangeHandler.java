@@ -41,6 +41,8 @@ public class FileMoveExchangeHandler extends ANetworkHandler<FileMoveExchangeHan
 
     protected CountDownLatch moveCountDownLatch;
 
+    protected CountDownLatch initReceiverLatch;
+
     protected List<NodeLocation> receivers;
 
     protected int clientCounter;
@@ -54,6 +56,7 @@ public class FileMoveExchangeHandler extends ANetworkHandler<FileMoveExchangeHan
         this.globalEventBus = globalEventBus;
         this.receivers = receivers;
         this.moveEvent = moveEvent;
+        this.initReceiverLatch = new CountDownLatch(1);
     }
 
     @Override
@@ -81,6 +84,7 @@ public class FileMoveExchangeHandler extends ANetworkHandler<FileMoveExchangeHan
             }
 
             this.moveCountDownLatch = new CountDownLatch(this.clientCounter);
+            this.initReceiverLatch.countDown();
 
             for (NodeLocation location : this.receivers) {
                 UUID uuid = UUID.randomUUID();
@@ -142,6 +146,9 @@ public class FileMoveExchangeHandler extends ANetworkHandler<FileMoveExchangeHan
             super.await();
         }
 
+        // wait for receivers to be initialised
+        this.initReceiverLatch.await();
+
         this.moveCountDownLatch.await(MAX_WAITING_TIME, TimeUnit.MILLISECONDS);
     }
 
@@ -152,6 +159,9 @@ public class FileMoveExchangeHandler extends ANetworkHandler<FileMoveExchangeHan
         if (this.clientCounter > 0) {
             super.await(timeout, timeUnit);
         }
+
+        // wait for receivers to be initialised
+        this.initReceiverLatch.await(timeout, timeUnit);
 
         this.moveCountDownLatch.await(MAX_WAITING_TIME, TimeUnit.MILLISECONDS);
     }

@@ -93,6 +93,13 @@ public class FilePushExchangeHandler extends ANetworkHandler<FilePushExchangeHan
      */
     protected int clientCounter;
 
+    /**
+     * The countdown latch which is completed
+     * once the list with all receivers is initialised
+     */
+    protected CountDownLatch initReceiverLatch;
+
+
     public FilePushExchangeHandler(UUID exchangeId, ClientDevice clientDevice, IStorageAdapter storageAdapter, INodeManager nodeManager, INode client, IObjectStore objectStore, List<NodeLocation> receivers, String relativeFilePath) {
         super(client);
         this.clientDevice = clientDevice;
@@ -102,7 +109,7 @@ public class FilePushExchangeHandler extends ANetworkHandler<FilePushExchangeHan
         this.objectStore = objectStore;
         this.receivers = receivers;
         this.relativeFilePath = relativeFilePath;
-
+        this.initReceiverLatch = new CountDownLatch(1);
         this.chunkProvider = new ChunkProvider(
                 this.storageAdapter,
                 this.objectStore,
@@ -123,6 +130,7 @@ public class FilePushExchangeHandler extends ANetworkHandler<FilePushExchangeHan
             }
 
             this.chunkCountDownLatch = new CountDownLatch(this.clientCounter);
+            this.initReceiverLatch.countDown();
 
             // check, whether there is a fileId already present,
             // e.g. made in an earlier push request (or on another client)
@@ -185,6 +193,9 @@ public class FilePushExchangeHandler extends ANetworkHandler<FilePushExchangeHan
             super.await();
         }
 
+        // wait for receivers to be initialised
+        this.initReceiverLatch.await();
+
         this.chunkCountDownLatch.await(MAX_FILE_WAITNG_TIME, TimeUnit.MILLISECONDS);
     }
 
@@ -195,6 +206,9 @@ public class FilePushExchangeHandler extends ANetworkHandler<FilePushExchangeHan
         if (this.clientCounter > 0) {
             super.await(timeout, timeUnit);
         }
+
+        // wait for receivers to be initialised
+        this.initReceiverLatch.await(timeout, timeUnit);
 
         this.chunkCountDownLatch.await(timeout, timeUnit);
     }
@@ -242,21 +256,21 @@ public class FilePushExchangeHandler extends ANetworkHandler<FilePushExchangeHan
         // check whether the chunk counter has changed
         StatusCode statusCode = (chunkCounter == chunk.getChunkCounter()) ? StatusCode.NONE : StatusCode.FILE_CHANGED;
 
-	UUID fileId = null;
-	if (null != chunk.getOwner()) {
-	    try {
-		fileId = this.node.getIdentifierManager().getValue(this.relativeFilePath);
-	    } catch (InputOutputException e) {
-		logger.error("Failed to get file id for " + this.relativeFilePath + ". Message: " + e.getMessage());
-	    }
-	}
+        UUID fileId = null;
+        if (null != chunk.getOwner()) {
+            try {
+                fileId = this.node.getIdentifierManager().getValue(this.relativeFilePath);
+            } catch (InputOutputException e) {
+                logger.error("Failed to get file id for " + this.relativeFilePath + ". Message: " + e.getMessage());
+            }
+        }
 
         IRequest request = new FilePushRequest(
                 exchangeId,
                 statusCode,
                 this.clientDevice,
                 chunk.getChecksum(),
-		fileId,
+                fileId,
                 chunk.getOwner(),
                 chunk.getAccessType(),
                 chunk.getSharers(),
