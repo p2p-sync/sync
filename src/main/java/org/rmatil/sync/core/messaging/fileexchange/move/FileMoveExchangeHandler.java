@@ -43,6 +43,8 @@ public class FileMoveExchangeHandler extends ANetworkHandler<FileMoveExchangeHan
 
     protected List<NodeLocation> receivers;
 
+    protected int clientCounter;
+
     public FileMoveExchangeHandler(UUID exchangeId, ClientDevice clientDevice, IStorageAdapter storageAdapter, INodeManager nodeManager, INode client, MBassador<IBusEvent> globalEventBus, List<NodeLocation> receivers, MoveEvent moveEvent) {
         super(client);
         this.exchangeId = exchangeId;
@@ -60,10 +62,10 @@ public class FileMoveExchangeHandler extends ANetworkHandler<FileMoveExchangeHan
             boolean isFile = this.storageAdapter.isFile(new LocalPathElement(this.moveEvent.getNewPath().toString()));
 
             // check whether the own client is also in the list (should be usually, but you never know...)
-            int clientCounter = this.receivers.size();
+            this.clientCounter = this.receivers.size();
             for (NodeLocation location : this.receivers) {
                 if (location.getPeerAddress().equals(this.node.getPeerAddress())) {
-                    clientCounter--;
+                    this.clientCounter--;
                     break;
                 }
             }
@@ -78,7 +80,7 @@ public class FileMoveExchangeHandler extends ANetworkHandler<FileMoveExchangeHan
                 logger.error("Failed to move file with id " + fileId + " on path " + this.moveEvent.getPath().toString() + " to new path too. Message: " + e.getMessage());
             }
 
-            this.moveCountDownLatch = new CountDownLatch(clientCounter);
+            this.moveCountDownLatch = new CountDownLatch(this.clientCounter);
 
             for (NodeLocation location : this.receivers) {
                 UUID uuid = UUID.randomUUID();
@@ -135,14 +137,22 @@ public class FileMoveExchangeHandler extends ANetworkHandler<FileMoveExchangeHan
     @Override
     public void await()
             throws InterruptedException {
-        super.await();
+        // only wait for parent if we actually have sent a request
+        if (this.clientCounter > 0) {
+            super.await();
+        }
+
         this.moveCountDownLatch.await(MAX_WAITING_TIME, TimeUnit.MILLISECONDS);
     }
 
     @Override
     public void await(long timeout, TimeUnit timeUnit)
             throws InterruptedException {
-        super.await();
+        // only wait for parent if we actually have sent a request
+        if (this.clientCounter > 0) {
+            super.await(timeout, timeUnit);
+        }
+
         this.moveCountDownLatch.await(MAX_WAITING_TIME, TimeUnit.MILLISECONDS);
     }
 

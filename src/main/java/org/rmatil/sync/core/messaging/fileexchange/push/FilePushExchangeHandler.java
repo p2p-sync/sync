@@ -88,6 +88,11 @@ public class FilePushExchangeHandler extends ANetworkHandler<FilePushExchangeHan
      */
     protected ChunkProvider chunkProvider;
 
+    /**
+     * The number of clients to which the exchange was sent to
+     */
+    protected int clientCounter;
+
     public FilePushExchangeHandler(UUID exchangeId, ClientDevice clientDevice, IStorageAdapter storageAdapter, INodeManager nodeManager, INode client, IObjectStore objectStore, List<NodeLocation> receivers, String relativeFilePath) {
         super(client);
         this.clientDevice = clientDevice;
@@ -109,15 +114,15 @@ public class FilePushExchangeHandler extends ANetworkHandler<FilePushExchangeHan
     public void run() {
         try {
             // check whether the own client is also in the list (should be usually, but you never know...)
-            int clientCounter = this.receivers.size();
+            this.clientCounter = this.receivers.size();
             for (NodeLocation location : this.receivers) {
                 if (location.getPeerAddress().equals(this.node.getPeerAddress())) {
-                    clientCounter--;
+                    this.clientCounter--;
                     break;
                 }
             }
 
-            this.chunkCountDownLatch = new CountDownLatch(clientCounter);
+            this.chunkCountDownLatch = new CountDownLatch(this.clientCounter);
 
             // check, whether there is a fileId already present,
             // e.g. made in an earlier push request (or on another client)
@@ -175,14 +180,22 @@ public class FilePushExchangeHandler extends ANetworkHandler<FilePushExchangeHan
     @Override
     public void await()
             throws InterruptedException {
-        super.await();
+        // only wait for parent if we actually have sent a request
+        if (this.clientCounter > 0) {
+            super.await();
+        }
+
         this.chunkCountDownLatch.await(MAX_FILE_WAITNG_TIME, TimeUnit.MILLISECONDS);
     }
 
     @Override
     public void await(long timeout, TimeUnit timeUnit)
             throws InterruptedException {
-        super.await(timeout, timeUnit);
+        // only wait for parent if we actually have sent a request
+        if (this.clientCounter > 0) {
+            super.await(timeout, timeUnit);
+        }
+
         this.chunkCountDownLatch.await(timeout, timeUnit);
     }
 
