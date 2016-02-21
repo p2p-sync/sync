@@ -16,6 +16,7 @@ import org.rmatil.sync.persistence.exceptions.InputOutputException;
 import org.rmatil.sync.version.api.AccessType;
 import org.rmatil.sync.version.api.IObjectStore;
 import org.rmatil.sync.version.core.model.PathObject;
+import org.rmatil.sync.version.core.model.Sharer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -136,6 +137,25 @@ public class FileDeleteExchangeHandler extends ANetworkHandler<FileDeleteExchang
 
                 } catch (InputOutputException e) {
                     logger.error("Could not fetch file id for file " + deletedPath.getAbsolutePath() + ". Message: " + e.getMessage());
+                }
+            }
+
+            // add file id also if the path is shared
+            if (deletedPath.isShared()) {
+                for (Sharer entry : deletedPath.getSharers()) {
+                    try {
+                        // ask sharer's clients to get the changes too
+                        List<NodeLocation> sharerLocations = this.nodeManager.getNodeLocations(entry.getUsername());
+
+                        // only add one client of the sharer. He may propagate the change then
+                        // to his clients, and if a conflict occurs, there will be a new file
+                        if (! sharerLocations.isEmpty()) {
+                            fileId = super.node.getIdentifierManager().getValue(deletedPath.getAbsolutePath());
+                            this.receivers.add(sharerLocations.get(0));
+                        }
+                    } catch (InputOutputException e) {
+                        logger.error("Could not get client locations of sharer " + entry.getUsername() + ". Skipping this sharer's clients");
+                    }
                 }
             }
 

@@ -18,6 +18,7 @@ import org.rmatil.sync.persistence.exceptions.InputOutputException;
 import org.rmatil.sync.version.api.AccessType;
 import org.rmatil.sync.version.api.IObjectStore;
 import org.rmatil.sync.version.core.model.PathObject;
+import org.rmatil.sync.version.core.model.Sharer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -271,6 +272,25 @@ public class FilePushExchangeHandler extends ANetworkHandler<FilePushExchangeHan
                     owner = pathObject.getOwner();
                 } catch (InputOutputException e) {
                     logger.error("Failed to get file id for " + this.relativeFilePath + ". Message: " + e.getMessage());
+                }
+            }
+
+            // add file id also if the path is shared
+            if (pathObject.isShared()) {
+                for (Sharer entry : pathObject.getSharers()) {
+                    try {
+                        // ask sharer's clients to get the changes too
+                        List<NodeLocation> sharerLocations = this.nodeManager.getNodeLocations(entry.getUsername());
+
+                        // only add one client of the sharer. He may propagate the change then
+                        // to his clients, and if a conflict occurs, there will be a new file
+                        if (! sharerLocations.isEmpty()) {
+                            fileId = super.node.getIdentifierManager().getValue(pathObject.getAbsolutePath());
+                            this.receivers.add(sharerLocations.get(0));
+                        }
+                    } catch (InputOutputException e) {
+                        logger.error("Could not get client locations of sharer " + entry.getUsername() + ". Skipping this sharer's clients");
+                    }
                 }
             }
         } catch (InputOutputException e) {

@@ -203,6 +203,7 @@ public class FileOfferExchangeHandler extends ANetworkHandler<FileOfferExchangeH
                         // only add one client of the sharer. He may propagate the change then
                         // to his clients, and if a conflict occurs, there will be a new file
                         if (! sharerLocations.isEmpty()) {
+                            fileId = super.node.getIdentifierManager().getValue(pathToCheck);
                             clientLocations.add(sharerLocations.get(0));
                         }
                     } catch (InputOutputException e) {
