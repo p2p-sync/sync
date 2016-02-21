@@ -242,11 +242,21 @@ public class FilePushExchangeHandler extends ANetworkHandler<FilePushExchangeHan
         // check whether the chunk counter has changed
         StatusCode statusCode = (chunkCounter == chunk.getChunkCounter()) ? StatusCode.NONE : StatusCode.FILE_CHANGED;
 
+	UUID fileId = null;
+	if (null != chunk.getOwner()) {
+	    try {
+		fileId = this.node.getIdentifierManager().getValue(this.relativeFilePath);
+	    } catch (InputOutputException e) {
+		logger.error("Failed to get file id for " + this.relativeFilePath + ". Message: " + e.getMessage());
+	    }
+	}
+
         IRequest request = new FilePushRequest(
                 exchangeId,
                 statusCode,
                 this.clientDevice,
                 chunk.getChecksum(),
+		fileId,
                 chunk.getOwner(),
                 chunk.getAccessType(),
                 chunk.getSharers(),

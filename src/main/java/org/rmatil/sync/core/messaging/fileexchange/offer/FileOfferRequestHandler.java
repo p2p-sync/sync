@@ -115,13 +115,21 @@ public class FileOfferRequestHandler implements ILocalStateRequestCallback {
     @Override
     public void run() {
         try {
-            if (! this.node.getUser().getUserName().equals(this.request.getClientDevice().getUserName()) && ! this.accessManager.hasAccess(this.request.getClientDevice().getUserName(), AccessType.WRITE, this.request.getEvent().getPath())) {
-                logger.warn("Failed to positively return the offer from user " + this.request.getClientDevice().getUserName() + " for file " + this.request.getEvent().getPath() + " due to missing access rights on exchange " + this.request.getExchangeId());
+            LocalPathElement pathElement;
+            if (null != this.request.getOwner() &&
+                    this.node.getUser().getUserName().equals(this.request.getOwner()) &&
+                    null != this.request.getFileId()) {
+                // we have to use our path
+                pathElement = new LocalPathElement(this.node.getIdentifierManager().getKey(this.request.getFileId()));
+            } else {
+                pathElement = new LocalPathElement(this.request.getEvent().getPath());
+            }
+
+            if (! this.node.getUser().getUserName().equals(this.request.getClientDevice().getUserName()) && ! this.accessManager.hasAccess(this.request.getClientDevice().getUserName(), AccessType.WRITE, pathElement.getPath())) {
+                logger.warn("Failed to positively return the offer from user " + this.request.getClientDevice().getUserName() + " for file " + pathElement.getPath() + " due to missing access rights on exchange " + this.request.getExchangeId());
                 this.sendResponse(this.createResponse(StatusCode.ACCESS_DENIED));
                 return;
             }
-
-            LocalPathElement pathElement = new LocalPathElement(this.request.getEvent().getPath());
 
             StatusCode statusCode = StatusCode.ACCEPTED;
 
@@ -134,13 +142,14 @@ public class FileOfferRequestHandler implements ILocalStateRequestCallback {
                             statusCode = StatusCode.ACCEPTED;
                         }
                     } catch (InputOutputException e) {
-                        logger.error("Could not check whether the path " + this.request.getEvent().getPath() + " exists or not. Message: " + e.getMessage() + ". Sending back an unaccepted offer");
+                        logger.error("Could not check whether the path " + pathElement.getPath() + " exists or not. Message: " + e.getMessage() + ". Sending back an unaccepted offer");
                         statusCode = StatusCode.DENIED;
                     }
                     break;
                 case MoveEvent.EVENT_NAME:
                     // TODO: what is intended to be done, if target already exists?
                     // overwrite path element to check with target
+                    // moves are not sent from clients of different users
                     pathElement = new LocalPathElement(this.request.getEvent().getNewPath());
                 case CreateEvent.EVENT_NAME:
                 case ModifyEvent.EVENT_NAME:
@@ -179,7 +188,7 @@ public class FileOfferRequestHandler implements ILocalStateRequestCallback {
                             statusCode = StatusCode.ACCEPTED;
                         }
                     } catch (InputOutputException e) {
-                        logger.error("Could not check whether the file " + this.request.getEvent().getPath() + " exists or not. Message: " + e.getMessage() + ". Sending back a conflict file");
+                        logger.error("Could not check whether the file " + pathElement.getPath() + " exists or not. Message: " + e.getMessage() + ". Sending back a conflict file");
                         statusCode = StatusCode.DENIED;
                     }
                     break;

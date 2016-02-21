@@ -20,6 +20,10 @@ public class FileDeleteRequest extends ARequest {
      */
     protected String pathToDelete;
 
+    protected UUID fileId;
+
+    protected String owner;
+
     /**
      * @param exchangeId        The id of the exchange to which this request belongs
      * @param statusCode        The status code of this request
@@ -27,8 +31,10 @@ public class FileDeleteRequest extends ARequest {
      * @param receiverAddresses All client locations which should receive this request
      * @param pathToDelete      The path which should be deleted
      */
-    public FileDeleteRequest(UUID exchangeId, StatusCode statusCode, ClientDevice clientDevice, List<NodeLocation> receiverAddresses, String pathToDelete) {
+    public FileDeleteRequest(UUID exchangeId, StatusCode statusCode, ClientDevice clientDevice, UUID fileId, String owner, List<NodeLocation> receiverAddresses, String pathToDelete) {
         super(exchangeId, statusCode, clientDevice, receiverAddresses);
+        this.fileId = fileId;
+        this.owner = owner;
         this.pathToDelete = pathToDelete;
     }
 
@@ -40,4 +46,14 @@ public class FileDeleteRequest extends ARequest {
     public String getPathToDelete() {
         return pathToDelete;
     }
+
+    public UUID getFileId() {
+        return fileId;
+    }
+
+    public String getOwner() {
+        return owner;
+    }
 }
+
+

@@ -12,6 +12,8 @@ import org.rmatil.sync.network.core.ANetworkHandler;
 import org.rmatil.sync.network.core.model.ClientDevice;
 import org.rmatil.sync.network.core.model.NodeLocation;
 import org.rmatil.sync.persistence.api.IStorageAdapter;
+import org.rmatil.sync.persistence.exceptions.InputOutputException;
+import org.rmatil.sync.version.api.AccessType;
 import org.rmatil.sync.version.api.IObjectStore;
 import org.rmatil.sync.version.core.model.PathObject;
 import org.slf4j.Logger;
@@ -77,7 +79,7 @@ public class FileDeleteExchangeHandler extends ANetworkHandler<FileDeleteExchang
      * @param exchangeId     The exchange id for this exchange
      * @param clientDevice   The client device from the client starting the exchange
      * @param storageAdapter The storage adapter to access the synced folder
-     * @param nodeManager  The client manager to access client locations
+     * @param nodeManager    The client manager to access client locations
      * @param client         The client to send the actual message
      * @param objectStore    The object store
      * @param globalEventBus The global event bus to send events to
@@ -120,12 +122,31 @@ public class FileDeleteExchangeHandler extends ANetworkHandler<FileDeleteExchang
                 );
             }
 
+            PathObject deletedPath = this.objectStore.getObjectManager().getObjectForPath(this.deleteEvent.getPath().toString());
+
+            String owner = null;
+            UUID fileId = null;
+            if (null != deletedPath.getOwner() &&
+                    ! this.node.getUser().getUserName().equals(deletedPath.getOwner()) &&
+                    AccessType.WRITE.equals(deletedPath.getAccessType())) {
+                // we got write permissions, so we send the changes also back to the original owner of the file
+                try {
+                    fileId = super.node.getIdentifierManager().getValue(deletedPath.getAbsolutePath());
+                    owner = deletedPath.getOwner();
+
+                } catch (InputOutputException e) {
+                    logger.error("Could not fetch file id for file " + deletedPath.getAbsolutePath() + ". Message: " + e.getMessage());
+                }
+            }
+
             logger.info("Sending delete request " + this.exchangeId);
 
             FileDeleteRequest fileDeleteRequest = new FileDeleteRequest(
                     this.exchangeId,
                     StatusCode.NONE,
                     this.clientDevice,
+                    fileId,
+                    owner,
                     this.receivers,
                     this.deleteEvent.getPath().toString()
             );

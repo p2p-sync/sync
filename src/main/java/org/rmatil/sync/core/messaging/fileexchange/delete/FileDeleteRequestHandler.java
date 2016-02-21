@@ -11,7 +11,6 @@ import org.rmatil.sync.network.api.INode;
 import org.rmatil.sync.network.api.IRequest;
 import org.rmatil.sync.network.core.model.ClientDevice;
 import org.rmatil.sync.network.core.model.NodeLocation;
-import org.rmatil.sync.persistence.api.IPathElement;
 import org.rmatil.sync.persistence.api.IStorageAdapter;
 import org.rmatil.sync.persistence.api.StorageType;
 import org.rmatil.sync.persistence.core.local.LocalPathElement;
@@ -106,14 +105,23 @@ public class FileDeleteRequestHandler implements ILocalStateRequestCallback {
         try {
             logger.info("Deleting path on " + this.request.getPathToDelete());
 
-            if (! this.node.getUser().getUserName().equals(this.request.getClientDevice().getUserName()) && ! this.accessManager.hasAccess(this.request.getClientDevice().getUserName(), AccessType.WRITE, this.request.getPathToDelete())) {
+            LocalPathElement pathToDelete;
+            if (null != this.request.getOwner() &&
+                    this.node.getUser().getUserName().equals(this.request.getOwner()) &&
+                    null != this.request.getFileId()) {
+                // we have to use our path
+                pathToDelete = new LocalPathElement(this.node.getIdentifierManager().getKey(this.request.getFileId()));
+            } else {
+                pathToDelete = new LocalPathElement(this.request.getPathToDelete());
+            }
+
+            if (! this.node.getUser().getUserName().equals(this.request.getClientDevice().getUserName()) && ! this.accessManager.hasAccess(this.request.getClientDevice().getUserName(), AccessType.WRITE, pathToDelete.getPath())) {
                 // client has no access to delete the file
-                logger.warn("Deletion failed due to missing access rights on file " + this.request.getPathToDelete() + " for user " + this.request.getClientDevice().getUserName() + " on exchange " + this.request.getExchangeId());
+                logger.warn("Deletion failed due to missing access rights on file " + pathToDelete.getPath() + " for user " + this.request.getClientDevice().getUserName() + " on exchange " + this.request.getExchangeId());
                 this.sendResponse(StatusCode.ACCESS_DENIED);
                 return;
             }
 
-            IPathElement pathToDelete = new LocalPathElement(this.request.getPathToDelete());
             try {
                 if (this.storageAdapter.exists(StorageType.DIRECTORY, pathToDelete) || this.storageAdapter.exists(StorageType.FILE, pathToDelete)) {
                     // create ignore events for all dir contents
@@ -143,7 +151,7 @@ public class FileDeleteRequestHandler implements ILocalStateRequestCallback {
                             }
                         });
                     } catch (IOException e) {
-                        logger.error("Could not create ignore events for the deletion of " + this.request.getPathToDelete() + ". Message: " + e.getMessage());
+                        logger.error("Could not create ignore events for the deletion of " + pathToDelete.getPath() + ". Message: " + e.getMessage());
                     }
 
                     this.storageAdapter.delete(pathToDelete);

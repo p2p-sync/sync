@@ -20,14 +20,26 @@ public class FileOfferRequest extends ARequest {
     protected SerializableEvent event;
 
     /**
+     * The file Id of the file
+     */
+    protected UUID fileId;
+
+    /**
+     * The owner of the file
+     */
+    protected String owner;
+
+    /**
      * @param exchangeId        The id of the file exchange
      * @param statusCode        The status code for the request
      * @param clientDevice      The client device which sends this request
      * @param event             The event to propagate to other clients
      * @param receiverAddresses All client locations which should receive this request
      */
-    public FileOfferRequest(UUID exchangeId, StatusCode statusCode, ClientDevice clientDevice, SerializableEvent event, List<NodeLocation> receiverAddresses) {
+    public FileOfferRequest(UUID exchangeId, StatusCode statusCode, ClientDevice clientDevice, UUID fileId, String owner, SerializableEvent event, List<NodeLocation> receiverAddresses) {
         super(exchangeId, statusCode, clientDevice, receiverAddresses);
+        this.fileId = fileId;
+        this.owner = owner;
         this.event = event;
     }
 
@@ -38,5 +50,23 @@ public class FileOfferRequest extends ARequest {
      */
     public SerializableEvent getEvent() {
         return event;
+    }
+
+    /**
+     * Returns the file id. May be null
+     *
+     * @return The file id
+     */
+    public UUID getFileId() {
+        return fileId;
+    }
+
+    /**
+     * Returns the owner. May be null.
+     *
+     * @return The owner of the file
+     */
+    public String getOwner() {
+        return owner;
     }
 }

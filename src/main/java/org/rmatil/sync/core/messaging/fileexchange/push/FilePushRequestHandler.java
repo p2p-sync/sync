@@ -95,15 +95,23 @@ public class FilePushRequestHandler implements ILocalStateRequestCallback {
     @Override
     public void run() {
         try {
-            logger.info("Writing chunk " + this.request.getChunkCounter() + " for file " + this.request.getRelativeFilePath() + " for exchangeId " + this.request.getExchangeId());
+            LocalPathElement localPathElement;
+            if (null != this.request.getOwner() &&
+                    this.node.getUser().getUserName().equals(this.request.getOwner()) &&
+                    null != this.request.getFileId()) {
+                // we have to use our path
+                localPathElement = new LocalPathElement(this.node.getIdentifierManager().getKey(this.request.getFileId()));
+            } else {
+                localPathElement = new LocalPathElement(this.request.getRelativeFilePath());
+            }
 
-            if (! this.node.getUser().getUserName().equals(this.request.getClientDevice().getUserName()) && ! this.accessManager.hasAccess(this.request.getClientDevice().getUserName(), AccessType.WRITE, this.request.getRelativeFilePath())) {
-                logger.warn("Failed to write chunk " + this.request.getChunkCounter() + " for file " + this.request.getRelativeFilePath() + " due to missing access rights of user " + this.request.getClientDevice().getUserName() + " on exchange " + this.request.getExchangeId());
+            logger.info("Writing chunk " + this.request.getChunkCounter() + " for file " + localPathElement.getPath() + " for exchangeId " + this.request.getExchangeId());
+
+            if (! this.node.getUser().getUserName().equals(this.request.getClientDevice().getUserName()) && ! this.accessManager.hasAccess(this.request.getClientDevice().getUserName(), AccessType.WRITE, localPathElement.getPath())) {
+                logger.warn("Failed to write chunk " + this.request.getChunkCounter() + " for file " + localPathElement.getPath() + " due to missing access rights of user " + this.request.getClientDevice().getUserName() + " on exchange " + this.request.getExchangeId());
                 this.sendResponse(this.createResponse(- 1));
                 return;
             }
-
-            IPathElement localPathElement = new LocalPathElement(this.request.getRelativeFilePath());
 
             // TODO: check whether the file isDeleted on each write, there might be a concurrent incoming delete request
             // -> affected FilePaths? in ObjectDataReply?
@@ -112,34 +120,34 @@ public class FilePushRequestHandler implements ILocalStateRequestCallback {
 
             if (0 == this.request.getChunkCounter()) {
                 // add sharers to object store only on the first request
-                this.publishAddOwnerAndAccessTypeToObjectStore();
-                this.publishAddSharerToObjectStore();
+                this.publishAddOwnerAndAccessTypeToObjectStore(localPathElement);
+                this.publishAddSharerToObjectStore(localPathElement);
             }
 
             if (this.request.isFile() && StatusCode.FILE_CHANGED.equals(this.request.getStatusCode()) &&
                     this.storageAdapter.exists(storageType, localPathElement)) {
                 // we have to clean up the file again to prevent the
                 // file being larger than expected after the change
-                this.publishIgnoreModifyEvent();
+                this.publishIgnoreModifyEvent(localPathElement);
                 this.storageAdapter.persist(storageType, localPathElement, new byte[0]);
             }
 
             if (this.request.isFile()) {
                 try {
                     if (! this.storageAdapter.exists(StorageType.FILE, localPathElement)) {
-                        this.publishIgnoreCreateEvent();
+                        this.publishIgnoreCreateEvent(localPathElement);
                     } else {
-                        this.publishIgnoreModifyEvent();
+                        this.publishIgnoreModifyEvent(localPathElement);
                     }
 
                     this.storageAdapter.persist(StorageType.FILE, localPathElement, this.request.getChunkCounter() * this.request.getChunkSize(), this.request.getData().getContent());
                 } catch (InputOutputException e) {
-                    logger.error("Could not write chunk " + this.request.getChunkCounter() + " of file " + this.request.getRelativeFilePath() + ". Message: " + e.getMessage(), e);
+                    logger.error("Could not write chunk " + this.request.getChunkCounter() + " of file " + localPathElement.getPath() + ". Message: " + e.getMessage(), e);
                 }
             } else {
                 try {
                     if (! this.storageAdapter.exists(StorageType.DIRECTORY, localPathElement)) {
-                        this.publishIgnoreCreateEvent();
+                        this.publishIgnoreCreateEvent(localPathElement);
                         this.storageAdapter.persist(StorageType.DIRECTORY, localPathElement, null);
                     }
                 } catch (InputOutputException e) {
@@ -172,7 +180,7 @@ public class FilePushRequestHandler implements ILocalStateRequestCallback {
                         // restart to fetch the whole file
                         requestingChunk = 0;
 
-                        this.publishIgnoreModifyEvent();
+                        this.publishIgnoreModifyEvent(localPathElement);
                         this.storageAdapter.persist(storageType, localPathElement, new byte[0]);
                     }
                 } catch (InputOutputException e) {
@@ -220,11 +228,11 @@ public class FilePushRequestHandler implements ILocalStateRequestCallback {
         this.node.sendDirect(iResponse.getReceiverAddress().getPeerAddress(), iResponse);
     }
 
-    protected void publishIgnoreModifyEvent() {
+    protected void publishIgnoreModifyEvent(IPathElement pathElement) {
         this.globalEventBus.publish(new IgnoreBusEvent(
                 new ModifyEvent(
-                        Paths.get(this.request.getRelativeFilePath()),
-                        Paths.get(this.request.getRelativeFilePath()).getFileName().toString(),
+                        Paths.get(pathElement.getPath()),
+                        Paths.get(pathElement.getPath()).getFileName().toString(),
                         "weIgnoreTheHash",
                         System.currentTimeMillis()
                 )
@@ -232,29 +240,29 @@ public class FilePushRequestHandler implements ILocalStateRequestCallback {
 
     }
 
-    protected void publishIgnoreCreateEvent() {
+    protected void publishIgnoreCreateEvent(IPathElement pathElement) {
         this.globalEventBus.publish(new IgnoreBusEvent(
                 new CreateEvent(
-                        Paths.get(this.request.getRelativeFilePath()),
-                        Paths.get(this.request.getRelativeFilePath()).getFileName().toString(),
+                        Paths.get(pathElement.getPath()),
+                        Paths.get(pathElement.getPath()).getFileName().toString(),
                         "weIgnoreTheHash",
                         System.currentTimeMillis()
                 )
         ));
     }
 
-    protected void publishAddSharerToObjectStore() {
+    protected void publishAddSharerToObjectStore(IPathElement pathElement) {
         this.globalEventBus.publish(new AddSharerToObjectStoreBusEvent(
-                this.request.getRelativeFilePath(),
+                pathElement.getPath(),
                 this.request.getSharers()
         ));
     }
 
-    protected void publishAddOwnerAndAccessTypeToObjectStore() {
+    protected void publishAddOwnerAndAccessTypeToObjectStore(IPathElement pathElement) {
         this.globalEventBus.publish(new AddOwnerAndAccessTypeToObjectStoreBusEvent(
                 this.request.getOwner(),
                 this.request.getAccessType(),
-                this.request.getRelativeFilePath()
+                pathElement.getPath()
         ));
     }
 }

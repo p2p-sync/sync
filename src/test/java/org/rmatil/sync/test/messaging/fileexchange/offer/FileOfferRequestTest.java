@@ -21,15 +21,17 @@ import static org.junit.Assert.assertThat;
 
 public class FileOfferRequestTest extends BaseMessageTest {
 
-    protected static final Path           PATH             = Paths.get("path/to/myFile.txt");
-    protected static final Path           NEW_PATH         = Paths.get("newPath/to/my/myFile.txt");
-    protected static final long           TIMESTAMP        = 1234567890;
-    protected static final Path           FILE_NAME        = PATH.getFileName();
-    protected static final String         HASH             = "thisIsAHash";
-    protected static final String         HASH_BEFORE      = null;
-    protected static final boolean        IS_FILE          = true;
-    protected static final UUID           CLIENT_DEVICE_ID = UUID.randomUUID();
-    protected static final ClientDevice   CLIENT_DEVICE    = new ClientDevice("Norman Gordon", CLIENT_DEVICE_ID, null);
+    protected static final Path         PATH             = Paths.get("path/to/myFile.txt");
+    protected static final Path         NEW_PATH         = Paths.get("newPath/to/my/myFile.txt");
+    protected static final String       OWNER            = "owner";
+    protected static final UUID         FILE_ID          = UUID.randomUUID();
+    protected static final long         TIMESTAMP        = 1234567890;
+    protected static final Path         FILE_NAME        = PATH.getFileName();
+    protected static final String       HASH             = "thisIsAHash";
+    protected static final String       HASH_BEFORE      = null;
+    protected static final boolean      IS_FILE          = true;
+    protected static final UUID         CLIENT_DEVICE_ID = UUID.randomUUID();
+    protected static final ClientDevice CLIENT_DEVICE    = new ClientDevice("Norman Gordon", CLIENT_DEVICE_ID, null);
     protected static final NodeLocation CLIENT_LOCATION  = new NodeLocation(CLIENT_DEVICE_ID, null);
 
     protected static MoveEvent         moveEvent;
@@ -55,6 +57,8 @@ public class FileOfferRequestTest extends BaseMessageTest {
                 EXCHANGE_ID,
                 STATUS_CODE,
                 CLIENT_DEVICE,
+                FILE_ID,
+                OWNER,
                 serializableEvent,
                 clientLocations
         );
@@ -67,5 +71,7 @@ public class FileOfferRequestTest extends BaseMessageTest {
         assertEquals("ClientDevice not equal", CLIENT_DEVICE, fileOfferRequest.getClientDevice());
         assertEquals("Event is not equal", serializableEvent, fileOfferRequest.getEvent());
         assertThat("Receiver addresses should contain nodeLocation", fileOfferRequest.getReceiverAddresses(), hasItem(CLIENT_LOCATION));
+        assertEquals("FileId should be equal", FILE_ID, fileOfferRequest.getFileId());
+        assertEquals("Owner should be equal", OWNER, fileOfferRequest.getOwner());
     }
 }

@@ -171,6 +171,8 @@ public class FileOfferExchangeHandler extends ANetworkHandler<FileOfferExchangeH
 
             // send changes back to owner too, if we have write access
             // and the owner is not the user from this client
+            UUID fileId = null;
+            String owner = null;
             if (null != pathObject.getOwner() &&
                     ! this.node.getUser().getUserName().equals(pathObject.getOwner()) &&
                     AccessType.WRITE.equals(pathObject.getAccessType())) {
@@ -183,7 +185,10 @@ public class FileOfferExchangeHandler extends ANetworkHandler<FileOfferExchangeH
                     if (! ownerLocations.isEmpty()) {
                         clientLocations.add(ownerLocations.get(0));
                     }
-                    
+
+                    fileId = super.node.getIdentifierManager().getValue(pathToCheck);
+                    owner = pathObject.getOwner();
+
                 } catch (InputOutputException e) {
                     logger.error("Could not fetch client locations of owner " + pathObject.getOwner() + " for file " + pathObject.getAbsolutePath() + ". Will therefore skip to notify his clients.");
                 }
@@ -224,6 +229,8 @@ public class FileOfferExchangeHandler extends ANetworkHandler<FileOfferExchangeH
                     this.exchangeId,
                     StatusCode.NONE,
                     this.clientDevice,
+                    fileId,
+                    owner,
                     SerializableEvent.fromEvent(this.eventToPropagate, (null != versionBefore) ? versionBefore.getHash() : null, ! isDir),
                     clientLocations
             );
