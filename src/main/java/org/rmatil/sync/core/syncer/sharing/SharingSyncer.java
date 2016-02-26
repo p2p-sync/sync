@@ -92,6 +92,14 @@ public class SharingSyncer implements ISharingSyncer {
             throw new SharingFailedException(msg);
         }
 
+        // avoid sharing on our side too, if no client of the sharer is connected
+        NodeLocation sharerLocation = this.getClientLocationFromSharer(sharingEvent.getUsernameToShareWith());
+        if (null == sharerLocation) {
+            String msg = "No client of user " + sharingEvent.getUsernameToShareWith() + " is online. Sharing failed";
+            logger.error(msg);
+            throw new SharingFailedException(msg);
+        }
+
         // Now ask all own clients to add the sharer to their object store
         SharedExchangeHandler sharedExchangeHandler = new SharedExchangeHandler(
                 this.node,
@@ -124,7 +132,6 @@ public class SharingSyncer implements ISharingSyncer {
         }
 
         // own clients did update their object store too, so we can now notify one client of the sharer
-        NodeLocation sharerLocation = this.getClientLocationFromSharer(sharingEvent.getUsernameToShareWith());
 
         String relativePathToSharedFolder;
         try {
@@ -190,6 +197,14 @@ public class SharingSyncer implements ISharingSyncer {
             throw new UnsharingFailedException(msg, e);
         }
 
+        // avoid unsharing on our side if no client of the sharer is connected
+        NodeLocation sharerLocation = this.getClientLocationFromSharer(unshareEvent.getUsernameToShareWith());
+        if (null == sharerLocation) {
+            String msg = "No client of user " + unshareEvent.getUsernameToShareWith()+ " is online. Sharing failed";
+            logger.error(msg);
+            throw new SharingFailedException(msg);
+        }
+
         // unshare on own clients
         UnsharedExchangeHandler unsharedExchangeHandler = new UnsharedExchangeHandler(
                 this.node,
@@ -222,9 +237,6 @@ public class SharingSyncer implements ISharingSyncer {
         }
 
         // unshare with sharer
-
-        NodeLocation sharerLocation = this.getClientLocationFromSharer(unshareEvent.getUsernameToShareWith());
-
         UnshareExchangeHandler unshareExchangeHandler = new UnshareExchangeHandler(
                 this.node,
                 sharerLocation,
@@ -347,9 +359,7 @@ public class SharingSyncer implements ISharingSyncer {
         }
 
         if (otherClientsLocations.isEmpty()) {
-            String msg = "No client of user " + sharer + " is online. Sharing failed";
-            logger.error(msg);
-            throw new SharingFailedException(msg);
+            return null;
         }
 
         return otherClientsLocations.get(0);
