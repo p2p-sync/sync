@@ -3,8 +3,8 @@ package org.rmatil.sync.test.messaging.sharingexchange.share;
 import org.junit.Test;
 import org.rmatil.sync.core.messaging.sharingexchange.share.ShareRequest;
 import org.rmatil.sync.network.core.model.ClientDevice;
-import org.rmatil.sync.network.core.model.NodeLocation;
 import org.rmatil.sync.network.core.model.Data;
+import org.rmatil.sync.network.core.model.NodeLocation;
 import org.rmatil.sync.test.base.BaseMessageTest;
 import org.rmatil.sync.version.api.AccessType;
 
@@ -16,18 +16,18 @@ import static org.junit.Assert.assertThat;
 
 public class ShareRequestTest extends BaseMessageTest {
 
-    protected final static UUID           FILE_ID                        = UUID.randomUUID();
-    protected final static String         CHECKSUM                       = "checksum";
-    protected final static AccessType     ACCESS_TYPE                    = AccessType.WRITE;
-    protected static final ClientDevice   CLIENT_DEVICE                  = new ClientDevice("Inverness McKenzie", UUID.randomUUID(), null);
-    protected static final String         RELATIVE_PATH_TO_SHARED_FOLDER = "path/to/some/file.txt";
-    protected static final boolean        IS_FILE                        = true;
-    protected static final long           CHUNK_COUNTER                  = 0;
-    protected static final int            CHUNK_SIZE                     = 1024; // bytes
-    protected static final long           TOTAL_NR_OF_CHUNKS             = 1;
-    protected static final long           TOTAL_FILE_SIZE                = 0;
-    protected static final Data           DATA                           = new Data(new byte[0], false);
-    protected static final NodeLocation RECEIVER_ADDRESS               = new NodeLocation(UUID.randomUUID(), null);
+    protected final static UUID         FILE_ID                        = UUID.randomUUID();
+    protected final static String       CHECKSUM                       = "checksum";
+    protected final static AccessType   ACCESS_TYPE                    = AccessType.WRITE;
+    protected static final ClientDevice CLIENT_DEVICE                  = new ClientDevice("Inverness McKenzie", UUID.randomUUID(), null);
+    protected static final String       RELATIVE_PATH_TO_SHARED_FOLDER = "path/to/some/file.txt";
+    protected static final boolean      IS_FILE                        = true;
+    protected static final long         CHUNK_COUNTER                  = 0;
+    protected static final int          CHUNK_SIZE                     = 1024; // bytes
+    protected static final long         TOTAL_NR_OF_CHUNKS             = 1;
+    protected static final long         TOTAL_FILE_SIZE                = 0;
+    protected static final Data         DATA                           = new Data(new byte[0], false);
+    protected static final NodeLocation RECEIVER_ADDRESS               = new NodeLocation("Inverness McKenzie", UUID.randomUUID(), null);
 
     @Test
     public void test() {

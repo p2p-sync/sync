@@ -204,7 +204,7 @@ public abstract class BaseNetworkHandlerTest extends BaseTest {
         CLIENT_DEVICE_1 = new ClientDevice(USERNAME, CLIENT_ID_1, CLIENT_1.getPeerAddress());
         CLIENT_DEVICE_2 = new ClientDevice(USERNAME, CLIENT_ID_2, CLIENT_2.getPeerAddress());
 
-        CLIENT_LOCATIONS_1 = CLIENT_MANAGER_2.getNodeLocations(USER_1);
+        CLIENT_LOCATIONS_1 = CLIENT_MANAGER_2.getNodeLocations(USER_1.getUserName());
     }
 
     @AfterClass

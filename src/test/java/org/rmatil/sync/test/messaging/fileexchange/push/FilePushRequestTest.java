@@ -31,7 +31,7 @@ public class FilePushRequestTest extends BaseMessageTest {
     protected static final long         TOTAL_NR_OF_CHUNKS = 1;
     protected static final long         TOTAL_FILE_SIZE    = 0;
     protected static final Data         DATA               = new Data(new byte[0], false);
-    protected static final NodeLocation RECEIVER_ADDRESS   = new NodeLocation(UUID.randomUUID(), null);
+    protected static final NodeLocation RECEIVER_ADDRESS   = new NodeLocation("Inverness McKenzie", UUID.randomUUID(), null);
     protected static final Set<Sharer>  SHARERS            = new HashSet<>();
 
     @Test

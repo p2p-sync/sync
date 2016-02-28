@@ -15,7 +15,7 @@ import static org.junit.Assert.assertEquals;
 public class FileDeleteRequestTest extends BaseMessageTest {
 
     protected static final ClientDevice CLIENT_DEVICE    = new ClientDevice("Inverness McKenzie", UUID.randomUUID(), null);
-    protected static final NodeLocation RECEIVER_ADDRESS = new NodeLocation(UUID.randomUUID(), null);
+    protected static final NodeLocation RECEIVER_ADDRESS = new NodeLocation("Inverness McKenzie", UUID.randomUUID(), null);
     protected static final String       PATH_TO_DELETE   = "./path/to/delete.txt";
     protected static final String       OWNER            = "owner";
     protected static final UUID         FILE_ID          = UUID.randomUUID();

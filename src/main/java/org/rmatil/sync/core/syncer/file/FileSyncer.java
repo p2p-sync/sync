@@ -190,6 +190,7 @@ public class FileSyncer implements IFileSyncer {
             if (StatusCode.ACCEPTED.equals(response.getStatusCode())) {
                 // we need to send the request to this client
                 acceptedAndInNeedClients.add(new NodeLocation(
+                        response.getClientDevice().getUserName(),
                         response.getClientDevice().getClientDeviceId(),
                         response.getClientDevice().getPeerAddress()
                 ));

@@ -171,7 +171,7 @@ public class FilePushExchangeHandler extends ANetworkHandler<FilePushExchangeHan
         }
 
         if (- 1 < ((FilePushResponse) response).getChunkCounter()) {
-            this.sendChunk(((FilePushResponse) response).getChunkCounter(), response.getExchangeId(), new NodeLocation(response.getClientDevice().getClientDeviceId(), response.getClientDevice().getPeerAddress()));
+            this.sendChunk(((FilePushResponse) response).getChunkCounter(), response.getExchangeId(), new NodeLocation(response.getClientDevice().getUserName(), response.getClientDevice().getClientDeviceId(), response.getClientDevice().getPeerAddress()));
         } else {
             // exchange is finished
             super.node.getObjectDataReplyHandler().removeResponseCallbackHandler(response.getExchangeId());

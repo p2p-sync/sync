@@ -32,7 +32,7 @@ public class FileOfferRequestTest extends BaseMessageTest {
     protected static final boolean      IS_FILE          = true;
     protected static final UUID         CLIENT_DEVICE_ID = UUID.randomUUID();
     protected static final ClientDevice CLIENT_DEVICE    = new ClientDevice("Norman Gordon", CLIENT_DEVICE_ID, null);
-    protected static final NodeLocation CLIENT_LOCATION  = new NodeLocation(CLIENT_DEVICE_ID, null);
+    protected static final NodeLocation CLIENT_LOCATION  = new NodeLocation("Norman Gordon", CLIENT_DEVICE_ID, null);
 
     protected static MoveEvent         moveEvent;
     protected static SerializableEvent serializableEvent;

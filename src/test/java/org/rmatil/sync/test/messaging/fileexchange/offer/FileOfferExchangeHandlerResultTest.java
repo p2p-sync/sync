@@ -10,13 +10,13 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 
 public class FileOfferExchangeHandlerResultTest {
 
     @Test
     public void test() {
-        NodeLocation nodeLocation = new NodeLocation(UUID.randomUUID(), null);
+        NodeLocation nodeLocation = new NodeLocation("Inverness McKenzie", UUID.randomUUID(), null);
         FileOfferResponse response = new FileOfferResponse(UUID.randomUUID(), StatusCode.ACCEPTED, null, nodeLocation);
         List<FileOfferResponse> fileOfferResponses = new ArrayList<>();
         fileOfferResponses.add(response);

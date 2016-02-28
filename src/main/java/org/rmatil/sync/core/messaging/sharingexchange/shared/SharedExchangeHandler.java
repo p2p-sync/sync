@@ -52,7 +52,7 @@ public class SharedExchangeHandler extends ANetworkHandler<SharedExchangeHandler
             // Fetch client locations from the DHT
             List<NodeLocation> clientLocations;
             try {
-                clientLocations = this.nodeManager.getNodeLocations(super.node.getUser());
+                clientLocations = this.nodeManager.getNodeLocations(super.node.getUser().getUserName());
             } catch (InputOutputException e) {
                 logger.error("Could not fetch client locations from user " + super.node.getUser().getUserName() + ". Message: " + e.getMessage());
                 return;

@@ -118,6 +118,12 @@ public class UnsharedRequestHandler implements ILocalStateRequestCallback {
      * @param statusCode The status code to use in the response
      */
     public void sendResponse(StatusCode statusCode) {
+        NodeLocation receiver = new NodeLocation(
+                this.request.getClientDevice().getUserName(),
+                this.request.getClientDevice().getClientDeviceId(),
+                this.request.getClientDevice().getPeerAddress()
+        );
+
         IResponse response = new UnsharedResponse(
                 this.request.getExchangeId(),
                 statusCode,
@@ -126,12 +132,9 @@ public class UnsharedRequestHandler implements ILocalStateRequestCallback {
                         this.node.getClientDeviceId(),
                         this.node.getPeerAddress()
                 ),
-                new NodeLocation(
-                        this.request.getClientDevice().getClientDeviceId(),
-                        this.request.getClientDevice().getPeerAddress()
-                )
+                receiver
         );
 
-        this.node.sendDirect(response.getReceiverAddress().getPeerAddress(), response);
+        this.node.sendDirect(receiver, response);
     }
 }

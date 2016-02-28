@@ -114,7 +114,7 @@ public class LocalStateObjectDataReplyHandler extends ObjectDataReplyHandler {
         }
     }
 
-    public Object reply(PeerAddress sender, Object request)
+    public IResponse reply(PeerAddress sender, Object request)
             throws Exception {
 
         // forward the request to the correct data reply instance
@@ -130,16 +130,19 @@ public class LocalStateObjectDataReplyHandler extends ObjectDataReplyHandler {
 
                     logger.error("There are already exchanges in progress for the file affected by offer request " + ((IRequest) request).getExchangeId() + ". Returning a denied file offer response");
 
+                    NodeLocation receiver = new NodeLocation(
+                            ((IRequest) request).getClientDevice().getUserName(),
+                            ((IRequest) request).getClientDevice().getClientDeviceId(),
+                            ((IRequest) request).getClientDevice().getPeerAddress()
+                    );
+
                     this.node.sendDirect(
-                            ((IRequest) request).getClientDevice().getPeerAddress(),
+                            receiver,
                             new FileOfferResponse(
                                     ((IRequest) request).getExchangeId(),
                                     StatusCode.DENIED,
                                     new ClientDevice(this.node.getUser().getUserName(), this.node.getClientDeviceId(), this.node.getPeerAddress()),
-                                    new NodeLocation(
-                                            ((IRequest) request).getClientDevice().getClientDeviceId(),
-                                            ((IRequest) request).getClientDevice().getPeerAddress()
-                                    )
+                                    receiver
                             )
                     );
 
@@ -154,8 +157,14 @@ public class LocalStateObjectDataReplyHandler extends ObjectDataReplyHandler {
 
                     logger.error("There are already exchanges in progress for the file affected by demand request " + ((IRequest) request).getExchangeId() + ". Returning a denied file demand response");
 
+                    NodeLocation receiver = new NodeLocation(
+                            ((IRequest) request).getClientDevice().getUserName(),
+                            ((IRequest) request).getClientDevice().getClientDeviceId(),
+                            ((IRequest) request).getClientDevice().getPeerAddress()
+                    );
+
                     this.node.sendDirect(
-                            ((IRequest) request).getClientDevice().getPeerAddress(),
+                            receiver,
                             new FileDemandResponse(
                                     ((IRequest) request).getExchangeId(),
                                     StatusCode.DENIED,
@@ -168,10 +177,7 @@ public class LocalStateObjectDataReplyHandler extends ObjectDataReplyHandler {
                                     - 1,
                                     - 1,
                                     null,
-                                    new NodeLocation(
-                                            ((IRequest) request).getClientDevice().getClientDeviceId(),
-                                            ((IRequest) request).getClientDevice().getPeerAddress()
-                                    ),
+                                    receiver,
                                     null
                             )
                     );

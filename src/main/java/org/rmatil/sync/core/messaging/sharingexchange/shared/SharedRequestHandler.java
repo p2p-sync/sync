@@ -122,6 +122,12 @@ public class SharedRequestHandler implements ILocalStateRequestCallback {
             throw new IllegalStateException("A client instance is required to send a response back");
         }
 
+        NodeLocation receiver = new NodeLocation(
+                this.request.getClientDevice().getUserName(),
+                this.request.getClientDevice().getClientDeviceId(),
+                this.request.getClientDevice().getPeerAddress()
+        );
+
         IResponse response = new SharedResponse(
                 this.request.getExchangeId(),
                 statusCode,
@@ -130,12 +136,9 @@ public class SharedRequestHandler implements ILocalStateRequestCallback {
                         this.node.getClientDeviceId(),
                         this.node.getPeerAddress()
                 ),
-                new NodeLocation(
-                        this.request.getClientDevice().getClientDeviceId(),
-                        this.request.getClientDevice().getPeerAddress()
-                )
+                receiver
         );
 
-        this.node.sendDirect(response.getReceiverAddress().getPeerAddress(), response);
+        this.node.sendDirect(receiver, response);
     }
 }

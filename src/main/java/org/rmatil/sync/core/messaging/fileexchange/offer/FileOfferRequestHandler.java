@@ -202,14 +202,17 @@ public class FileOfferRequestHandler implements ILocalStateRequestCallback {
     /**
      * Send the given response as result to the request
      *
-     * @param iResponse The response to send
+     * @param response The response to send
      */
-    protected void sendResponse(IResponse iResponse) {
+    protected void sendResponse(IResponse response) {
         if (null == this.node) {
             throw new IllegalStateException("A client instance is required to send a response back");
         }
 
-        this.node.sendDirect(iResponse.getReceiverAddress().getPeerAddress(), iResponse);
+        this.node.sendDirect(
+                response.getReceiverAddress(),
+                response
+        );
     }
 
     /**
@@ -220,7 +223,11 @@ public class FileOfferRequestHandler implements ILocalStateRequestCallback {
     protected FileOfferResponse createResponse(StatusCode statusCode) {
         ClientDevice sendingClient = new ClientDevice(this.node.getUser().getUserName(), this.node.getClientDeviceId(), this.node.getPeerAddress());
         // the sender becomes the receiver
-        NodeLocation receiver = new NodeLocation(this.request.getClientDevice().getClientDeviceId(), this.request.getClientDevice().getPeerAddress());
+        NodeLocation receiver = new NodeLocation(
+                this.request.getClientDevice().getUserName(),
+                this.request.getClientDevice().getClientDeviceId(),
+                this.request.getClientDevice().getPeerAddress()
+        );
 
         return new FileOfferResponse(
                 this.request.getExchangeId(),

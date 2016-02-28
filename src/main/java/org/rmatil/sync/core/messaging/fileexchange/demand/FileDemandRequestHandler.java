@@ -179,7 +179,11 @@ public class FileDemandRequestHandler implements ILocalStateRequestCallback {
                     totalNrOfChunks,
                     fileMetaInfo.getTotalFileSize(),
                     data,
-                    new NodeLocation(this.request.getClientDevice().getClientDeviceId(), this.request.getClientDevice().getPeerAddress()),
+                    new NodeLocation(
+                            this.request.getClientDevice().getUserName(),
+                            this.request.getClientDevice().getClientDeviceId(),
+                            this.request.getClientDevice().getPeerAddress()
+                    ),
                     sharers
             );
 
@@ -194,7 +198,11 @@ public class FileDemandRequestHandler implements ILocalStateRequestCallback {
         return new FileDemandResponse(
                 this.request.getExchangeId(),
                 statusCode,
-                new ClientDevice(this.node.getUser().getUserName(), this.node.getClientDeviceId(), this.node.getPeerAddress()),
+                new ClientDevice(
+                        this.node.getUser().getUserName(),
+                        this.node.getClientDeviceId(),
+                        this.node.getPeerAddress()
+                ),
                 "",
                 this.request.getRelativeFilePath(),
                 true,
@@ -203,7 +211,11 @@ public class FileDemandRequestHandler implements ILocalStateRequestCallback {
                 totalNrOfChunks,
                 - 1,
                 null,
-                new NodeLocation(this.request.getClientDevice().getClientDeviceId(), this.request.getClientDevice().getPeerAddress()),
+                new NodeLocation(
+                        this.request.getClientDevice().getUserName(),
+                        this.request.getClientDevice().getClientDeviceId(),
+                        this.request.getClientDevice().getPeerAddress()
+                ),
                 new HashSet<>()
         );
     }
@@ -211,13 +223,13 @@ public class FileDemandRequestHandler implements ILocalStateRequestCallback {
     /**
      * Sends the given response back to the client
      *
-     * @param iResponse The response to send back
+     * @param response The response to send back
      */
-    protected void sendResponse(IResponse iResponse) {
+    protected void sendResponse(IResponse response) {
         if (null == this.node) {
             throw new IllegalStateException("A client instance is required to send a response back");
         }
 
-        this.node.sendDirect(iResponse.getReceiverAddress().getPeerAddress(), iResponse);
+        this.node.sendDirect(response.getReceiverAddress(), response);
     }
 }

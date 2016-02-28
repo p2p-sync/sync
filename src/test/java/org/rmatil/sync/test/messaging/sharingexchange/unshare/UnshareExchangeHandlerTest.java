@@ -94,7 +94,7 @@ public class UnshareExchangeHandlerTest extends BaseNetworkHandlerTest {
             throws InterruptedException, IOException, InputOutputException {
         UnshareExchangeHandler unshareExchangeHandler = new UnshareExchangeHandler(
                 CLIENT_1,
-                new NodeLocation(CLIENT_2.getClientDeviceId(), CLIENT_2.getPeerAddress()),
+                new NodeLocation(CLIENT_2.getUser().getUserName(), CLIENT_2.getClientDeviceId(), CLIENT_2.getPeerAddress()),
                 FILE_ID,
                 EXCHANGE_ID
         );

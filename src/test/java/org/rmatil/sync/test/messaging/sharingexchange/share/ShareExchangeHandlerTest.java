@@ -126,7 +126,7 @@ public class ShareExchangeHandlerTest extends BaseNetworkHandlerTest {
 
         ShareExchangeHandler shareExchangeHandler = new ShareExchangeHandler(
                 CLIENT_1,
-                new NodeLocation(CLIENT_2.getClientDeviceId(), CLIENT_2.getPeerAddress()),
+                new NodeLocation(CLIENT_2.getUser().getUserName(), CLIENT_2.getClientDeviceId(), CLIENT_2.getPeerAddress()),
                 STORAGE_ADAPTER_1,
                 OBJECT_STORE_1,
                 TEST_FILE_1.toString(),
@@ -221,7 +221,7 @@ public class ShareExchangeHandlerTest extends BaseNetworkHandlerTest {
 
         ShareExchangeHandler shareExchangeHandler = new ShareExchangeHandler(
                 CLIENT_1,
-                new NodeLocation(CLIENT_2.getClientDeviceId(), CLIENT_2.getPeerAddress()),
+                new NodeLocation(CLIENT_2.getUser().getUserName(), CLIENT_2.getClientDeviceId(), CLIENT_2.getPeerAddress()),
                 STORAGE_ADAPTER_1,
                 OBJECT_STORE_1,
                 TEST_FILE_1.toString(),

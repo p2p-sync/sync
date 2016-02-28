@@ -207,9 +207,17 @@ public class FilePushRequestHandler implements ILocalStateRequestCallback {
         return new FilePushResponse(
                 this.request.getExchangeId(),
                 StatusCode.ACCEPTED,
-                new ClientDevice(this.node.getUser().getUserName(), this.node.getClientDeviceId(), this.node.getPeerAddress()),
+                new ClientDevice(
+                        this.node.getUser().getUserName(),
+                        this.node.getClientDeviceId(),
+                        this.node.getPeerAddress()
+                ),
                 this.request.getRelativeFilePath(),
-                new NodeLocation(this.request.getClientDevice().getClientDeviceId(), this.request.getClientDevice().getPeerAddress()),
+                new NodeLocation(
+                        this.request.getClientDevice().getUserName(),
+                        this.request.getClientDevice().getClientDeviceId(),
+                        this.request.getClientDevice().getPeerAddress()
+                ),
                 requestingChunk
         );
     }
@@ -224,7 +232,7 @@ public class FilePushRequestHandler implements ILocalStateRequestCallback {
             throw new IllegalStateException("A client instance is required to send a response back");
         }
 
-        this.node.sendDirect(iResponse.getReceiverAddress().getPeerAddress(), iResponse);
+        this.node.sendDirect(iResponse.getReceiverAddress(), iResponse);
     }
 
     protected void publishIgnoreModifyEvent(IPathElement pathElement) {

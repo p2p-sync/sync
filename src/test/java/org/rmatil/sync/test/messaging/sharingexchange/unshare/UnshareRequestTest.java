@@ -14,9 +14,9 @@ import static org.junit.Assert.assertEquals;
 
 public class UnshareRequestTest extends BaseMessageTest {
 
-    protected static final UUID           FILE_ID          = UUID.randomUUID();
-    protected static final ClientDevice   CLIENT_DEVICE    = new ClientDevice("Inverness McKenzie", UUID.randomUUID(), null);
-    protected static final NodeLocation RECEIVER_ADDRESS = new NodeLocation(UUID.randomUUID(), null);
+    protected static final UUID         FILE_ID          = UUID.randomUUID();
+    protected static final ClientDevice CLIENT_DEVICE    = new ClientDevice("Inverness McKenzie", UUID.randomUUID(), null);
+    protected static final NodeLocation RECEIVER_ADDRESS = new NodeLocation("Inverness McKenzie", UUID.randomUUID(), null);
 
     @Test
     public void test() {

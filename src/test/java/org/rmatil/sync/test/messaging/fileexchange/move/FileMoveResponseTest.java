@@ -14,11 +14,11 @@ import static org.junit.Assert.assertThat;
 
 public class FileMoveResponseTest extends BaseMessageTest {
 
-    protected static final ClientDevice   CLIENT_DEVICE          = new ClientDevice("Inverness McKenzie", UUID.randomUUID(), null);
-    protected static final String         OLD_RELATIVE_FILE_PATH = "path/to/some/file.txt";
-    protected static final String         NEW_RELATIVE_FILE_PATH = "path/to/some/new/file.txt";
-    protected static final boolean        IS_FILE                = true;
-    protected static final NodeLocation RECEIVER_ADDRESS       = new NodeLocation(UUID.randomUUID(), null);
+    protected static final ClientDevice CLIENT_DEVICE          = new ClientDevice("Inverness McKenzie", UUID.randomUUID(), null);
+    protected static final String       OLD_RELATIVE_FILE_PATH = "path/to/some/file.txt";
+    protected static final String       NEW_RELATIVE_FILE_PATH = "path/to/some/new/file.txt";
+    protected static final boolean      IS_FILE                = true;
+    protected static final NodeLocation RECEIVER_ADDRESS       = new NodeLocation("Inverness McKenzie", UUID.randomUUID(), null);
 
 
     @Test

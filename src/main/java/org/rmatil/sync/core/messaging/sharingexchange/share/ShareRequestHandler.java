@@ -275,6 +275,7 @@ public class ShareRequestHandler implements ILocalStateRequestCallback {
                 ),
                 this.request.getFileId(),
                 new NodeLocation(
+                        this.request.getClientDevice().getUserName(),
                         this.request.getClientDevice().getClientDeviceId(),
                         this.request.getClientDevice().getPeerAddress()
                 ),
@@ -285,14 +286,14 @@ public class ShareRequestHandler implements ILocalStateRequestCallback {
     /**
      * Sends the given response back to the client
      *
-     * @param iResponse The response to send back
+     * @param response The response to send back
      */
-    public void sendResponse(IResponse iResponse) {
+    public void sendResponse(IResponse response) {
         if (null == this.node) {
             throw new IllegalStateException("A client instance is required to send a response back");
         }
 
-        this.node.sendDirect(iResponse.getReceiverAddress().getPeerAddress(), iResponse);
+        this.node.sendDirect(response.getReceiverAddress(), response);
     }
 
     /**

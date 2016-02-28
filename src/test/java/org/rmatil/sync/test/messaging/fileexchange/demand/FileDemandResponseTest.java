@@ -3,8 +3,8 @@ package org.rmatil.sync.test.messaging.fileexchange.demand;
 import org.junit.Test;
 import org.rmatil.sync.core.messaging.fileexchange.demand.FileDemandResponse;
 import org.rmatil.sync.network.core.model.ClientDevice;
-import org.rmatil.sync.network.core.model.NodeLocation;
 import org.rmatil.sync.network.core.model.Data;
+import org.rmatil.sync.network.core.model.NodeLocation;
 import org.rmatil.sync.test.base.BaseMessageTest;
 
 import java.util.HashSet;
@@ -14,16 +14,16 @@ import static org.junit.Assert.assertEquals;
 
 public class FileDemandResponseTest extends BaseMessageTest {
 
-    protected static final ClientDevice   CLIENT_DEVICE      = new ClientDevice("Inverness McKenzie", UUID.randomUUID(), null);
-    protected static final String         CHECKSUM           = "someHash";
-    protected static final String         RELATIVE_FILE_PATH = "path/to/some/file.txt";
-    protected static final boolean        IS_FILE            = true;
-    protected static final long           CHUNK_COUNTER      = 0;
-    protected static final int            CHUNK_SIZE         = 1024; // bytes
-    protected static final long           TOTAL_NR_OF_CHUNKS = 1;
-    protected static final long           TOTAL_FILE_SIZE    = 0;
-    protected static final Data           DATA               = new Data(new byte[0], false);
-    protected static final NodeLocation RECEIVER_ADDRESS   = new NodeLocation(UUID.randomUUID(), null);
+    protected static final ClientDevice CLIENT_DEVICE      = new ClientDevice("Inverness McKenzie", UUID.randomUUID(), null);
+    protected static final String       CHECKSUM           = "someHash";
+    protected static final String       RELATIVE_FILE_PATH = "path/to/some/file.txt";
+    protected static final boolean      IS_FILE            = true;
+    protected static final long         CHUNK_COUNTER      = 0;
+    protected static final int          CHUNK_SIZE         = 1024; // bytes
+    protected static final long         TOTAL_NR_OF_CHUNKS = 1;
+    protected static final long         TOTAL_FILE_SIZE    = 0;
+    protected static final Data         DATA               = new Data(new byte[0], false);
+    protected static final NodeLocation RECEIVER_ADDRESS   = new NodeLocation("Inverness McKenzie", UUID.randomUUID(), null);
 
     @Test
     public void test() {

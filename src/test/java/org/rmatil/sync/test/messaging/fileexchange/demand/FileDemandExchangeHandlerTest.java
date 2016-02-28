@@ -58,7 +58,7 @@ public class FileDemandExchangeHandlerTest extends BaseNetworkHandlerTest {
                 CLIENT_2,
                 CLIENT_MANAGER_2,
                 GLOBAL_EVENT_BUS_2,
-                new NodeLocation(CLIENT_DEVICE_1.getClientDeviceId(), CLIENT_1.getPeerAddress()),
+                new NodeLocation(CLIENT_1.getUser().getUserName(), CLIENT_DEVICE_1.getClientDeviceId(), CLIENT_1.getPeerAddress()),
                 TEST_FILE_1.toString(),
                 EXCHANGE_ID
         );
@@ -160,7 +160,7 @@ public class FileDemandExchangeHandlerTest extends BaseNetworkHandlerTest {
                 CLIENT_2,
                 CLIENT_MANAGER_2,
                 GLOBAL_EVENT_BUS_2,
-                new NodeLocation(CLIENT_DEVICE_1.getClientDeviceId(), CLIENT_1.getPeerAddress()),
+                new NodeLocation(CLIENT_1.getUser().getUserName(), CLIENT_DEVICE_1.getClientDeviceId(), CLIENT_1.getPeerAddress()),
                 NON_EXISTING_FILE.toString(),
                 EXCHANGE_ID
         );
@@ -186,7 +186,7 @@ public class FileDemandExchangeHandlerTest extends BaseNetworkHandlerTest {
             throws InterruptedException, IOException {
         assertFalse("TestFile1 should not exist on client2", Files.exists(ROOT_TEST_DIR2.resolve(TEST_FILE_1)));
 
-        byte[] largeContent = new byte[1024*1024 + 12]; // 11 chunks
+        byte[] largeContent = new byte[1024 * 1024 + 12]; // 11 chunks
         Files.write(ROOT_TEST_DIR1.resolve(TEST_FILE_1), largeContent);
 
         FileDemandExchangeHandler fileDemandExchangeHandler = new FileDemandExchangeHandler(
@@ -194,7 +194,7 @@ public class FileDemandExchangeHandlerTest extends BaseNetworkHandlerTest {
                 CLIENT_2,
                 CLIENT_MANAGER_2,
                 GLOBAL_EVENT_BUS_2,
-                new NodeLocation(CLIENT_DEVICE_1.getClientDeviceId(), CLIENT_1.getPeerAddress()),
+                new NodeLocation(CLIENT_1.getUser().getUserName(), CLIENT_DEVICE_1.getClientDeviceId(), CLIENT_1.getPeerAddress()),
                 TEST_FILE_1.toString(),
                 EXCHANGE_ID
         );

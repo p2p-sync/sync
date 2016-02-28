@@ -14,10 +14,10 @@ import static org.junit.Assert.assertEquals;
 
 public class FileDemandRequestTest extends BaseMessageTest {
 
-    protected static final ClientDevice   CLIENT_DEVICE    = new ClientDevice("Inverness McKenzie", UUID.randomUUID(), null);
-    protected static final NodeLocation RECEIVER_ADDRESS = new NodeLocation(UUID.randomUUID(), null);
-    protected static final String         PATH_TO_FETCH    = "./path/to/delete.txt";
-    protected static final long           CHUNK_COUNTER    = 12L;
+    protected static final ClientDevice CLIENT_DEVICE    = new ClientDevice("Inverness McKenzie", UUID.randomUUID(), null);
+    protected static final NodeLocation RECEIVER_ADDRESS = new NodeLocation("Inverness McKenzie", UUID.randomUUID(), null);
+    protected static final String       PATH_TO_FETCH    = "./path/to/delete.txt";
+    protected static final long         CHUNK_COUNTER    = 12L;
 
     @Test
     public void test() {

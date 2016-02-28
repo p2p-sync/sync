@@ -172,8 +172,14 @@ public class FileDeleteRequestHandler implements ILocalStateRequestCallback {
      * @param statusCode The status code to use in the response
      */
     protected void sendResponse(StatusCode statusCode) {
+        NodeLocation receiver = new NodeLocation(
+                this.request.getClientDevice().getUserName(),
+                this.request.getClientDevice().getClientDeviceId(),
+                this.request.getClientDevice().getPeerAddress()
+        );
+
         this.node.sendDirect(
-                this.request.getClientDevice().getPeerAddress(),
+                receiver,
                 new FileDeleteResponse(
                         this.request.getExchangeId(),
                         statusCode,
@@ -182,10 +188,7 @@ public class FileDeleteRequestHandler implements ILocalStateRequestCallback {
                                 this.node.getClientDeviceId(),
                                 this.node.getPeerAddress()
                         ),
-                        new NodeLocation(
-                                this.request.getClientDevice().getClientDeviceId(),
-                                this.request.getClientDevice().getPeerAddress()
-                        )
+                        receiver
                 )
         );
     }

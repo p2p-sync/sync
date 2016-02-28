@@ -146,7 +146,15 @@ public class ShareExchangeHandler extends ANetworkHandler<ShareExchangeHandlerRe
         }
 
         if (- 1 < ((ShareResponse) response).getChunkCounter()) {
-            this.sendChunk(((ShareResponse) response).getChunkCounter(), response.getExchangeId(), new NodeLocation(response.getClientDevice().getClientDeviceId(), response.getClientDevice().getPeerAddress()));
+            this.sendChunk(
+                    ((ShareResponse) response).getChunkCounter(),
+                    response.getExchangeId(),
+                    new NodeLocation(
+                            response.getClientDevice().getUserName(),
+                            response.getClientDevice().getClientDeviceId(),
+                            response.getClientDevice().getPeerAddress()
+                    )
+            );
         } else {
             // exchange is finished
             super.node.getObjectDataReplyHandler().removeResponseCallbackHandler(response.getExchangeId());

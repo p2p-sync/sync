@@ -89,16 +89,23 @@ public class FetchObjectStoreRequestHandler implements ILocalStateRequestCallbac
             // zip object store
             byte[] zipFile = Zip.zipObjectStore(this.objectStore);
 
+            NodeLocation receiver = new NodeLocation(
+                    this.request.getClientDevice().getUserName(),
+                    this.request.getClientDevice().getClientDeviceId(),
+                    this.request.getClientDevice().getPeerAddress()
+            );
+
             // send zip
             FetchObjectStoreResponse syncObjectStoreResponse = new FetchObjectStoreResponse(
                     this.request.getExchangeId(),
                     StatusCode.ACCEPTED,
                     new ClientDevice(this.node.getUser().getUserName(), this.node.getClientDeviceId(), this.node.getPeerAddress()),
-                    new NodeLocation(this.request.getClientDevice().getClientDeviceId(), this.request.getClientDevice().getPeerAddress()),
+                    receiver,
                     zipFile
             );
 
-            this.node.sendDirect(this.request.getClientDevice().getPeerAddress(),
+            this.node.sendDirect(
+                    receiver,
                     syncObjectStoreResponse
             );
 
