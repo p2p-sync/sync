@@ -66,7 +66,7 @@ public class FileDemandExchangeHandler extends ANetworkHandler<FileDemandExchang
      * The counter for chunks, indicating which
      * chunks have been transmitted already
      */
-    protected int chunkCounter = 0;
+    protected long chunkCounter = 0L;
 
     /**
      * The id of the demand exchange
@@ -145,6 +145,7 @@ public class FileDemandExchangeHandler extends ANetworkHandler<FileDemandExchang
         }
 
         FileDemandResponse fileDemandResponse = (FileDemandResponse) response;
+        this.chunkCounter = fileDemandResponse.getChunkCounter();
 
         logger.info("Writing chunk " + fileDemandResponse.getChunkCounter() + " for file " + fileDemandResponse.getRelativeFilePath() + " for exchangeId " + fileDemandResponse.getExchangeId());
 
@@ -181,8 +182,9 @@ public class FileDemandExchangeHandler extends ANetworkHandler<FileDemandExchang
             }
         }
 
+        // chunk counter starts at 0
         if (StatusCode.ACCEPTED.equals(fileDemandResponse.getStatusCode()) &&
-                this.chunkCounter == fileDemandResponse.getTotalNrOfChunks()) {
+                this.chunkCounter + 1 == fileDemandResponse.getTotalNrOfChunks()) {
             // we received the last chunk needed
 
             // now check that we got the same checksum for the file

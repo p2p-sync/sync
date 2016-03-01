@@ -4,14 +4,14 @@ import net.engio.mbassy.bus.MBassador;
 import org.rmatil.sync.core.eventbus.IBusEvent;
 import org.rmatil.sync.core.init.client.ILocalStateRequestCallback;
 import org.rmatil.sync.core.messaging.StatusCode;
+import org.rmatil.sync.core.messaging.chunk.Chunk;
+import org.rmatil.sync.core.messaging.chunk.ChunkProvider;
 import org.rmatil.sync.core.security.IAccessManager;
 import org.rmatil.sync.network.api.INode;
 import org.rmatil.sync.network.api.IRequest;
 import org.rmatil.sync.network.api.IResponse;
 import org.rmatil.sync.network.core.model.ClientDevice;
 import org.rmatil.sync.network.core.model.NodeLocation;
-import org.rmatil.sync.network.core.model.Data;
-import org.rmatil.sync.persistence.api.IFileMetaInfo;
 import org.rmatil.sync.persistence.api.IPathElement;
 import org.rmatil.sync.persistence.api.IStorageAdapter;
 import org.rmatil.sync.persistence.core.local.LocalPathElement;
@@ -109,56 +109,45 @@ public class FileDemandRequestHandler implements ILocalStateRequestCallback {
 
             if (! this.node.getUser().getUserName().equals(this.request.getClientDevice().getUserName()) && ! this.accessManager.hasAccess(this.request.getClientDevice().getUserName(), AccessType.READ, this.request.getRelativeFilePath())) {
                 logger.warn("Failed to get requested chunk due to missing access rights on file " + this.request.getRelativeFilePath() + " for user " + this.request.getClientDevice().getUserName() + " on exchange " + this.request.getExchangeId());
-                this.sendResponse(this.createErrorResponse(StatusCode.ACCESS_DENIED, -1, -1));
+                this.sendResponse(this.createErrorResponse(StatusCode.ACCESS_DENIED, - 1, - 1));
                 return;
             }
 
             IPathElement pathElement = new LocalPathElement(this.request.getRelativeFilePath());
-            IFileMetaInfo fileMetaInfo;
-            try {
-                fileMetaInfo = this.storageAdapter.getMetaInformation(pathElement);
-            } catch (InputOutputException e) {
-                logger.error("Could not fetch meta information about " + pathElement.getPath() + ". Message: " + e.getMessage());
 
-                this.sendResponse(this.createErrorResponse(StatusCode.FILE_MISSING, -1, -1));
+            ChunkProvider chunkProvider = new ChunkProvider(
+                    this.storageAdapter,
+                    this.objectStore,
+                    pathElement
+            );
+
+            Chunk chunk;
+            try {
+                chunk = chunkProvider.getChunk(this.request.getChunkCounter(), CHUNK_SIZE);
+            } catch (InputOutputException e) {
+                logger.error("Failed to read the chunk " + this.request.getChunkCounter() + " of file " + this.request.getRelativeFilePath() + " for exchange " + this.request.getExchangeId() + ". Aborting file push exchange. Message: " + e.getMessage());
+                this.sendResponse(this.createErrorResponse(StatusCode.FILE_MISSING, - 1, - 1));
+                return;
+            } catch (IllegalArgumentException e) {
+                // requested chunk does not exist anymore
+                logger.info("Detected file change during push exchange " + this.request.getExchangeId() + ". Starting to push again at chunk 0");
+                try {
+                    chunk = chunkProvider.getChunk(0, CHUNK_SIZE);
+                } catch (InputOutputException e1) {
+                    logger.error("Failed to read the chunk 0 of file " + this.request.getRelativeFilePath() + " for exchange " + this.request.getExchangeId() + " after detected file change. Aborting file push exchange. Message: " + e.getMessage());
+                    this.sendResponse(this.createErrorResponse(StatusCode.FILE_MISSING, - 1, - 1));
+                    return;
+                }
+            }
+
+            // restart the file exchange again if the other client requests a chunk we do not have
+            // maybe due to a rewrite of the file content while syncing
+            if (chunk.getTotalNrOfChunks() < this.request.getChunkCounter()) {
+                // no chunk anymore, fileDemandExchangeHandler is then forced to check checksum -> re-download if not matching
+                this.sendResponse(this.createErrorResponse(StatusCode.FILE_CHANGED, - 1, chunk.getTotalNrOfChunks()));
                 return;
             }
 
-            int totalNrOfChunks = 0;
-            Data data = null;
-            // only files can have a checksum!
-            String checksum = "";
-            if (fileMetaInfo.isFile()) {
-                // should round to the next bigger int value anyway
-                totalNrOfChunks = (int) Math.ceil(fileMetaInfo.getTotalFileSize() / CHUNK_SIZE);
-
-                // restart the file exchange again if the other client requests a chunk we do not have
-                // maybe due to a rewrite of the file content while syncing
-                if (totalNrOfChunks < this.request.getChunkCounter()) {
-                    // no chunk anymore, fileDemandExchangeHandler is then forced to check checksum -> re-download if not matching
-                    this.sendResponse(this.createErrorResponse(StatusCode.FILE_CHANGED, -1, totalNrOfChunks));
-                    return;
-                }
-
-                long fileChunkStartOffset = this.request.getChunkCounter() * CHUNK_SIZE;
-
-                // storage adapter trims requests for a too large chunk
-                byte[] content;
-                try {
-                    content = this.storageAdapter.read(pathElement, fileChunkStartOffset, CHUNK_SIZE);
-                } catch (InputOutputException e) {
-                    logger.error("Could not read file contents of " + pathElement.getPath() + " at offset " + fileChunkStartOffset + " bytes with chunk size of " + CHUNK_SIZE + " bytes");
-                    return;
-                }
-
-                data = new Data(content, false);
-
-                try {
-                    checksum = this.storageAdapter.getChecksum(pathElement);
-                } catch (InputOutputException e) {
-                    logger.error("Could not generate checksum. Message: " + e.getMessage(), e);
-                }
-            }
 
             Set<Sharer> sharers = new HashSet<>();
             try {
@@ -171,14 +160,14 @@ public class FileDemandRequestHandler implements ILocalStateRequestCallback {
                     this.request.getExchangeId(),
                     StatusCode.ACCEPTED,
                     new ClientDevice(this.node.getUser().getUserName(), this.node.getClientDeviceId(), this.node.getPeerAddress()),
-                    checksum,
+                    chunk.getChecksum(),
                     this.request.getRelativeFilePath(),
-                    fileMetaInfo.isFile(),
-                    this.request.getChunkCounter(),
+                    chunk.isFile(),
+                    chunk.getChunkCounter(),
                     CHUNK_SIZE,
-                    totalNrOfChunks,
-                    fileMetaInfo.getTotalFileSize(),
-                    data,
+                    chunk.getTotalNrOfChunks(),
+                    chunk.getTotalFileSize(),
+                    chunk.getData(),
                     new NodeLocation(
                             this.request.getClientDevice().getUserName(),
                             this.request.getClientDevice().getClientDeviceId(),

@@ -180,7 +180,8 @@ public class ShareRequestHandler implements ILocalStateRequestCallback {
             }
 
             long requestingChunk = this.request.getChunkCounter();
-            if (this.request.getChunkCounter() == this.request.getTotalNrOfChunks()) {
+            // chunk counter starts at 0
+            if (this.request.getChunkCounter() + 1 == this.request.getTotalNrOfChunks()) {
                 // now check that we got the same checksum for the file
                 try {
                     String checksum = "";
