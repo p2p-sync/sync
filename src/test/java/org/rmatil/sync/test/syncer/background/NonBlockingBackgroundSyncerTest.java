@@ -28,6 +28,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
@@ -119,7 +120,9 @@ public class NonBlockingBackgroundSyncerTest extends BaseNetworkHandlerTest {
                 CLIENT_MANAGER_1,
                 OBJECT_STORE_1,
                 STORAGE_ADAPTER_1,
-                GLOBAL_EVENT_BUS_1
+                GLOBAL_EVENT_BUS_1,
+                new ArrayList<>(),
+                new ArrayList<>()
         );
 
         // we "start" the thread manually to not wait for its completion

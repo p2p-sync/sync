@@ -4,9 +4,7 @@ import net.engio.mbassy.bus.MBassador;
 import org.rmatil.sync.core.ConflictHandler;
 import org.rmatil.sync.core.StringLengthComparator;
 import org.rmatil.sync.core.Zip;
-import org.rmatil.sync.core.eventbus.CreateBusEvent;
-import org.rmatil.sync.core.eventbus.IBusEvent;
-import org.rmatil.sync.core.eventbus.IgnoreBusEvent;
+import org.rmatil.sync.core.eventbus.*;
 import org.rmatil.sync.core.messaging.fileexchange.demand.FileDemandExchangeHandler;
 import org.rmatil.sync.core.syncer.background.fetchobjectstore.FetchObjectStoreExchangeHandler;
 import org.rmatil.sync.core.syncer.background.fetchobjectstore.FetchObjectStoreExchangeHandlerResult;
@@ -30,7 +28,9 @@ import org.rmatil.sync.version.core.model.Version;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.nio.file.FileSystems;
 import java.nio.file.Path;
+import java.nio.file.PathMatcher;
 import java.nio.file.Paths;
 import java.util.*;
 
@@ -38,18 +38,18 @@ import java.util.*;
  * Starts a synchronization process only on the client running this instance.
  * All other clients will not be affected by the synchronization, removing the need
  * of master election as is done in the deprecated BlockingBackgroundSyncer.
- *
+ * <p>
  * The procedure of syncing is as following:
- *
+ * <p>
  * <ol>
- *     <li>Stop the event aggregation to safely update the object store manually</li>
- *     <li>Fetch the object stores from all clients</li>
- *     <li>Merge them on this client</li>
- *     <li>Download all missing or outdated files from the appropriate client</li>
- *     <li>Restart the event aggregation</li>
- *     <li>Sync merged object store with actual changes on disk</li>
+ * <li>Stop the event aggregation to safely update the object store manually</li>
+ * <li>Fetch the object stores from all clients</li>
+ * <li>Merge them on this client</li>
+ * <li>Download all missing or outdated files from the appropriate client</li>
+ * <li>Restart the event aggregation</li>
+ * <li>Sync merged object store with actual changes on disk</li>
  * </ol>
- *
+ * <p>
  * {@inheritDoc}
  */
 public class NonBlockingBackgroundSyncer implements IBackgroundSyncer {
@@ -86,21 +86,26 @@ public class NonBlockingBackgroundSyncer implements IBackgroundSyncer {
      */
     protected MBassador<IBusEvent> globalEventBus;
 
+    protected List<Path>   ignoredPaths;
+    protected List<String> ignorePatterns;
+
     /**
      * @param eventAggregator The event aggregator to pause
-     * @param node The client to exchange messages
-     * @param nodeManager The client manager to fetch client locations from
-     * @param objectStore The object store for the synchronised folder
-     * @param storageAdapter The storage adapter of the synchronised folder
-     * @param globalEventBus The global event bus to push events to
+     * @param node            The client to exchange messages
+     * @param nodeManager     The client manager to fetch client locations from
+     * @param objectStore     The object store for the synchronised folder
+     * @param storageAdapter  The storage adapter of the synchronised folder
+     * @param globalEventBus  The global event bus to push events to
      */
-    public NonBlockingBackgroundSyncer(IEventAggregator eventAggregator, INode node, INodeManager nodeManager, IObjectStore objectStore, IStorageAdapter storageAdapter, MBassador<IBusEvent> globalEventBus) {
+    public NonBlockingBackgroundSyncer(IEventAggregator eventAggregator, INode node, INodeManager nodeManager, IObjectStore objectStore, IStorageAdapter storageAdapter, MBassador<IBusEvent> globalEventBus, List<Path> ignoredPaths, List<String> ignorePatterns) {
         this.eventAggregator = eventAggregator;
         this.node = node;
         this.nodeManager = nodeManager;
         this.objectStore = objectStore;
         this.storageAdapter = storageAdapter;
         this.globalEventBus = globalEventBus;
+        this.ignoredPaths = ignoredPaths;
+        this.ignorePatterns = ignorePatterns;
     }
 
     @Override
@@ -158,17 +163,17 @@ public class NonBlockingBackgroundSyncer implements IBackgroundSyncer {
             for (Map.Entry<ClientDevice, IObjectStore> entry : objectStores.entrySet()) {
                 HashMap<ObjectStore.MergedObjectType, Set<String>> outdatedOrDeletedPaths = this.objectStore.mergeObjectStore(entry.getValue());
 
-                for (String outDatedPath : outdatedOrDeletedPaths.get(ObjectStore.MergedObjectType.CHANGED)) {
+                outdatedOrDeletedPaths.get(ObjectStore.MergedObjectType.CHANGED).stream().filter(outDatedPath -> ! this.isIgnored(outDatedPath)).forEach(outDatedPath -> {
                     updatedPaths.put(outDatedPath, entry.getKey());
-                }
+                });
 
-                for (String deletedPath : outdatedOrDeletedPaths.get(ObjectStore.MergedObjectType.DELETED)) {
+                outdatedOrDeletedPaths.get(ObjectStore.MergedObjectType.DELETED).stream().filter(deletedPath -> ! this.isIgnored(deletedPath)).forEach(deletedPath -> {
                     deletedPaths.put(deletedPath, entry.getKey());
-                }
+                });
 
-                for (String conflictPath : outdatedOrDeletedPaths.get(ObjectStore.MergedObjectType.CONFLICT)) {
+                outdatedOrDeletedPaths.get(ObjectStore.MergedObjectType.CONFLICT).stream().filter(conflictPath -> ! this.isIgnored(conflictPath)).forEach(conflictPath -> {
                     conflictPaths.put(conflictPath, entry.getKey());
-                }
+                });
 
                 entry.getValue().getObjectManager().getStorageAdapater().delete(new LocalPathElement("./"));
                 this.objectStore.getObjectManager().getStorageAdapater().delete(new LocalPathElement(entry.getKey().getClientDeviceId().toString()));
@@ -187,7 +192,7 @@ public class NonBlockingBackgroundSyncer implements IBackgroundSyncer {
             }
 
             logger.info("Creating all (" + conflictPaths.size() + ") conflict files");
-            for (Map.Entry<String, ClientDevice> entry: conflictPaths.entrySet()) {
+            for (Map.Entry<String, ClientDevice> entry : conflictPaths.entrySet()) {
                 logger.debug("Creating conflict file " + entry.getKey());
                 Path conflictFilePath = ConflictHandler.createConflictFile(
                         this.globalEventBus,
@@ -196,7 +201,6 @@ public class NonBlockingBackgroundSyncer implements IBackgroundSyncer {
                         this.storageAdapter,
                         new LocalPathElement(entry.getKey())
                 );
-
 
 
                 // we have to emit an ignore event here for the file syncer
@@ -246,6 +250,23 @@ public class NonBlockingBackgroundSyncer implements IBackgroundSyncer {
                         continue;
                     }
                 }
+
+                // add owner, access type and sharers for object store to prevent overwriting when a file
+                // is fetched which does not exist yet
+                this.globalEventBus.publish(
+                        new AddOwnerAndAccessTypeToObjectStoreBusEvent(
+                                mergedPathObject.getOwner(),
+                                mergedPathObject.getAccessType(),
+                                entry.getKey()
+                        )
+                );
+
+                this.globalEventBus.publish(
+                        new AddSharerToObjectStoreBusEvent(
+                                entry.getKey(),
+                                mergedPathObject.getSharers()
+                        )
+                );
 
                 FileDemandExchangeHandler fileDemandExchangeHandler = new FileDemandExchangeHandler(
                         this.storageAdapter,
@@ -353,5 +374,22 @@ public class NonBlockingBackgroundSyncer implements IBackgroundSyncer {
         } catch (Exception e) {
             logger.error("Got exception in NonBlockingBackgroundSyncer. Message: " + e.getMessage(), e);
         }
+    }
+
+    private boolean isIgnored(String path) {
+        for (Path entry : this.ignoredPaths) {
+            if (Paths.get(path).startsWith(entry)) {
+                return true;
+            }
+        }
+
+        for (String pattern : this.ignorePatterns) {
+            PathMatcher matcher = FileSystems.getDefault().getPathMatcher("glob:" + pattern);
+            if (matcher.matches(Paths.get(path))) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }
