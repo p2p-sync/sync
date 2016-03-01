@@ -118,11 +118,15 @@ public class FileOfferRequestHandler implements ILocalStateRequestCallback {
             LocalPathElement pathElement;
             if ((null != this.request.getOwner() && this.node.getUser().getUserName().equals(this.request.getOwner())) ||
                     null != this.request.getFileId()) {
+                logger.debug("Using the path registered with the file id " + this.request.getFileId() + " to answer the file offer request");
                 // we have to use our path: if we are either the owner or a sharer
                 pathElement = new LocalPathElement(this.node.getIdentifierManager().getKey(this.request.getFileId()));
             } else {
+                logger.debug("Using the path from the request " + this.request.getEvent().getPath() + " to answer the file offer request");
                 pathElement = new LocalPathElement(this.request.getEvent().getPath());
             }
+
+            logger.info("Processing file offer request for path " + pathElement.getPath());
 
             if (! this.node.getUser().getUserName().equals(this.request.getClientDevice().getUserName()) && ! this.accessManager.hasAccess(this.request.getClientDevice().getUserName(), AccessType.WRITE, pathElement.getPath())) {
                 logger.warn("Failed to positively return the offer from user " + this.request.getClientDevice().getUserName() + " for file " + pathElement.getPath() + " due to missing access rights on exchange " + this.request.getExchangeId());
