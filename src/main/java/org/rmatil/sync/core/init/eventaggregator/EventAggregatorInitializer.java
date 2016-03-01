@@ -3,7 +3,6 @@ package org.rmatil.sync.core.init.eventaggregator;
 import org.rmatil.sync.core.exception.InitializationStartException;
 import org.rmatil.sync.core.exception.InitializationStopException;
 import org.rmatil.sync.core.init.IInitializer;
-import org.rmatil.sync.core.init.objecstore.ObjectStoreFileChangeListener;
 import org.rmatil.sync.event.aggregator.api.IEventAggregator;
 import org.rmatil.sync.event.aggregator.api.IEventListener;
 import org.rmatil.sync.event.aggregator.core.EventAggregator;
@@ -22,14 +21,16 @@ public class EventAggregatorInitializer implements IInitializer<IEventAggregator
     Path                 rootPath;
     IObjectStore         objectStore;
     List<Path>           ignoredPaths;
+    List<String>         ignoredPatterns;
     long                 aggregationInterval;
     IEventAggregator     eventAggregator;
     List<IEventListener> eventListeners;
 
-    public EventAggregatorInitializer(Path rootPath, IObjectStore objectStore, List<IEventListener> eventListeners,List<Path> ignoredRelativePaths, long aggregationInterval) {
+    public EventAggregatorInitializer(Path rootPath, IObjectStore objectStore, List<IEventListener> eventListeners, List<Path> ignoredRelativePaths, List<String> ignoredPatterns, long aggregationInterval) {
         this.rootPath = rootPath;
         this.objectStore = objectStore;
         this.ignoredPaths = ignoredRelativePaths;
+        this.ignoredPatterns = ignoredPatterns;
         this.eventListeners = eventListeners;
         this.aggregationInterval = aggregationInterval;
     }
@@ -38,7 +39,7 @@ public class EventAggregatorInitializer implements IInitializer<IEventAggregator
     public IEventAggregator init() {
         IModifier relativePathModifier = new RelativePathModifier(this.rootPath);
         IModifier addDirectoryContentModifier = new AddDirectoryContentModifier(this.rootPath, this.objectStore);
-        IModifier ignorePathsModifier = new IgnorePathsModifier(ignoredPaths);
+        IModifier ignorePathsModifier = new IgnorePathsModifier(this.rootPath, ignoredPaths, this.ignoredPatterns);
         IModifier ignoreDirectoryModifier = new IgnoreDirectoryModifier(this.rootPath);
 
         IAggregator historyMoveAggregator = new HistoryMoveAggregator(objectStore.getObjectManager());

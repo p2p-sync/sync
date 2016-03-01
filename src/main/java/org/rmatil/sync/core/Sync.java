@@ -82,6 +82,12 @@ public class Sync {
     protected Path rootPath;
 
     /**
+     * A list of filename glob patterns to ignore
+     * from being processed
+     */
+    protected List<String> ignorePatterns;
+
+    /**
      * The storage adapter managing the synced folder
      */
     protected IStorageAdapter storageAdapter;
@@ -114,10 +120,20 @@ public class Sync {
     /**
      * Creates a new Sync application.
      *
-     * @param rootPath The path to the synced folder
+     * @param rootPath       The path to the synced folder
+     * @param ignorePatterns A list of filename glob patterns to ignore from processing
      */
-    public Sync(Path rootPath) {
+    public Sync(Path rootPath, List<String> ignorePatterns) {
+        if (null == rootPath) {
+            throw new IllegalArgumentException("Root path must not be null");
+        }
+
+        if (null == ignorePatterns) {
+            throw new IllegalArgumentException("Ignore patterns must not be null");
+        }
+
         this.rootPath = rootPath;
+        this.ignorePatterns = ignorePatterns;
     }
 
     /**
@@ -451,7 +467,7 @@ public class Sync {
         // Init event aggregator
         List<Path> ignoredPaths = new ArrayList<>();
         ignoredPaths.add(this.rootPath.relativize(rootPath.resolve(Paths.get(Config.DEFAULT.getOsFolderName()))));
-        EventAggregatorInitializer eventAggregatorInitializer = new EventAggregatorInitializer(this.rootPath, objectStore, eventListeners, ignoredPaths, 5000L);
+        EventAggregatorInitializer eventAggregatorInitializer = new EventAggregatorInitializer(this.rootPath, objectStore, eventListeners, ignoredPaths, this.ignorePatterns, 5000L);
         this.eventAggregator = eventAggregatorInitializer.init();
         eventAggregatorInitializer.start();
 

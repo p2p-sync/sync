@@ -385,6 +385,7 @@ public abstract class BaseNetworkHandlerTest extends BaseTest {
                 objectStore,
                 eventListeners,
                 ignoredPaths,
+                new ArrayList<>(),
                 25000L
         );
 
