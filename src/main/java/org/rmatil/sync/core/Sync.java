@@ -113,6 +113,11 @@ public class Sync {
     protected ScheduledExecutorService backgroundSyncerExecutorService;
 
     /**
+     * The sync file change listener
+     */
+    protected SyncFileChangeListener syncFileChangeListener;
+
+    /**
      * Creates a new Sync application.
      *
      * @param rootPath The path to the synced folder
@@ -446,7 +451,7 @@ public class Sync {
         globalEventBus.subscribe(fileSyncer);
 
         // Add sync file change listener to event aggregator
-        SyncFileChangeListener syncFileChangeListener = new SyncFileChangeListener(fileSyncer);
+        this.syncFileChangeListener = new SyncFileChangeListener(fileSyncer);
         ExecutorService executorService = Executors.newSingleThreadExecutor();
         executorService.execute(syncFileChangeListener);
 
@@ -500,6 +505,7 @@ public class Sync {
     public void shutdown() {
         this.backgroundSyncerExecutorService.shutdown();
         this.eventAggregator.stop();
+        this.syncFileChangeListener.shutdown();
         this.node.shutdown();
     }
 
