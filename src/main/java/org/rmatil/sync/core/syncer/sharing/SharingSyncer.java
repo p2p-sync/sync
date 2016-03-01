@@ -72,6 +72,11 @@ public class SharingSyncer implements ISharingSyncer {
      */
     public void syncShareEvent(ShareEvent sharingEvent)
             throws SharingFailedException {
+
+        if (this.node.getUser().getUserName().equals(sharingEvent.getUsernameToShareWith())) {
+            throw new SharingFailedException("Sharing with the own user is not permitted");
+        }
+
         UUID exchangeId = UUID.randomUUID();
 
         UUID fileId;
@@ -186,6 +191,11 @@ public class SharingSyncer implements ISharingSyncer {
      */
     public void syncUnshareEvent(UnshareEvent unshareEvent)
             throws UnsharingFailedException {
+        
+        if (this.node.getUser().getUserName().equals(unshareEvent.getUsernameToShareWith())) {
+            throw new UnsharingFailedException("Unsharing with the own user is not permitted");
+        }
+
         UUID exchangeId = UUID.randomUUID();
 
         UUID fileId;
@@ -200,7 +210,7 @@ public class SharingSyncer implements ISharingSyncer {
         // avoid unsharing on our side if no client of the sharer is connected
         NodeLocation sharerLocation = this.getClientLocationFromSharer(unshareEvent.getUsernameToShareWith());
         if (null == sharerLocation) {
-            String msg = "No client of user " + unshareEvent.getUsernameToShareWith()+ " is online. Sharing failed";
+            String msg = "No client of user " + unshareEvent.getUsernameToShareWith() + " is online. Sharing failed";
             logger.error(msg);
             throw new SharingFailedException(msg);
         }
