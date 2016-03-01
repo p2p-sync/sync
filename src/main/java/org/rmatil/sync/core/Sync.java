@@ -65,6 +65,7 @@ import java.security.KeyPair;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -446,9 +447,9 @@ public class Sync {
 
         // Add sync file change listener to event aggregator
         SyncFileChangeListener syncFileChangeListener = new SyncFileChangeListener(fileSyncer);
-        ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor();
-        // TODO: replace with non scheduled executor since it is a blocking queue
-        executorService.scheduleAtFixedRate(syncFileChangeListener, 0, 10, TimeUnit.SECONDS);
+        ExecutorService executorService = Executors.newSingleThreadExecutor();
+        executorService.execute(syncFileChangeListener);
+
         globalEventBus.subscribe(syncFileChangeListener);
 
         IEventListener objectStoreFileChangeListener = new ObjectStoreFileChangeListener(objectStore);
@@ -473,7 +474,9 @@ public class Sync {
                 this.nodeManager,
                 objectStore,
                 this.storageAdapter,
-                globalEventBus
+                globalEventBus,
+                ignoredPaths,
+                ignorePatterns
         );
 
         this.sharingSyncer = new SharingSyncer(

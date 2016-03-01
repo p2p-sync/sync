@@ -63,6 +63,7 @@ import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -366,11 +367,8 @@ public abstract class BaseNetworkHandlerTest extends BaseTest {
     protected static IEventAggregator createEventAggregator(Path rootPath, IObjectStore objectStore, FileSyncer fileSyncer, MBassador<IBusEvent> globalEventBus) {
         // Add sync file change listener to event aggregator
         SyncFileChangeListener syncFileChangeListener = new SyncFileChangeListener(fileSyncer);
-        ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor();
-
-        // TODO: use simple executor instead of scheduled one
-        // the listener fetches all events every 10 seconds to propagate to other clients
-        executorService.scheduleAtFixedRate(syncFileChangeListener, 0, 10, TimeUnit.SECONDS);
+        ExecutorService executorService = Executors.newSingleThreadExecutor();
+        executorService.execute(syncFileChangeListener);
 
         globalEventBus.subscribe(syncFileChangeListener);
 
