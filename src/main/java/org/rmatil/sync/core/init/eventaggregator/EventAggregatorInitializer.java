@@ -39,7 +39,7 @@ public class EventAggregatorInitializer implements IInitializer<IEventAggregator
     public IEventAggregator init() {
         IModifier relativePathModifier = new RelativePathModifier(this.rootPath);
         IModifier addDirectoryContentModifier = new AddDirectoryContentModifier(this.rootPath, this.objectStore);
-        IModifier ignorePathsModifier = new IgnorePathsModifier(this.rootPath, ignoredPaths, this.ignoredPatterns);
+        IModifier ignorePathsModifier = new IgnorePathsModifier(ignoredPaths, this.ignoredPatterns);
         IModifier ignoreDirectoryModifier = new IgnoreDirectoryModifier(this.rootPath);
 
         IAggregator historyMoveAggregator = new HistoryMoveAggregator(objectStore.getObjectManager());
