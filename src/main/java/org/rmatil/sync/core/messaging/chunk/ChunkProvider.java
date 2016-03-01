@@ -59,11 +59,11 @@ public class ChunkProvider {
             throws InputOutputException, IllegalArgumentException {
         IFileMetaInfo fileMetaInfo = this.storageAdapter.getMetaInformation(this.pathElement);
 
-        int totalNrOfChunks = 0;
+        int totalNrOfChunks = 1;
         Data data = null;
         String checksum = "";
         if (fileMetaInfo.isFile()) {
-            totalNrOfChunks = (int) Math.ceil(fileMetaInfo.getTotalFileSize() / chunkSize);
+            totalNrOfChunks = (int) Math.ceil(fileMetaInfo.getTotalFileSize() / (double) chunkSize);
 
             if (chunkCounter > totalNrOfChunks) {
                 // maybe the file has changed in the mean time...
