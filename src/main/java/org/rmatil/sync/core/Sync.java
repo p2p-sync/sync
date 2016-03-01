@@ -82,12 +82,6 @@ public class Sync {
     protected Path rootPath;
 
     /**
-     * A list of filename glob patterns to ignore
-     * from being processed
-     */
-    protected List<String> ignorePatterns;
-
-    /**
      * The storage adapter managing the synced folder
      */
     protected IStorageAdapter storageAdapter;
@@ -120,20 +114,14 @@ public class Sync {
     /**
      * Creates a new Sync application.
      *
-     * @param rootPath       The path to the synced folder
-     * @param ignorePatterns A list of filename glob patterns to ignore from processing
+     * @param rootPath The path to the synced folder
      */
-    public Sync(Path rootPath, List<String> ignorePatterns) {
+    public Sync(Path rootPath) {
         if (null == rootPath) {
             throw new IllegalArgumentException("Root path must not be null");
         }
 
-        if (null == ignorePatterns) {
-            throw new IllegalArgumentException("Ignore patterns must not be null");
-        }
-
         this.rootPath = rootPath;
-        this.ignorePatterns = ignorePatterns;
     }
 
     /**
@@ -178,6 +166,11 @@ public class Sync {
             Files.createFile(configFilePath);
         }
 
+        List<String> ignorePatterns = new ArrayList<>();
+        ignorePatterns.add("**.DS_Store");
+        ignorePatterns.add("**.swp");
+        ignorePatterns.add("**.swx");
+
         // write the application config
         ApplicationConfig appConfig = new ApplicationConfig(
                 null,
@@ -190,7 +183,8 @@ public class Sync {
                 4003,
                 appConfigFolderPath.resolve(Config.DEFAULT.getPublicKeyFileName()).toString(),
                 appConfigFolderPath.resolve(Config.DEFAULT.getPrivateKeyFileName()).toString(),
-                null
+                null,
+                ignorePatterns
         );
 
         // actually write the config file
@@ -336,9 +330,9 @@ public class Sync {
      *
      * @throws InitializationStartException If the client could not have been started
      */
-    public ClientDevice connect(KeyPair keyPair, String userName, String password, String salt, long cacheTtl, long peerDiscoveryTimeout, long peerBootstrapTimeout, long shutdownAnnounceTimeout, int port)
+    public ClientDevice connect(KeyPair keyPair, String userName, String password, String salt, long cacheTtl, long peerDiscoveryTimeout, long peerBootstrapTimeout, long shutdownAnnounceTimeout, int port, List<String> ignorePatterns)
             throws InitializationStartException {
-        return this.connect(keyPair, userName, password, salt, cacheTtl, peerDiscoveryTimeout, peerBootstrapTimeout, shutdownAnnounceTimeout, port, null);
+        return this.connect(keyPair, userName, password, salt, cacheTtl, peerDiscoveryTimeout, peerBootstrapTimeout, shutdownAnnounceTimeout, port, null, ignorePatterns);
     }
 
     /**
@@ -359,7 +353,7 @@ public class Sync {
      *
      * @throws InitializationStartException If the client could not have been started
      */
-    public ClientDevice connect(KeyPair keyPair, String userName, String password, String salt, long cacheTtl, long peerDiscoveryTimeout, long peerBootstrapTimeout, long shutdownAnnounceTimeout, int port, RemoteClientLocation bootstrapLocation)
+    public ClientDevice connect(KeyPair keyPair, String userName, String password, String salt, long cacheTtl, long peerDiscoveryTimeout, long peerBootstrapTimeout, long shutdownAnnounceTimeout, int port, RemoteClientLocation bootstrapLocation, List<String> ignorePatterns)
             throws InitializationStartException {
         IUser user = new User(
                 userName,
@@ -467,7 +461,7 @@ public class Sync {
         // Init event aggregator
         List<Path> ignoredPaths = new ArrayList<>();
         ignoredPaths.add(this.rootPath.relativize(rootPath.resolve(Paths.get(Config.DEFAULT.getOsFolderName()))));
-        EventAggregatorInitializer eventAggregatorInitializer = new EventAggregatorInitializer(this.rootPath, objectStore, eventListeners, ignoredPaths, this.ignorePatterns, 5000L);
+        EventAggregatorInitializer eventAggregatorInitializer = new EventAggregatorInitializer(this.rootPath, objectStore, eventListeners, ignoredPaths, ignorePatterns, 5000L);
         this.eventAggregator = eventAggregatorInitializer.init();
         eventAggregatorInitializer.start();
 

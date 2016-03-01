@@ -4,6 +4,8 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import org.rmatil.sync.core.model.RemoteClientLocation;
 
+import java.util.List;
+
 public class ApplicationConfig {
 
     protected static Gson gson = new GsonBuilder().setPrettyPrinting().serializeNulls().create();
@@ -19,8 +21,9 @@ public class ApplicationConfig {
     protected String               publicKeyPath;
     protected String               privateKeyPath;
     protected RemoteClientLocation defaultBootstrapLocation;
+    protected List<String>         ignorePatterns;
 
-    public ApplicationConfig(String userName, String password, String salt, long cacheTtl, long peerDiscoveryTimeout, long peerBootstrapTimeout, long shutdownAnnounceTimeout, int defaultPort, String publicKeyPath, String privateKeyPath, RemoteClientLocation defaultBootstrapLocation) {
+    public ApplicationConfig(String userName, String password, String salt, long cacheTtl, long peerDiscoveryTimeout, long peerBootstrapTimeout, long shutdownAnnounceTimeout, int defaultPort, String publicKeyPath, String privateKeyPath, RemoteClientLocation defaultBootstrapLocation, List<String> ignorePatterns) {
         this.userName = userName;
         this.password = password;
         this.salt = salt;
@@ -32,6 +35,7 @@ public class ApplicationConfig {
         this.publicKeyPath = publicKeyPath;
         this.privateKeyPath = privateKeyPath;
         this.defaultBootstrapLocation = defaultBootstrapLocation;
+        this.ignorePatterns = ignorePatterns;
     }
 
     public String getUserName() {
@@ -122,10 +126,18 @@ public class ApplicationConfig {
         this.defaultBootstrapLocation = defaultBootstrapLocation;
     }
 
+    public List<String> getIgnorePatterns() {
+        return ignorePatterns;
+    }
+
+    public void setIgnorePatterns(List<String> ignorePatterns) {
+        this.ignorePatterns = ignorePatterns;
+    }
+
     /**
      * Creates a JSON representation of this application config
      *
-     * @return
+     * @return The JSON representation
      */
     public String toJson() {
         return gson.toJson(this, ApplicationConfig.class);
