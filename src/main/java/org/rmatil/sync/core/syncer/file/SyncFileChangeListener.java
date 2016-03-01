@@ -53,19 +53,19 @@ public class SyncFileChangeListener implements IEventListener, Runnable {
 
     @Override
     public void run() {
-        try {
-            while (! isTerminated) {
+        while (! isTerminated) {
+            try {
                 IEvent headEvent = this.eventQueue.take();
 
                 // an event which has been caused due to handling a conflict
                 this.fileSyncer.sync(headEvent);
+                
+            } catch (InterruptedException e) {
+                logger.info("Got interrupted. Stopping to listen for file change events. FileSyncer will therefore not sync any change until this listener is restarted.");
+                this.isTerminated = true;
+            } catch (Exception e) {
+                logger.error("Error in SyncFileChangeListener Thread. Message: " + e.getMessage(), e);
             }
-
-        } catch (InterruptedException e) {
-            logger.info("Got interrupted. Stopping to listen for file change events. FileSyncer will therefore not sync any change until this listener is restarted.");
-            this.isTerminated = true;
-        } catch (Exception e) {
-            logger.error("Error in SyncFileChangeListener Thread. Message: " + e.getMessage(), e);
         }
     }
 
