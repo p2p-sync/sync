@@ -138,11 +138,9 @@ public class FileOfferExchangeHandler extends ANetworkHandler<FileOfferExchangeH
 
                         // move also file id
                         try {
-                            UUID fileId = this.node.getIdentifierManager().getValue(oldPath.toString());
-                            this.node.getIdentifierManager().addIdentifier(relPath.toString(), fileId);
-                            this.node.getIdentifierManager().removeIdentifier(oldPath.toString());
+                            this.node.getIdentifierManager().moveKey(oldPath.toString(), relPath.toString());
                         } catch (InputOutputException e) {
-                            logger.error("Failed to move file id for file " + oldPath.toString() + ". Message: " + e.getMessage(), e);
+                            logger.warn("Failed to move file id for file " + oldPath.toString() + ". Message: " + e.getMessage());
                         }
 
                         globalEventBus.publish(new IgnoreBusEvent(

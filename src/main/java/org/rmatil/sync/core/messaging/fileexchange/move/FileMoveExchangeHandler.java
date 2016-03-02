@@ -77,10 +77,12 @@ public class FileMoveExchangeHandler extends ANetworkHandler<FileMoveExchangeHan
             // move element in the IdentifierManager too
             UUID fileId = this.node.getIdentifierManager().getValue(this.moveEvent.getPath().toString());
             try {
-                this.node.getIdentifierManager().removeIdentifier(this.moveEvent.getPath().toString());
-                this.node.getIdentifierManager().addIdentifier(this.moveEvent.getNewPath().toString(), fileId);
+                this.node.getIdentifierManager().moveKey(
+                        this.moveEvent.getPath().toString(),
+                        this.moveEvent.getNewPath().toString()
+                );
             } catch (InputOutputException e) {
-                logger.error("Failed to move file with id " + fileId + " on path " + this.moveEvent.getPath().toString() + " to new path too. Message: " + e.getMessage());
+                logger.warn("Failed to move file with id " + fileId + " on path " + this.moveEvent.getPath().toString() + " to new path too. Maybe another client moved it already? Message: " + e.getMessage());
             }
 
             this.moveCountDownLatch = new CountDownLatch(this.clientCounter);
@@ -107,7 +109,7 @@ public class FileMoveExchangeHandler extends ANetworkHandler<FileMoveExchangeHan
                 super.sendRequest(fileMoveRequest);
             }
         } catch (Exception e) {
-            logger.error("Failed to execute FileMoveExchange. Message: " + e.getMessage());
+            logger.error("Failed to execute FileMoveExchange. Message: " + e.getMessage(), e);
         }
     }
 

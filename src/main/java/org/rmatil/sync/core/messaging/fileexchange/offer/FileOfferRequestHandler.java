@@ -174,11 +174,13 @@ public class FileOfferRequestHandler implements ILocalStateRequestCallback {
                                 UUID fileId = this.node.getIdentifierManager().getValue(pathElement.getPath());
                                 try {
                                     if (null != conflictFile && null != fileId) {
-                                        this.node.getIdentifierManager().removeIdentifier(pathElement.getPath());
-                                        this.node.getIdentifierManager().addIdentifier(conflictFile.toString(), fileId);
+                                        this.node.getIdentifierManager().moveKey(
+                                                pathElement.getPath(),
+                                                conflictFile.toString()
+                                        );
                                     }
                                 } catch (InputOutputException e) {
-                                    logger.error("Failed to move conflicting file with id " + fileId + " on path " + pathElement.getPath() + " to new path too. Message: " + e.getMessage());
+                                    logger.warn("Failed to move conflicting file with id " + fileId + " on path " + pathElement.getPath() + " to new path too. Maybe another client moved it already? Message: " + e.getMessage());
                                 }
 
                             } else if (CONFLICT_TYPE.NO_CONFLICT_REQUEST_REQUIRED == hasVersionConflict) {
