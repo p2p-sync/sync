@@ -101,6 +101,9 @@ public class FilePushExchangeHandler extends ANetworkHandler<FilePushExchangeHan
      */
     protected CountDownLatch initReceiverLatch;
 
+    protected UUID   fileId;
+    protected String owner;
+
 
     public FilePushExchangeHandler(UUID exchangeId, ClientDevice clientDevice, IStorageAdapter storageAdapter, INodeManager nodeManager, INode client, IObjectStore objectStore, List<NodeLocation> receivers, String relativeFilePath) {
         super(client);
@@ -141,6 +144,45 @@ public class FilePushExchangeHandler extends ANetworkHandler<FilePushExchangeHan
                 this.node.getIdentifierManager().addIdentifier(this.relativeFilePath, UUID.randomUUID());
             }
 
+            // check whether we got access to the file
+            this.fileId = null;
+            this.owner = null;
+            try {
+                PathObject pathObject = this.objectStore.getObjectManager().getObjectForPath(this.relativeFilePath);
+                // if we are not the owner but have access to the file
+                if (null != pathObject.getOwner() &&
+                        ! this.node.getUser().getUserName().equals(pathObject.getOwner()) &&
+                        AccessType.WRITE.equals(pathObject.getAccessType())) {
+                    try {
+                        this.fileId = this.node.getIdentifierManager().getValue(this.relativeFilePath);
+                        this.owner = pathObject.getOwner();
+                    } catch (InputOutputException e) {
+                        logger.error("Failed to get file id for " + this.relativeFilePath + ". Message: " + e.getMessage());
+                    }
+                }
+
+                // add file id also if the path is shared
+                if (pathObject.isShared()) {
+                    for (Sharer entry : pathObject.getSharers()) {
+                        try {
+                            // ask sharer's clients to get the changes too
+                            List<NodeLocation> sharerLocations = this.nodeManager.getNodeLocations(entry.getUsername());
+
+                            // only add one client of the sharer. He may propagate the change then
+                            // to his clients, and if a conflict occurs, there will be a new file
+                            if (! sharerLocations.isEmpty()) {
+                                fileId = super.node.getIdentifierManager().getValue(pathObject.getAbsolutePath());
+                                this.receivers.add(sharerLocations.get(0));
+                            }
+                        } catch (InputOutputException e) {
+                            logger.error("Could not get client locations of sharer " + entry.getUsername() + ". This sharer's clients do not get the file (change)");
+                        }
+                    }
+                }
+            } catch (InputOutputException e) {
+                logger.error("Failed to read path object for " + this.relativeFilePath + ". Message: " + e.getMessage());
+            }
+
             // the owner of a file is only added on a share request
             for (NodeLocation location : this.receivers) {
                 UUID uuid = UUID.randomUUID();
@@ -148,7 +190,13 @@ public class FilePushExchangeHandler extends ANetworkHandler<FilePushExchangeHan
                 // add callback handler for sub request
                 super.node.getObjectDataReplyHandler().addResponseCallbackHandler(uuid, this);
 
-                this.sendChunk(0, uuid, location);
+                this.sendChunk(
+                        0, // first chunk
+                        this.fileId,
+                        this.owner,
+                        uuid,
+                        location
+                );
             }
         } catch (Exception e) {
             logger.error("Failed to execute FilePushExchangeHandler. Message: " + e.getMessage(), e);
@@ -171,13 +219,20 @@ public class FilePushExchangeHandler extends ANetworkHandler<FilePushExchangeHan
         }
 
         if (- 1 < ((FilePushResponse) response).getChunkCounter()) {
-            this.sendChunk(((FilePushResponse) response).getChunkCounter(), response.getExchangeId(), new NodeLocation(response.getClientDevice().getUserName(), response.getClientDevice().getClientDeviceId(), response.getClientDevice().getPeerAddress()));
+            this.sendChunk(
+                    ((FilePushResponse) response).getChunkCounter(),
+                    this.fileId,
+                    this.owner,
+                    response.getExchangeId(),
+                    new NodeLocation(
+                            response.getClientDevice().getUserName(),
+                            response.getClientDevice().getClientDeviceId(),
+                            response.getClientDevice().getPeerAddress())
+            );
         } else {
             // exchange is finished
             super.node.getObjectDataReplyHandler().removeResponseCallbackHandler(response.getExchangeId());
-
             super.onResponse(response);
-
             this.chunkCountDownLatch.countDown();
         }
     }
@@ -227,7 +282,7 @@ public class FilePushExchangeHandler extends ANetworkHandler<FilePushExchangeHan
      * @param exchangeId   The exchange id for the request
      * @param receiver     The receiver which should get the chunk
      */
-    protected void sendChunk(long chunkCounter, UUID exchangeId, NodeLocation receiver) {
+    protected void sendChunk(long chunkCounter, UUID fileId, String owner, UUID exchangeId, NodeLocation receiver) {
         Chunk chunk = new Chunk(
                 "",
                 "",
@@ -257,45 +312,6 @@ public class FilePushExchangeHandler extends ANetworkHandler<FilePushExchangeHan
 
         // check whether the chunk counter has changed
         StatusCode statusCode = (chunkCounter == chunk.getChunkCounter()) ? StatusCode.NONE : StatusCode.FILE_CHANGED;
-
-        // check whether we got access to the file
-        UUID fileId = null;
-        String owner = null;
-        try {
-            PathObject pathObject = this.objectStore.getObjectManager().getObjectForPath(this.relativeFilePath);
-            // if we are not the owner but have access to the file
-            if (null != pathObject.getOwner() &&
-                    ! this.node.getUser().getUserName().equals(pathObject.getOwner()) &&
-                    AccessType.WRITE.equals(pathObject.getAccessType())) {
-                try {
-                    fileId = this.node.getIdentifierManager().getValue(this.relativeFilePath);
-                    owner = pathObject.getOwner();
-                } catch (InputOutputException e) {
-                    logger.error("Failed to get file id for " + this.relativeFilePath + ". Message: " + e.getMessage());
-                }
-            }
-
-            // add file id also if the path is shared
-            if (pathObject.isShared()) {
-                for (Sharer entry : pathObject.getSharers()) {
-                    try {
-                        // ask sharer's clients to get the changes too
-                        List<NodeLocation> sharerLocations = this.nodeManager.getNodeLocations(entry.getUsername());
-
-                        // only add one client of the sharer. He may propagate the change then
-                        // to his clients, and if a conflict occurs, there will be a new file
-                        if (! sharerLocations.isEmpty()) {
-                            fileId = super.node.getIdentifierManager().getValue(pathObject.getAbsolutePath());
-                            this.receivers.add(sharerLocations.get(0));
-                        }
-                    } catch (InputOutputException e) {
-                        logger.error("Could not get client locations of sharer " + entry.getUsername() + ". Skipping this sharer's clients");
-                    }
-                }
-            }
-        } catch (InputOutputException e) {
-            logger.error("Failed to read path object for " + this.relativeFilePath + ". Message: " + e.getMessage());
-        }
 
         IRequest request = new FilePushRequest(
                 exchangeId,
