@@ -337,6 +337,10 @@ public class NonBlockingBackgroundSyncer implements IBackgroundSyncer {
 
             logger.info("Found " + deletedPathsInTheMeanTime.size() + " paths which have been deleted in the mean time of syncing");
             for (String deletedPath : deletedPathsInTheMeanTime) {
+                if (this.isIgnored(deletedPath)) {
+                    logger.info("Ignore deletion of " + deletedPath + " since it matches an ignore pattern");
+                }
+
                 // publish a delete event to the SyncFileChangeListener
                 logger.trace("Creating delete event for " + deletedPath);
                 this.globalEventBus.publish(
@@ -353,6 +357,10 @@ public class NonBlockingBackgroundSyncer implements IBackgroundSyncer {
 
             logger.info("Found " + updatedPathsInTheMeanTime.size() + " paths which have changed in the mean time of syncing");
             for (String updatedPath : updatedPathsInTheMeanTime) {
+                if (this.isIgnored(updatedPath)) {
+                    logger.info("Ignore updating of " + updatedPath + " since it matches an ignore pattern");
+                }
+
                 // publish modify events to SyncFileChangeListener
                 logger.trace("Creating modify event for " + updatedPath);
                 PathObject updatedPathObject = this.objectStore.getObjectManager().getObjectForPath(updatedPath);
