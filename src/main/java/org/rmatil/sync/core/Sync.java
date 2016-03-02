@@ -174,8 +174,41 @@ public class Sync {
 
         List<String> ignorePatterns = new ArrayList<>();
         ignorePatterns.add("**.DS_Store");
+        ignorePatterns.add("**.ds_store");
         ignorePatterns.add("**.swp");
         ignorePatterns.add("**.swx");
+        ignorePatterns.add("**.fseventd");
+        ignorePatterns.add("**.apidisk");
+        ignorePatterns.add("**.apdisk");
+        ignorePatterns.add("**.htaccess");
+        ignorePatterns.add("**.directory");
+        ignorePatterns.add("**.part");
+        ignorePatterns.add("**.filepart");
+        ignorePatterns.add("**.crdownload");
+        ignorePatterns.add("**.kate-swp");
+        ignorePatterns.add("**.gnucash.tmp-*");
+        ignorePatterns.add("**.synkron.*");
+        ignorePatterns.add("**.sync.ffs_db");
+        ignorePatterns.add("**.symform");
+        ignorePatterns.add("**.symform-store");
+        ignorePatterns.add("**.fuse_hidden*");
+        ignorePatterns.add("**.unison");
+        ignorePatterns.add("**.nfs*");
+        ignorePatterns.add("**.Win7.vdi");
+        ignorePatterns.add("**~");
+        ignorePatterns.add("**~$*");
+        ignorePatterns.add("**.~lock.*");
+        ignorePatterns.add("**~*.tmp");
+        ignorePatterns.add("**~.~*");
+        ignorePatterns.add("**Icon\r*");
+        ignorePatterns.add("**._*");
+        ignorePatterns.add("**Thumbs.db");
+        ignorePatterns.add("**desktop.ini");
+        ignorePatterns.add("**.*.sw?");
+        ignorePatterns.add("**.*.*sw?");
+        ignorePatterns.add("**.TemporaryItems");
+        ignorePatterns.add("**.Trashes");
+        ignorePatterns.add("**.DocumentRevisions-V100");
 
         // write the application config
         ApplicationConfig appConfig = new ApplicationConfig(
