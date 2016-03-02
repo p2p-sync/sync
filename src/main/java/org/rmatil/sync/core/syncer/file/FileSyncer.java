@@ -212,11 +212,10 @@ public class FileSyncer implements IFileSyncer {
             try {
                 fileId = this.node.getIdentifierManager().getValue(event.getPath().toString());
                 if (null != conflictFile && null != fileId) {
-                    this.node.getIdentifierManager().removeIdentifier(event.getPath().toString());
-                    this.node.getIdentifierManager().addIdentifier(conflictFile.toString(), fileId);
+                    this.node.getIdentifierManager().moveKey(event.getPath().toString(), conflictFile.toString());
                 }
             } catch (InputOutputException e) {
-                logger.error("Failed to move conflicting file with id " + fileId + " on path " + event.getPath().toString() + " to new path too. Message: " + e.getMessage());
+                logger.warn("Failed to move conflicting file with id " + fileId + " on path " + event.getPath().toString() + " to new path too. Message: " + e.getMessage());
             }
 
             return;
