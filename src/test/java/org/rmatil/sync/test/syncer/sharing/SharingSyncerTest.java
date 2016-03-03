@@ -3,6 +3,7 @@ package org.rmatil.sync.test.syncer.sharing;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.rmatil.sync.core.syncer.sharing.SharingSyncer;
+import org.rmatil.sync.network.core.model.NodeLocation;
 import org.rmatil.sync.persistence.exceptions.InputOutputException;
 import org.rmatil.sync.test.messaging.base.BaseNetworkHandlerTest;
 import org.rmatil.sync.version.api.AccessType;
@@ -12,7 +13,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.*;
 
 public class SharingSyncerTest extends BaseNetworkHandlerTest {
 
@@ -67,7 +68,16 @@ public class SharingSyncerTest extends BaseNetworkHandlerTest {
 
         String relativePath4 = SHARING_SYNCER.getRelativePathToSharedFolder(TEST_FILE.getFileName().toString(), USER_2.getUserName(), AccessType.READ);
         assertEquals("RelativePathToSharedFile should be equal", TEST_FILE.getFileName().toString(), relativePath4);
+    }
 
+    @Test
+    public void testGetClientLocationFromSharer() {
+        NodeLocation nodeLocation = SHARING_SYNCER.getClientLocationFromSharer(USER_1.getUserName());
+
+        assertNotNull("NodeLocation should not be null", nodeLocation);
+
+        NodeLocation nodeLocation2 = SHARING_SYNCER.getClientLocationFromSharer("someNonExistingUser");
+        assertNull("NodeLocation2 should be null", nodeLocation2);
     }
 }
 
