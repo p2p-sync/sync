@@ -55,6 +55,8 @@ public class SyncFileChangeListenerTest {
         syncFileChangeListener.onChange(events);
         syncFileChangeListener.handleBusEvent(createBusEvent);
 
+        Thread.sleep(2000L);
+
         // terminate
         syncFileChangeListener.shutdown();
 
