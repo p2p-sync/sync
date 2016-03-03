@@ -21,6 +21,7 @@ import org.rmatil.sync.network.core.model.NodeLocation;
 import org.rmatil.sync.persistence.exceptions.InputOutputException;
 import org.rmatil.sync.test.messaging.base.BaseNetworkHandlerTest;
 import org.rmatil.sync.version.api.AccessType;
+import org.rmatil.sync.version.api.DeleteType;
 import org.rmatil.sync.version.api.PathType;
 import org.rmatil.sync.version.core.model.PathObject;
 
@@ -202,7 +203,7 @@ public class ShareExchangeHandlerTest extends BaseNetworkHandlerTest {
         assertEquals("Owner should be equal to client1's user", CLIENT_1.getUser().getUserName(), sharedObject.getOwner());
         assertEquals("Sharer should not contain any user", 0, sharedObject.getSharers().size());
         assertEquals("File should be file", PathType.FILE, sharedObject.getPathType());
-        assertFalse("File should not be deleted", sharedObject.isDeleted());
+        assertEquals("File should not be deleted", DeleteType.EXISTENT, sharedObject.getDeleted().getDeleteType());
         assertEquals("Only one version should be set", 1, sharedObject.getVersions().size());
         assertNotNull("The version should not be null", sharedObject.getVersions().get(0));
 

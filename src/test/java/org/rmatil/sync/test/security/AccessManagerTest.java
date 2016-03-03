@@ -8,8 +8,10 @@ import org.rmatil.sync.core.security.IAccessManager;
 import org.rmatil.sync.persistence.exceptions.InputOutputException;
 import org.rmatil.sync.test.base.BaseTest;
 import org.rmatil.sync.version.api.AccessType;
+import org.rmatil.sync.version.api.DeleteType;
 import org.rmatil.sync.version.api.IObjectStore;
 import org.rmatil.sync.version.api.PathType;
+import org.rmatil.sync.version.core.model.Delete;
 import org.rmatil.sync.version.core.model.PathObject;
 import org.rmatil.sync.version.core.model.Sharer;
 
@@ -18,14 +20,15 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Set;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 public class AccessManagerTest extends BaseTest {
 
     protected static IObjectStore   objectStore;
     protected static IAccessManager accessManager;
-    protected static final String TEST_FILE_NAME = "myFile.txt";
-    protected static final String OWNER_USER_NAME = "owner";
+    protected static final String TEST_FILE_NAME     = "myFile.txt";
+    protected static final String OWNER_USER_NAME    = "owner";
     protected static final String SHARER_USER_NAME_1 = "sharer1";
     protected static final String SHARER_USER_NAME_2 = "sharer2";
 
@@ -55,7 +58,7 @@ public class AccessManagerTest extends BaseTest {
                 PathType.FILE,
                 AccessType.WRITE,
                 true,
-                false,
+                new Delete(DeleteType.EXISTENT, new ArrayList<>()),
                 OWNER_USER_NAME,
                 sharers,
                 new ArrayList<>()
