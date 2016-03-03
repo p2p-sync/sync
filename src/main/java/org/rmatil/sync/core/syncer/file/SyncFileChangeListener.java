@@ -1,6 +1,7 @@
 package org.rmatil.sync.core.syncer.file;
 
 import net.engio.mbassy.listener.Handler;
+import org.rmatil.sync.core.api.IFileSyncer;
 import org.rmatil.sync.core.eventbus.CreateBusEvent;
 import org.rmatil.sync.event.aggregator.api.IEventListener;
 import org.rmatil.sync.event.aggregator.core.events.IEvent;
@@ -27,14 +28,14 @@ public class SyncFileChangeListener implements IEventListener, Runnable {
 
     protected static final Logger logger = LoggerFactory.getLogger(SyncFileChangeListener.class);
 
-    protected          FileSyncer            fileSyncer;
+    protected          IFileSyncer           fileSyncer;
     protected          BlockingQueue<IEvent> eventQueue;
     protected volatile boolean               isTerminated;
 
     /**
      * @param fileSyncer The file syncer propagate local file system events to other clients
      */
-    public SyncFileChangeListener(FileSyncer fileSyncer) {
+    public SyncFileChangeListener(IFileSyncer fileSyncer) {
         this.fileSyncer = fileSyncer;
         this.eventQueue = new LinkedBlockingQueue<>();
         this.isTerminated = false;
@@ -59,7 +60,7 @@ public class SyncFileChangeListener implements IEventListener, Runnable {
 
                 // an event which has been caused due to handling a conflict
                 this.fileSyncer.sync(headEvent);
-                
+
             } catch (InterruptedException e) {
                 logger.info("Got interrupted. Stopping to listen for file change events. FileSyncer will therefore not sync any change until this listener is restarted.");
                 this.isTerminated = true;
