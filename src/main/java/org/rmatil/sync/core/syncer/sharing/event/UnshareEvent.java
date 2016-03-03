@@ -5,6 +5,13 @@ import org.rmatil.sync.version.api.AccessType;
 
 import java.nio.file.Path;
 
+/**
+ * An event indicating that the specified path
+ * should be unshared with the configured user.
+ * The user should receive the access type set.
+ *
+ * @see org.rmatil.sync.core.syncer.sharing.SharingSyncer
+ */
 public class UnshareEvent implements IShareEvent {
 
     protected Path relativePath;
