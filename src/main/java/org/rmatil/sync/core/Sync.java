@@ -8,7 +8,7 @@ import net.engio.mbassy.bus.error.IPublicationErrorHandler;
 import org.rmatil.sync.core.config.Config;
 import org.rmatil.sync.core.eventbus.IBusEvent;
 import org.rmatil.sync.core.exception.InitializationStartException;
-import org.rmatil.sync.core.init.ApplicationConfig;
+import org.rmatil.sync.core.model.ApplicationConfig;
 import org.rmatil.sync.core.init.client.ClientInitializer;
 import org.rmatil.sync.core.init.client.LocalStateObjectDataReplyHandler;
 import org.rmatil.sync.core.init.eventaggregator.EventAggregatorInitializer;

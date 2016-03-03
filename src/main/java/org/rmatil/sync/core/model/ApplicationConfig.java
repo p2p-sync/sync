@@ -1,8 +1,7 @@
-package org.rmatil.sync.core.init;
+package org.rmatil.sync.core.model;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import org.rmatil.sync.core.model.RemoteClientLocation;
 
 import java.util.List;
 
