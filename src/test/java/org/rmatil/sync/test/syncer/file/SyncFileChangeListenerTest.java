@@ -27,7 +27,8 @@ public class SyncFileChangeListenerTest {
     }
 
     @Test
-    public void test() {
+    public void test()
+            throws InterruptedException {
         Thread listenerThread = new Thread(syncFileChangeListener);
         listenerThread.setName("TEST-syncFileChangeListener");
         listenerThread.start();
@@ -62,6 +63,5 @@ public class SyncFileChangeListenerTest {
         assertEquals("Queue should contain 2 events", 2, queue.size());
         assertEquals("First event should be createEvent", testEvent, queue.poll());
         assertEquals("2nd event should be modifyEvent", testEvent2, queue.poll());
-
     }
 }

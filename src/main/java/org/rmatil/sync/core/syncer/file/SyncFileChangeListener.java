@@ -3,6 +3,7 @@ package org.rmatil.sync.core.syncer.file;
 import net.engio.mbassy.listener.Handler;
 import org.rmatil.sync.core.api.IFileSyncer;
 import org.rmatil.sync.core.eventbus.CreateBusEvent;
+import org.rmatil.sync.core.syncer.file.event.TerminateSyncerEvent;
 import org.rmatil.sync.event.aggregator.api.IEventListener;
 import org.rmatil.sync.event.aggregator.core.events.IEvent;
 import org.slf4j.Logger;
@@ -58,6 +59,10 @@ public class SyncFileChangeListener implements IEventListener, Runnable {
             try {
                 IEvent headEvent = this.eventQueue.take();
 
+                if (headEvent instanceof TerminateSyncerEvent) {
+                    return;
+                }
+
                 // an event which has been caused due to handling a conflict
                 this.fileSyncer.sync(headEvent);
 
@@ -72,7 +77,9 @@ public class SyncFileChangeListener implements IEventListener, Runnable {
 
     public void shutdown() {
         this.isTerminated = true;
-        Thread.currentThread().interrupt();
+        // do not interrupt the thread here
+        // to allow finishing the file synchronisation
+        this.eventQueue.add(new TerminateSyncerEvent());
     }
 
 }
