@@ -8,7 +8,6 @@ import net.engio.mbassy.bus.error.IPublicationErrorHandler;
 import org.rmatil.sync.core.config.Config;
 import org.rmatil.sync.core.eventbus.IBusEvent;
 import org.rmatil.sync.core.exception.InitializationStartException;
-import org.rmatil.sync.core.model.ApplicationConfig;
 import org.rmatil.sync.core.init.client.ClientInitializer;
 import org.rmatil.sync.core.init.client.LocalStateObjectDataReplyHandler;
 import org.rmatil.sync.core.init.eventaggregator.EventAggregatorInitializer;
@@ -32,6 +31,7 @@ import org.rmatil.sync.core.messaging.sharingexchange.unshare.UnshareRequest;
 import org.rmatil.sync.core.messaging.sharingexchange.unshare.UnshareRequestHandler;
 import org.rmatil.sync.core.messaging.sharingexchange.unshared.UnsharedRequest;
 import org.rmatil.sync.core.messaging.sharingexchange.unshared.UnsharedRequestHandler;
+import org.rmatil.sync.core.model.ApplicationConfig;
 import org.rmatil.sync.core.model.RemoteClientLocation;
 import org.rmatil.sync.core.security.AccessManager;
 import org.rmatil.sync.core.syncer.background.IBackgroundSyncer;
@@ -417,7 +417,7 @@ public class Sync {
 
 
         // Init object store
-        ObjectStoreInitializer objectStoreInitializer = new ObjectStoreInitializer(this.rootPath, ".sync", "index.json", "object");
+        ObjectStoreInitializer objectStoreInitializer = new ObjectStoreInitializer(this.rootPath, Config.DEFAULT.getOsFolderName(), Config.DEFAULT.getOsIndexName(), Config.DEFAULT.getOsObjectFolderName());
         IObjectStore objectStore = objectStoreInitializer.init();
         objectStoreInitializer.start();
 
