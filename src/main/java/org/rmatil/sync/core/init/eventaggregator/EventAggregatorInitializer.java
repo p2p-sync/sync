@@ -41,6 +41,7 @@ public class EventAggregatorInitializer implements IInitializer<IEventAggregator
         IModifier addDirectoryContentModifier = new AddDirectoryContentModifier(this.rootPath, this.objectStore);
         IModifier ignorePathsModifier = new IgnorePathsModifier(ignoredPaths, this.ignoredPatterns);
         IModifier ignoreDirectoryModifier = new IgnoreDirectoryModifier(this.rootPath);
+        IModifier sameHashModifier = new IgnoreSameHashModifier(this.objectStore.getObjectManager());
 
         IAggregator historyMoveAggregator = new HistoryMoveAggregator(objectStore.getObjectManager());
 
@@ -59,6 +60,7 @@ public class EventAggregatorInitializer implements IInitializer<IEventAggregator
         // must be after addDirectoryContentModifier so that events for dir contents are generated
 //        this.eventAggregator.addModifier(ignoreDirectoryModifier);
         this.eventAggregator.addModifier(ignorePathsModifier);
+        this.eventAggregator.addModifier(sameHashModifier);
 
         this.eventAggregator.addAggregator(historyMoveAggregator);
 
