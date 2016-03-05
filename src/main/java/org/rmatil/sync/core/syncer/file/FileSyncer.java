@@ -131,6 +131,17 @@ public class FileSyncer implements IFileSyncer {
             }
         }
 
+        // check, whether there is a fileId already present,
+        // e.g. made in an earlier push request (or on another client)
+        try {
+            if (null == this.node.getIdentifierManager().getValue(event.getPath().toString())) {
+                // add a file id
+                this.node.getIdentifierManager().addIdentifier(event.getPath().toString(), UUID.randomUUID());
+            }
+        } catch (InputOutputException e) {
+            throw new SyncFailedException("Failed to add a new file id for path " + event.getPath(), e);
+        }
+
         logger.debug("Syncing event " + event.getEventName() + " for path " + event.getPath().toString() + " on client " + this.node.getPeerAddress().inetAddress().getHostName() + ":" + this.node.getPeerAddress().tcpPort() + ")");
 
         UUID fileExchangeId = UUID.randomUUID();

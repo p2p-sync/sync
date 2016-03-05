@@ -137,13 +137,6 @@ public class FilePushExchangeHandler extends ANetworkHandler<FilePushExchangeHan
             this.chunkCountDownLatch = new CountDownLatch(this.clientCounter);
             this.initReceiverLatch.countDown();
 
-            // check, whether there is a fileId already present,
-            // e.g. made in an earlier push request (or on another client)
-            if (null == super.node.getIdentifierManager().getValue(this.relativeFilePath)) {
-                // add a file id
-                this.node.getIdentifierManager().addIdentifier(this.relativeFilePath, UUID.randomUUID());
-            }
-
             // check whether we got access to the file
             this.fileId = null;
             this.owner = null;
