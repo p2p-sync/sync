@@ -43,8 +43,8 @@ public class ShareNaming {
         Path path = Paths.get(relativeFilePath);
 
         int pathCtr = path.getNameCount() - 1;
-        while (pathCtr > 1) {
-            Path subPath = path.subpath(0, pathCtr);
+        while (path.getNameCount() > 1) {
+            Path subPath = path.subpath(0, path.getNameCount() - 1); // endIndex is exclusive
             IPathElement subPathElement = new LocalPathElement(subPath.toString());
 
             if (storageAdapter.exists(StorageType.DIRECTORY, subPathElement) ||
@@ -75,22 +75,16 @@ public class ShareNaming {
                 if (subPath.getNameCount() == 1) {
                     // we tested the most upper path, so we can break safely here
                     // -> actually prevent an IllegalArgumentException for subpath
+                    pathCtr--;
                     break;
                 } else {
+                    path = path.subpath(0, path.getNameCount() - 1); // endIndex is exclusive
                     pathCtr--;
                 }
             }
         }
 
-        // once we get there, path contains the most upper path which is also shared with the given sharer.
-        // Therefore, we can resolve the given relativePath to the most upper one, and will then get
-        // the path in the shared folder
-        if (relativeFilePath.equals(path.toString())) {
-            // do not relativize the top level path
-            return relativeFilePath;
-        } else {
-            return origPath.subpath(pathCtr, origPath.getNameCount() - 1).toString();
-        }
+        return origPath.subpath(pathCtr, origPath.getNameCount()).toString();
     }
 
     /**
@@ -118,45 +112,38 @@ public class ShareNaming {
         Path path = Paths.get(relativeFilePath);
 
         int pathCtr = path.getNameCount() - 1;
-        while (pathCtr > 1) {
-            Path subPath = path.subpath(0, pathCtr);
+        while (path.getNameCount() > 1) {
+            Path subPath = path.subpath(0, path.getNameCount() - 1); // endIndex is exclusive
             IPathElement subPathElement = new LocalPathElement(subPath.toString());
 
+            boolean ownerIsPresent = false;
             if (storageAdapter.exists(StorageType.DIRECTORY, subPathElement) ||
                     storageAdapter.exists(StorageType.FILE, subPathElement)) {
                 // check whether the parent is shared
                 PathObject parentObject = objectStore.getObjectManager().getObjectForPath(subPathElement.getPath());
 
-                if (null == parentObject.getOwner()) {
-                    // no owner is specified
-                    break;
+                if (ownerUsername.equals(parentObject.getOwner())) {
+                    ownerIsPresent = true;
                 }
+            }
 
-                if (! parentObject.getOwner().equals(ownerUsername)) {
-                    // owner does not match
-                    break;
-                }
+            if (! ownerIsPresent) {
+                break;
+            }
 
-                // there is a parent which is also owned by the given user
-                if (subPath.getNameCount() == 1) {
-                    // we tested the most upper path, so we can break safely here
-                    // -> actually prevent an IllegalArgumentException for subpath
-                    break;
-                } else {
-                    pathCtr--;
-                }
+            // there is a parent which is also shared with the given user
+            if (subPath.getNameCount() == 1) {
+                // we tested the most upper path, so we can break safely here
+                // -> actually prevent an IllegalArgumentException for subpath
+                pathCtr--;
+                break;
+            } else {
+                path = path.subpath(0, path.getNameCount() - 1); // endIndex is exclusive
+                pathCtr--;
             }
         }
 
-        // once we get there, path contains the most upper path which is also owned by the given sharer.
-        // Therefore, we can resolve the given relativePath to the most upper one, and will then get
-        // the path in the shared folder
-        if (relativeFilePath.equals(path.toString())) {
-            // do not relativize the top level path
-            return relativeFilePath;
-        } else {
-            return origPath.subpath(pathCtr, origPath.getNameCount() - 1).toString();
-        }
+        return origPath.subpath(pathCtr, origPath.getNameCount()).toString();
     }
 
     /**
