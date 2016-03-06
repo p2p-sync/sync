@@ -36,7 +36,11 @@ public class AccessManager implements IAccessManager {
             throw new InputOutputException("Could not find pathObject for " + filePath);
         }
 
-        if (pathObject.getOwner().equals(sharerUsername)) {
+        // Note that the owner can be null:
+        // client 2 shares with client 1
+        // client 1 makes a change and propagates to client 2
+        // client 2 is owner for file and checks access -> NullPointer!
+        if (sharerUsername.equals(pathObject.getOwner())) {
             // owner has access to all access types but the removed access one
             return AccessType.ACCESS_REMOVED != accessType;
 
@@ -45,12 +49,12 @@ public class AccessManager implements IAccessManager {
         List<AccessType> types = Arrays.asList(AccessType.values());
         for (Sharer entry : pathObject.getSharers()) {
             // check whether the access type and the username is equal
-            if (entry.getAccessType().equals(accessType) && entry.getUsername().equals(sharerUsername)) {
+            if (accessType.equals(entry.getAccessType()) && sharerUsername.equals(entry.getUsername())) {
                 return true;
             }
 
             // check whether the access type of the sharer has higher "rights" than the given one
-            if (types.indexOf(entry.getAccessType()) >= types.indexOf(accessType) && entry.getUsername().equals(sharerUsername)) {
+            if (types.indexOf(entry.getAccessType()) >= types.indexOf(accessType) && sharerUsername.equals(entry.getUsername())) {
                 return true;
             }
         }
