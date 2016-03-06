@@ -1,6 +1,8 @@
 package org.rmatil.sync.core.messaging.fileexchange.push;
 
 import net.engio.mbassy.bus.MBassador;
+import org.rmatil.sync.core.ShareNaming;
+import org.rmatil.sync.core.config.Config;
 import org.rmatil.sync.core.eventbus.*;
 import org.rmatil.sync.core.init.client.ILocalStateRequestCallback;
 import org.rmatil.sync.core.messaging.StatusCode;
@@ -19,9 +21,11 @@ import org.rmatil.sync.persistence.core.local.LocalPathElement;
 import org.rmatil.sync.persistence.exceptions.InputOutputException;
 import org.rmatil.sync.version.api.AccessType;
 import org.rmatil.sync.version.api.IObjectStore;
+import org.rmatil.sync.version.core.model.Sharer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.nio.file.Path;
 import java.nio.file.Paths;
 
 public class FilePushRequestHandler implements ILocalStateRequestCallback {
@@ -95,32 +99,102 @@ public class FilePushRequestHandler implements ILocalStateRequestCallback {
     @Override
     public void run() {
         try {
+            boolean fileIsChildFromSharedFolder = false;
             LocalPathElement localPathElement;
             if ((null != this.request.getOwner() && this.node.getUser().getUserName().equals(this.request.getOwner())) ||
                     null != this.request.getFileId()) {
                 // we have to use our path: if we are either the owner or a sharer
-                localPathElement = new LocalPathElement(this.node.getIdentifierManager().getKey(this.request.getFileId()));
+                String pathToFile = this.node.getIdentifierManager().getKey(this.request.getFileId());
+
+                if (null == pathToFile) {
+                    // this is a file which was created in a shared folder
+                    // and does not exist yet on our side.
+                    // -> resolve access permissions and put it in correct folder
+
+                    fileIsChildFromSharedFolder = true;
+
+                    // get access permissions first
+                    AccessType accessType = null;
+                    for (Sharer sharer : this.request.getSharers()) {
+                        if (this.node.getUser().getUserName().equals(sharer.getUsername())) {
+                            accessType = sharer.getAccessType();
+                            break;
+                        }
+                    }
+
+                    if (null == accessType) {
+                        logger.error("Failed to get AccessType since no sharer has the same username as we do. Aborting FilePushExchange " + this.request.getExchangeId());
+                        this.sendResponse(this.createResponse(- 1));
+                        return;
+                    }
+
+                    try {
+                        String relPathInSharedFolder = ShareNaming.getRelativePathToSharedFolderByOwner(this.storageAdapter, this.objectStore, this.request.getRelativeFilePath(), this.request.getOwner());
+                        Path relPathToSharedFolder = Paths.get(relPathInSharedFolder);
+
+                        if (relPathToSharedFolder.getNameCount() > 1) {
+                            Path parent;
+                            if (AccessType.WRITE == accessType) {
+                                parent = Paths.get(Config.DEFAULT.getSharedWithOthersReadWriteFolderName()).resolve(relPathToSharedFolder.subpath(0, relPathToSharedFolder.getNameCount() - 1));
+                            } else {
+                                parent = Paths.get(Config.DEFAULT.getSharedWithOthersReadOnlyFolderName()).resolve(relPathToSharedFolder.subpath(0, relPathToSharedFolder.getNameCount() - 1));
+                            }
+
+                            // place the file in the root if it's parent does not exist anymore
+                            if (! this.storageAdapter.exists(StorageType.DIRECTORY, new LocalPathElement(parent.toString()))) {
+                                logger.info("Parent of file " + this.request.getRelativeFilePath() + " does not exist (anymore). Placing file at root of shared dir");
+                                relPathToSharedFolder = relPathToSharedFolder.getFileName();
+                            }
+                        }
+
+                        // find an unique file path and store it in the DHT
+                        String relativePath;
+                        if (AccessType.WRITE == accessType) {
+                            relativePath = Config.DEFAULT.getSharedWithOthersReadWriteFolderName() + "/" + relPathToSharedFolder.toString();
+                        } else {
+                            relativePath = Config.DEFAULT.getSharedWithOthersReadOnlyFolderName() + "/" + relPathToSharedFolder.toString();
+                        }
+
+                        relativePath = ShareNaming.getUniqueFileName(this.storageAdapter, relativePath, this.request.isFile());
+                        // add relativePath <-> fileId to DHT
+                        this.node.getIdentifierManager().addIdentifier(relativePath, this.request.getFileId());
+                        localPathElement = new LocalPathElement(relativePath);
+
+                    } catch (InputOutputException e) {
+                        logger.error("Failed to get relative path to shared folder (by owner). Message: " + e.getMessage() + ". Aborting filePushExchange " + this.request.getExchangeId());
+                        this.sendResponse(this.createResponse(- 1));
+                        return;
+                    }
+
+                } else {
+                    localPathElement = new LocalPathElement(pathToFile);
+                }
             } else {
                 localPathElement = new LocalPathElement(this.request.getRelativeFilePath());
+
+                // only check access if the file is not from a sharer
+                // to prevent errors when the pathObject is not yet created
+                if (! this.node.getUser().getUserName().equals(this.request.getClientDevice().getUserName()) && ! this.accessManager.hasAccess(this.request.getClientDevice().getUserName(), AccessType.WRITE, localPathElement.getPath())) {
+                    logger.warn("Failed to write chunk " + this.request.getChunkCounter() + " for file " + localPathElement.getPath() + " due to missing access rights of user " + this.request.getClientDevice().getUserName() + " on exchange " + this.request.getExchangeId());
+                    this.sendResponse(this.createResponse(- 1));
+                    return;
+                }
             }
 
             logger.info("Writing chunk " + this.request.getChunkCounter() + " for file " + localPathElement.getPath() + " for exchangeId " + this.request.getExchangeId());
 
-            if (! this.node.getUser().getUserName().equals(this.request.getClientDevice().getUserName()) && ! this.accessManager.hasAccess(this.request.getClientDevice().getUserName(), AccessType.WRITE, localPathElement.getPath())) {
-                logger.warn("Failed to write chunk " + this.request.getChunkCounter() + " for file " + localPathElement.getPath() + " due to missing access rights of user " + this.request.getClientDevice().getUserName() + " on exchange " + this.request.getExchangeId());
-                this.sendResponse(this.createResponse(- 1));
-                return;
-            }
 
             // TODO: check whether the file isDeleted on each write, there might be a concurrent incoming delete request
             // -> affected FilePaths? in ObjectDataReply?
 
             StorageType storageType = this.request.isFile() ? StorageType.FILE : StorageType.DIRECTORY;
 
-            if (0 == this.request.getChunkCounter()) {
+            if (! fileIsChildFromSharedFolder && 0 == this.request.getChunkCounter()) {
                 // add sharers to object store only on the first request
                 this.publishAddOwnerAndAccessTypeToObjectStore(localPathElement);
                 this.publishAddSharerToObjectStore(localPathElement);
+            } else if (fileIsChildFromSharedFolder) {
+                this.publishAddOwnerAndAccessTypeForChildOfSharedFolder(localPathElement);
             }
 
             if (this.request.isFile() && StatusCode.FILE_CHANGED.equals(this.request.getStatusCode()) &&
@@ -270,6 +344,22 @@ public class FilePushRequestHandler implements ILocalStateRequestCallback {
         this.globalEventBus.publish(new AddOwnerAndAccessTypeToObjectStoreBusEvent(
                 this.request.getOwner(),
                 this.request.getAccessType(),
+                pathElement.getPath()
+        ));
+    }
+
+    protected void publishAddOwnerAndAccessTypeForChildOfSharedFolder(IPathElement pathElement) {
+        AccessType accessType = null;
+        for (Sharer sharer : this.request.getSharers()) {
+            if (this.node.getUser().getUserName().equals(sharer.getUsername())) {
+                accessType = sharer.getAccessType();
+                break;
+            }
+        }
+
+        this.globalEventBus.publish(new AddOwnerAndAccessTypeToObjectStoreBusEvent(
+                this.request.getClientDevice().getUserName(),
+                accessType,
                 pathElement.getPath()
         ));
     }

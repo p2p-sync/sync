@@ -2,7 +2,7 @@ package org.rmatil.sync.core.messaging.sharingexchange.share;
 
 import net.engio.mbassy.bus.MBassador;
 import org.rmatil.sync.commons.hashing.Hash;
-import org.rmatil.sync.commons.path.Naming;
+import org.rmatil.sync.core.ShareNaming;
 import org.rmatil.sync.core.config.Config;
 import org.rmatil.sync.core.eventbus.*;
 import org.rmatil.sync.core.init.client.ILocalStateRequestCallback;
@@ -136,7 +136,7 @@ public class ShareRequestHandler implements ILocalStateRequestCallback {
                     relativePath = Config.DEFAULT.getSharedWithOthersReadOnlyFolderName() + "/" + relPathToSharedFolder.toString();
                 }
 
-                relativePath = this.getUniqueFileName(relativePath, this.request.isFile());
+                relativePath = ShareNaming.getUniqueFileName(this.storageAdapter, relativePath, this.request.isFile());
                 // add relativePath <-> fileId to DHT
                 this.node.getIdentifierManager().addIdentifier(relativePath, this.request.getFileId());
             }
@@ -295,53 +295,6 @@ public class ShareRequestHandler implements ILocalStateRequestCallback {
         }
 
         this.node.sendDirect(response.getReceiverAddress(), response);
-    }
-
-    /**
-     * Returns a unique filename for the given relative path
-     *
-     * @param relativePath The relative path to find a unique filename for
-     * @param isFile       Whether the given path is a file or not
-     *
-     * @return The unique file name
-     *
-     * @throws InputOutputException If checking whether the path exists or not fails
-     */
-    public String getUniqueFileName(String relativePath, boolean isFile)
-            throws InputOutputException {
-        String oldFileName = Paths.get(relativePath).getFileName().toString();
-        String newFileName = oldFileName;
-
-        StorageType storageType = isFile ? StorageType.FILE : StorageType.DIRECTORY;
-
-        String pathToFileWithoutFileName = Naming.getPathWithoutFileName(oldFileName, relativePath);
-
-        int ctr = 1;
-        while (this.storageAdapter.exists(storageType, new LocalPathElement(pathToFileWithoutFileName + "/" + newFileName))) {
-            int firstIndexOfDot = oldFileName.indexOf(".");
-
-            if (- 1 != firstIndexOfDot) {
-                // myFile.rar.zip
-                // tmpFileName := myFile
-                String tmpFileName = oldFileName.substring(0, Math.max(0, firstIndexOfDot));
-                // tmpFileName := myFile (1)
-                tmpFileName = tmpFileName + " (" + ctr + ")";
-                // tmpfileName := myFile (1).rar.zip
-                tmpFileName = tmpFileName.concat(oldFileName.substring(firstIndexOfDot, oldFileName.length()));
-
-                newFileName = tmpFileName;
-            } else {
-                // no dot in the filename -> just append the ctr
-                newFileName = oldFileName + " (" + ctr + ")";
-            }
-
-            ctr++;
-        }
-
-        // replace the **last** occurrence of the filename
-        int lastIndex = relativePath.lastIndexOf(oldFileName);
-
-        return relativePath.substring(0, lastIndex).concat(newFileName);
     }
 
     protected void publishIgnoreModifyEvent(String relativePath) {

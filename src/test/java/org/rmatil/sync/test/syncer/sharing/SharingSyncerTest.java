@@ -50,27 +50,6 @@ public class SharingSyncerTest extends BaseNetworkHandlerTest {
     }
 
     @Test
-    public void testGetRelativePathToSharedFolder()
-            throws InputOutputException {
-
-        String relativePath = SHARING_SYNCER.getRelativePathToSharedFolder(TEST_DIR.toString(), USER_2.getUserName(), AccessType.WRITE);
-        assertEquals("RelativePathToSharedFolder should be equal", TEST_DIR.toString(), relativePath);
-
-        String relativePath2 = SHARING_SYNCER.getRelativePathToSharedFolder(TEST_FILE.toString(), USER_2.getUserName(), AccessType.WRITE);
-        assertEquals("RelativePathToSharedFile should be equal", TEST_FILE.toString(), relativePath2);
-
-        OBJECT_STORE_1.getSharerManager().removeSharer(USER_2.getUserName(), TEST_FILE.toString());
-
-        // add only read permissions to test file
-        OBJECT_STORE_1.getSharerManager().addSharer(USER_2.getUserName(), AccessType.READ, TEST_FILE.toString());
-        String relativePath3 = SHARING_SYNCER.getRelativePathToSharedFolder(TEST_DIR.toString(), USER_2.getUserName(), AccessType.WRITE);
-        assertEquals("RelativePathToSharedFolder should be equal", TEST_DIR.toString(), relativePath3);
-
-        String relativePath4 = SHARING_SYNCER.getRelativePathToSharedFolder(TEST_FILE.getFileName().toString(), USER_2.getUserName(), AccessType.READ);
-        assertEquals("RelativePathToSharedFile should be equal", TEST_FILE.getFileName().toString(), relativePath4);
-    }
-
-    @Test
     public void testGetClientLocationFromSharer() {
         NodeLocation nodeLocation = SHARING_SYNCER.getClientLocationFromSharer(USER_1.getUserName());
 

@@ -165,7 +165,8 @@ public class FilePushExchangeHandler extends ANetworkHandler<FilePushExchangeHan
                             // to his clients, and if a conflict occurs, there will be a new file
                             if (! sharerLocations.isEmpty()) {
                                 fileId = super.node.getIdentifierManager().getValue(pathObject.getAbsolutePath());
-                                this.receivers.add(sharerLocations.get(0));
+                                // Note that we do not add the sharer location again since these
+                                // are assembled in FileOfferExchangeHandlerResult
                             }
                         } catch (InputOutputException e) {
                             logger.error("Could not get client locations of sharer " + entry.getUsername() + ". This sharer's clients do not get the file (change)");

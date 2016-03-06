@@ -1,5 +1,6 @@
 package org.rmatil.sync.core.syncer.sharing;
 
+import org.rmatil.sync.core.ShareNaming;
 import org.rmatil.sync.core.api.IShareEvent;
 import org.rmatil.sync.core.api.ISharingSyncer;
 import org.rmatil.sync.core.exception.SharingFailedException;
@@ -14,20 +15,13 @@ import org.rmatil.sync.core.syncer.sharing.event.UnshareEvent;
 import org.rmatil.sync.network.api.INode;
 import org.rmatil.sync.network.api.INodeManager;
 import org.rmatil.sync.network.core.model.NodeLocation;
-import org.rmatil.sync.persistence.api.IPathElement;
 import org.rmatil.sync.persistence.api.IStorageAdapter;
-import org.rmatil.sync.persistence.api.StorageType;
 import org.rmatil.sync.persistence.core.local.LocalPathElement;
 import org.rmatil.sync.persistence.exceptions.InputOutputException;
-import org.rmatil.sync.version.api.AccessType;
 import org.rmatil.sync.version.api.IObjectStore;
-import org.rmatil.sync.version.core.model.PathObject;
-import org.rmatil.sync.version.core.model.Sharer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.List;
 import java.util.UUID;
 
@@ -140,7 +134,7 @@ public class SharingSyncer implements ISharingSyncer {
 
         String relativePathToSharedFolder;
         try {
-            relativePathToSharedFolder = this.getRelativePathToSharedFolder(sharingEvent.getRelativePath().toString(), sharingEvent.getUsernameToShareWith(), sharingEvent.getAccessType());
+            relativePathToSharedFolder = ShareNaming.getRelativePathToSharedFolderBySharer(this.storageAdapter, this.objectStore, sharingEvent.getRelativePath().toString(), sharingEvent.getUsernameToShareWith(), sharingEvent.getAccessType());
         } catch (InputOutputException e) {
             logger.error("Can not determine the relative path to the shared folder. We continue with a shared file at the root of the shared directory. Message: " + e.getMessage(), e);
             relativePathToSharedFolder = "";
@@ -191,7 +185,7 @@ public class SharingSyncer implements ISharingSyncer {
      */
     public void syncUnshareEvent(UnshareEvent unshareEvent)
             throws UnsharingFailedException {
-        
+
         if (this.node.getUser().getUserName().equals(unshareEvent.getUsernameToShareWith())) {
             throw new UnsharingFailedException("Unsharing with the own user is not permitted");
         }
@@ -275,80 +269,6 @@ public class SharingSyncer implements ISharingSyncer {
         }
 
         logger.info("Completed unsharing of file " + unshareEvent.getRelativePath() + " with user " + unshareEvent.getUsernameToShareWith() + " (" + unshareEvent.getAccessType() + ")");
-    }
-
-    /**
-     * Relativizes the given path to its most upper parent which is also shared with the given sharer.
-     * Example:
-     * Having a given path <i>syncedFolder/aDir/bDir/cDir/myFile.txt</i>, and a most upper shared directory of the
-     * given sharer at <i>syncedFolder/aDir/bDir</i>, then this method will return <i>cDir/myFile.txt</i>,
-     * so that the file can be placed in the sharers directory at the correct path.
-     *
-     * @param relativeFilePath The relative path of the file in the synced folder
-     * @param username         The sharer to check for
-     * @param accessType       The access type
-     *
-     * @return The relativized path
-     *
-     * @throws InputOutputException If reading the storage adapter / object store failed
-     */
-    public String getRelativePathToSharedFolder(String relativeFilePath, String username, AccessType accessType)
-            throws InputOutputException {
-        // look up if there is any direct parent directory which is also shared with the given path.
-        // if so, then we "add" the given file to that directory, resolving the path relatively to that one
-
-        Path origPath = Paths.get(relativeFilePath);
-        Path path = Paths.get(relativeFilePath);
-
-        int pathCtr = path.getNameCount() - 1;
-        while (pathCtr > 1) {
-            Path subPath = path.subpath(0, pathCtr);
-            IPathElement subPathElement = new LocalPathElement(subPath.toString());
-
-            if (this.storageAdapter.exists(StorageType.DIRECTORY, subPathElement) ||
-                    this.storageAdapter.exists(StorageType.FILE, subPathElement)) {
-                // check whether the parent is shared
-                PathObject parentObject = this.objectStore.getObjectManager().getObjectForPath(subPathElement.getPath());
-
-
-                if (! parentObject.isShared()) {
-                    // parent is not shared at all
-                    break;
-                } else {
-                    // now check if there is a sharer present for the given username and access type
-                    boolean sharerIsPresent = false;
-                    for (Sharer sharer : parentObject.getSharers()) {
-                        if (sharer.getUsername().equals(username) && sharer.getAccessType().equals(accessType)) {
-                            // ok, we found him
-                            sharerIsPresent = true;
-                        }
-                    }
-
-                    if (! sharerIsPresent) {
-                        break;
-                    }
-                }
-
-                // there is a parent which is also shared with the given user
-                if (subPath.getNameCount() == 1) {
-                    // we tested the most upper path, so we can break safely here
-                    // -> actually prevent an IllegalArgumentException for subpath
-                    break;
-                } else {
-                    pathCtr--;
-                }
-            }
-        }
-
-        // once we get there, path contains the most upper path which is also shared with the given sharer.
-        // Therefore, we can resolve the given relativePath to the most upper one, and will then get
-        // the path in the shared folder
-        if (relativeFilePath.equals(path.toString())) {
-            // do not relativize the top level path
-            return relativeFilePath;
-        } else {
-            return origPath.subpath(pathCtr, origPath.getNameCount() - 1).toString();
-        }
     }
 
     /**

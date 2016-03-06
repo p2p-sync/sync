@@ -10,10 +10,7 @@ import org.rmatil.sync.core.eventbus.IgnoreBusEvent;
 import org.rmatil.sync.core.eventbus.IgnoreObjectStoreUpdateBusEvent;
 import org.rmatil.sync.core.messaging.sharingexchange.share.ShareExchangeHandler;
 import org.rmatil.sync.core.messaging.sharingexchange.share.ShareExchangeHandlerResult;
-import org.rmatil.sync.core.messaging.sharingexchange.share.ShareRequest;
-import org.rmatil.sync.core.messaging.sharingexchange.share.ShareRequestHandler;
 import org.rmatil.sync.core.model.RemoteClientLocation;
-import org.rmatil.sync.core.security.AccessManager;
 import org.rmatil.sync.event.aggregator.core.events.CreateEvent;
 import org.rmatil.sync.event.aggregator.core.events.ModifyEvent;
 import org.rmatil.sync.network.core.ConnectionConfiguration;
@@ -39,14 +36,12 @@ import static org.junit.Assert.*;
 
 public class ShareExchangeHandlerTest extends BaseNetworkHandlerTest {
 
-    protected static Path   TEST_DIR_1       = Paths.get("testDir1");
-    protected static Path   TEST_DIR_2       = Paths.get("testDir2");
-    protected static Path   TEST_FILE_1      = TEST_DIR_1.resolve("myFile.txt");
-    protected static Path   TEST_UNIQUE_FILE = TEST_DIR_1.resolve("myUniqueFile.txt");
-    protected static Path   TEST_UNIQUE_DIR  = TEST_DIR_1.resolve("myUniqueDir");
-    protected static byte[] content          = new byte[(ShareExchangeHandler.CHUNK_SIZE * 2) + 15]; // 1024*1024*10 - 21
-    protected static UUID   EXCHANGE_ID      = UUID.randomUUID();
-    protected static UUID   FILE_ID          = UUID.randomUUID();
+    protected static Path   TEST_DIR_1  = Paths.get("testDir1");
+    protected static Path   TEST_DIR_2  = Paths.get("testDir2");
+    protected static Path   TEST_FILE_1 = TEST_DIR_1.resolve("myFile.txt");
+    protected static byte[] content     = new byte[(ShareExchangeHandler.CHUNK_SIZE * 2) + 15]; // 1024*1024*10 - 21
+    protected static UUID   EXCHANGE_ID = UUID.randomUUID();
+    protected static UUID   FILE_ID     = UUID.randomUUID();
 
     @BeforeClass
     public static void setUpChild()
@@ -282,42 +277,5 @@ public class ShareExchangeHandlerTest extends BaseNetworkHandlerTest {
         assertArrayEquals("Content is not equal", alteredContent, actualContent);
 
         EVENT_BUS_LISTENER_2.clear();
-    }
-
-    @Test
-    public void testGetUniqueFileName()
-            throws InputOutputException, IOException {
-        ShareRequestHandler shareRequestHandler = new ShareRequestHandler();
-        shareRequestHandler.setAccessManager(new AccessManager(OBJECT_STORE_1));
-        shareRequestHandler.setGlobalEventBus(GLOBAL_EVENT_BUS_1);
-        shareRequestHandler.setObjectStore(OBJECT_STORE_1);
-        shareRequestHandler.setStorageAdapter(STORAGE_ADAPTER_1);
-        shareRequestHandler.setNode(CLIENT_1);
-        shareRequestHandler.setRequest(new ShareRequest(null, null, null, null, null, null, null, null, false, - 1L, - 1L, - 1L, null, - 1));
-
-        String uniqueFile = shareRequestHandler.getUniqueFileName(TEST_UNIQUE_FILE.toString(), true);
-        assertEquals("Filename should be equal before a file exists", TEST_UNIQUE_FILE.toString(), uniqueFile);
-
-        Files.write(ROOT_TEST_DIR1.resolve(TEST_UNIQUE_FILE), "blub".getBytes());
-
-        String uniqueFile2 = shareRequestHandler.getUniqueFileName(TEST_UNIQUE_FILE.toString(), true);
-        assertEquals("Filename should be different after a file has been written", TEST_DIR_1.toString() + "/myUniqueFile (1).txt", uniqueFile2);
-
-        Files.write(ROOT_TEST_DIR1.resolve(uniqueFile2), "blub2".getBytes());
-        String uniqueFile3 = shareRequestHandler.getUniqueFileName(TEST_UNIQUE_FILE.toString(), true);
-        assertEquals("Filename should be different after a file has been written", TEST_DIR_1.toString() + "/myUniqueFile (2).txt", uniqueFile3);
-
-        // test directories
-        String uniqueDir = shareRequestHandler.getUniqueFileName(TEST_UNIQUE_DIR.toString(), false);
-        assertEquals("Filename should be equal before a file exists", TEST_UNIQUE_DIR.toString(), uniqueDir);
-
-        Files.createDirectory(ROOT_TEST_DIR1.resolve(TEST_UNIQUE_DIR));
-
-        String uniqueDir2 = shareRequestHandler.getUniqueFileName(TEST_UNIQUE_DIR.toString(), false);
-        assertEquals("Filename should be different after a file has been written", TEST_DIR_1.toString() + "/myUniqueDir (1)", uniqueDir2);
-
-        Files.createDirectory(ROOT_TEST_DIR1.resolve(uniqueDir2));
-        String uniqueDir3 = shareRequestHandler.getUniqueFileName(TEST_UNIQUE_DIR.toString(), false);
-        assertEquals("Filename should be different after a file has been written", TEST_DIR_1.toString() + "/myUniqueDir (2)", uniqueDir3);
     }
 }

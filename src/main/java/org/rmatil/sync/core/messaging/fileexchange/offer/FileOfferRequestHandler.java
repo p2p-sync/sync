@@ -120,7 +120,18 @@ public class FileOfferRequestHandler implements ILocalStateRequestCallback {
                     null != this.request.getFileId()) {
                 logger.debug("Using the path registered with the file id " + this.request.getFileId() + " to answer the file offer request");
                 // we have to use our path: if we are either the owner or a sharer
-                pathElement = new LocalPathElement(this.node.getIdentifierManager().getKey(this.request.getFileId()));
+                String pathToFile = this.node.getIdentifierManager().getKey(this.request.getFileId());
+
+                if (null == pathToFile && CreateEvent.EVENT_NAME.equals(this.request.getEvent().getEventName())) {
+                    // this is a file which is created in a shared folder
+                    // and not yet transferred to our clients.
+                    // -> we accept the offer and resolve the path in the FilePushRequestHandler
+                    logger.info("Accepting child " + this.request.getEvent().getPath() + " of a shared file");
+                    this.sendResponse(this.createResponse(StatusCode.ACCEPTED));
+                    return;
+                } else {
+                    pathElement = new LocalPathElement(pathToFile);
+                }
             } else {
                 logger.debug("Using the path from the request " + this.request.getEvent().getPath() + " to answer the file offer request");
                 pathElement = new LocalPathElement(this.request.getEvent().getPath());
