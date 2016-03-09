@@ -12,6 +12,7 @@ import org.rmatil.sync.network.core.model.ClientDevice;
 import org.rmatil.sync.network.core.model.NodeLocation;
 import org.rmatil.sync.persistence.core.tree.ITreeStorageAdapter;
 import org.rmatil.sync.persistence.core.tree.TreePathElement;
+import org.rmatil.sync.persistence.exceptions.InputOutputException;
 import org.rmatil.sync.version.api.IObjectStore;
 import org.rmatil.sync.version.core.model.PathObject;
 import org.slf4j.Logger;
@@ -109,7 +110,11 @@ public class UnshareRequestHandler implements ILocalStateRequestCallback {
             this.objectStore.getObjectManager().writeObject(sharedObject);
 
             // remove the file
-            this.storageAdapter.delete(new TreePathElement(sharedObject.getAbsolutePath()));
+            try {
+                this.storageAdapter.delete(new TreePathElement(sharedObject.getAbsolutePath()));
+            } catch (InputOutputException e) {
+                logger.warn("Could not delete file " + sharedObject.getAbsolutePath() + " since it does not exist anymore");
+            }
 
             this.sendResponse(StatusCode.ACCEPTED);
         } catch (Exception e) {
