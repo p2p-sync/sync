@@ -106,6 +106,15 @@ public class ShareRequestHandler implements ILocalStateRequestCallback {
                     this.request.getFileId()
             );
 
+            if (null != relativePath &&
+                    ! relativePath.startsWith(Config.DEFAULT.getSharedWithOthersReadOnlyFolderName()) &&
+                    ! relativePath.startsWith(Config.DEFAULT.getSharedWithOthersReadWriteFolderName())) {
+                // we detected a circular reference for sharing
+                logger.warn("Detected a circular reference for file " + this.request.getFileId() + ". It is already stored at " + relativePath + ". Denying the incoming share request for exchange " + this.request.getExchangeId());
+                this.sendResponse(this.createErrorResponse());
+                return;
+            }
+
             Path relPathToSharedFolder = Paths.get(this.request.getRelativePathToSharedFolder());
             if (null == relativePath) {
                 // does also contain the filename
@@ -280,6 +289,30 @@ public class ShareRequestHandler implements ILocalStateRequestCallback {
                         this.request.getClientDevice().getPeerAddress()
                 ),
                 requestingChunk
+        );
+    }
+
+    /**
+     * Creates an error share response
+     *
+     * @return The error share response
+     */
+    protected ShareResponse createErrorResponse() {
+        return new ShareResponse(
+                this.request.getExchangeId(),
+                StatusCode.DENIED,
+                new ClientDevice(
+                        this.node.getUser().getUserName(),
+                        this.node.getClientDeviceId(),
+                        this.node.getPeerAddress()
+                ),
+                this.request.getFileId(),
+                new NodeLocation(
+                        this.request.getClientDevice().getUserName(),
+                        this.request.getClientDevice().getClientDeviceId(),
+                        this.request.getClientDevice().getPeerAddress()
+                ),
+                - 1
         );
     }
 

@@ -145,7 +145,8 @@ public class ShareExchangeHandler extends ANetworkHandler<ShareExchangeHandlerRe
             return;
         }
 
-        if (- 1 < ((ShareResponse) response).getChunkCounter()) {
+        if (- 1 < ((ShareResponse) response).getChunkCounter() &&
+                StatusCode.DENIED != ((ShareResponse) response).getStatusCode()) {
             this.sendChunk(
                     ((ShareResponse) response).getChunkCounter(),
                     response.getExchangeId(),
