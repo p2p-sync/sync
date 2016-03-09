@@ -10,7 +10,7 @@ import org.rmatil.sync.network.api.IRequest;
 import org.rmatil.sync.network.api.IResponse;
 import org.rmatil.sync.network.core.model.ClientDevice;
 import org.rmatil.sync.network.core.model.NodeLocation;
-import org.rmatil.sync.persistence.api.IStorageAdapter;
+import org.rmatil.sync.persistence.core.tree.ITreeStorageAdapter;
 import org.rmatil.sync.version.api.IObjectStore;
 import org.rmatil.sync.version.core.model.PathObject;
 import org.slf4j.Logger;
@@ -23,7 +23,7 @@ public class UnsharedRequestHandler implements ILocalStateRequestCallback {
     /**
      * The storage adapter to access the synced folder
      */
-    protected IStorageAdapter storageAdapter;
+    protected ITreeStorageAdapter storageAdapter;
 
     /**
      * The object store
@@ -51,7 +51,7 @@ public class UnsharedRequestHandler implements ILocalStateRequestCallback {
     protected IAccessManager accessManager;
 
     @Override
-    public void setStorageAdapter(IStorageAdapter storageAdapter) {
+    public void setStorageAdapter(ITreeStorageAdapter storageAdapter) {
         this.storageAdapter = storageAdapter;
     }
 

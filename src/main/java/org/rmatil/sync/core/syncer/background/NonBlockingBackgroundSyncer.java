@@ -15,11 +15,10 @@ import org.rmatil.sync.network.api.INode;
 import org.rmatil.sync.network.api.INodeManager;
 import org.rmatil.sync.network.core.model.ClientDevice;
 import org.rmatil.sync.network.core.model.NodeLocation;
-import org.rmatil.sync.persistence.api.IPathElement;
-import org.rmatil.sync.persistence.api.IStorageAdapter;
 import org.rmatil.sync.persistence.api.StorageType;
-import org.rmatil.sync.persistence.core.local.LocalPathElement;
-import org.rmatil.sync.persistence.core.local.LocalStorageAdapter;
+import org.rmatil.sync.persistence.core.tree.ITreeStorageAdapter;
+import org.rmatil.sync.persistence.core.tree.TreePathElement;
+import org.rmatil.sync.persistence.core.tree.local.LocalStorageAdapter;
 import org.rmatil.sync.version.api.IObjectStore;
 import org.rmatil.sync.version.api.PathType;
 import org.rmatil.sync.version.core.ObjectStore;
@@ -79,7 +78,7 @@ public class NonBlockingBackgroundSyncer implements IBackgroundSyncer {
     /**
      * The storage adapter to access the synchronised folder
      */
-    protected IStorageAdapter storageAdapter;
+    protected ITreeStorageAdapter storageAdapter;
 
     /**
      * The global event bus
@@ -97,7 +96,7 @@ public class NonBlockingBackgroundSyncer implements IBackgroundSyncer {
      * @param storageAdapter  The storage adapter of the synchronised folder
      * @param globalEventBus  The global event bus to push events to
      */
-    public NonBlockingBackgroundSyncer(IEventAggregator eventAggregator, INode node, INodeManager nodeManager, IObjectStore objectStore, IStorageAdapter storageAdapter, MBassador<IBusEvent> globalEventBus, List<Path> ignoredPaths, List<String> ignorePatterns) {
+    public NonBlockingBackgroundSyncer(IEventAggregator eventAggregator, INode node, INodeManager nodeManager, IObjectStore objectStore, ITreeStorageAdapter storageAdapter, MBassador<IBusEvent> globalEventBus, List<Path> ignoredPaths, List<String> ignorePatterns) {
         this.eventAggregator = eventAggregator;
         this.node = node;
         this.nodeManager = nodeManager;
@@ -175,8 +174,8 @@ public class NonBlockingBackgroundSyncer implements IBackgroundSyncer {
                     conflictPaths.put(conflictPath, entry.getKey());
                 });
 
-                entry.getValue().getObjectManager().getStorageAdapater().delete(new LocalPathElement("./"));
-                this.objectStore.getObjectManager().getStorageAdapater().delete(new LocalPathElement(entry.getKey().getClientDeviceId().toString()));
+                entry.getValue().getObjectManager().getStorageAdapater().delete(new TreePathElement("./"));
+                this.objectStore.getObjectManager().getStorageAdapater().delete(new TreePathElement(entry.getKey().getClientDeviceId().toString()));
             }
 
             // delete all removed files
@@ -184,7 +183,7 @@ public class NonBlockingBackgroundSyncer implements IBackgroundSyncer {
             for (Map.Entry<String, ClientDevice> entry : deletedPaths.entrySet()) {
                 logger.debug("Removing deleted path " + entry.getKey());
 
-                IPathElement elementToDelete = new LocalPathElement(entry.getKey());
+                TreePathElement elementToDelete = new TreePathElement(entry.getKey());
                 // only delete the file on disk if it actually exists
                 if (this.storageAdapter.exists(StorageType.DIRECTORY, elementToDelete) || this.storageAdapter.exists(StorageType.FILE, elementToDelete)) {
                     this.storageAdapter.delete(elementToDelete);
@@ -199,7 +198,7 @@ public class NonBlockingBackgroundSyncer implements IBackgroundSyncer {
                         this.node.getClientDeviceId().toString(),
                         this.objectStore,
                         this.storageAdapter,
-                        new LocalPathElement(entry.getKey())
+                        new TreePathElement(entry.getKey())
                 );
 
 
@@ -238,8 +237,8 @@ public class NonBlockingBackgroundSyncer implements IBackgroundSyncer {
 
                 // only check version, if the file does exist on our disk,
                 // if not, we have to fetch it anyway
-                if (this.storageAdapter.exists(storageType, new LocalPathElement(mergedPathObject.getAbsolutePath()))) {
-                    this.objectStore.syncFile(this.storageAdapter.getRootDir().resolve(mergedPathObject.getAbsolutePath()).toFile());
+                if (this.storageAdapter.exists(storageType, new TreePathElement(mergedPathObject.getAbsolutePath()))) {
+                    this.objectStore.syncFile(Paths.get(this.storageAdapter.getRootDir().getPath()).resolve(mergedPathObject.getAbsolutePath()).toFile());
                     PathObject modifiedPathObject = this.objectStore.getObjectManager().getObjectForPath(entry.getKey());
                     Version modifiedLastVersion = modifiedPathObject.getVersions().get(Math.max(0, modifiedPathObject.getVersions().size() - 1));
 
@@ -307,8 +306,8 @@ public class NonBlockingBackgroundSyncer implements IBackgroundSyncer {
 
             logger.info("Reconciling local disk changes with merged object store (non-blocking background sync " + exchangeId + ")");
             // create a temporary second object store to get changes made in the mean time of syncing
-            IStorageAdapter objectStoreStorageManager = this.objectStore.getObjectManager().getStorageAdapater();
-            IPathElement pathElement = new LocalPathElement("nonBlockingBackgroundSyncObjectStore");
+            ITreeStorageAdapter objectStoreStorageManager = this.objectStore.getObjectManager().getStorageAdapater();
+            TreePathElement pathElement = new TreePathElement("nonBlockingBackgroundSyncObjectStore");
             if (objectStoreStorageManager.exists(StorageType.DIRECTORY, pathElement)) {
                 objectStoreStorageManager.delete(pathElement);
             }
@@ -316,13 +315,13 @@ public class NonBlockingBackgroundSyncer implements IBackgroundSyncer {
             objectStoreStorageManager.persist(StorageType.DIRECTORY, pathElement, null);
 
             // create the temporary object store in the .sync folder
-            Path rootPath = this.storageAdapter.getRootDir();
-            IStorageAdapter changeObjectStoreStorageManager = new LocalStorageAdapter(objectStoreStorageManager.getRootDir().resolve(pathElement.getPath()));
+            Path rootPath = Paths.get(this.storageAdapter.getRootDir().getPath());
+            ITreeStorageAdapter changeObjectStoreStorageManager = new LocalStorageAdapter(Paths.get(objectStoreStorageManager.getRootDir().getPath()).resolve(pathElement.getPath()));
             IObjectStore changeObjectStore = new ObjectStore(rootPath, "index.json", "object", changeObjectStoreStorageManager);
 
             // build object store for differences in the mean time
             List<String> ignoredPaths = new ArrayList<>();
-            Path origSyncFolder = this.objectStore.getObjectManager().getStorageAdapater().getRootDir().getFileName();
+            Path origSyncFolder = Paths.get(this.objectStore.getObjectManager().getStorageAdapater().getRootDir().getPath()).getFileName();
             ignoredPaths.add(origSyncFolder.toString());
             changeObjectStore.sync(rootPath.toFile(), ignoredPaths);
 
@@ -330,7 +329,7 @@ public class NonBlockingBackgroundSyncer implements IBackgroundSyncer {
             HashMap<ObjectStore.MergedObjectType, Set<String>> updatedOrDeletedPaths = this.objectStore.mergeObjectStore(changeObjectStore);
 
             // remove change object store again
-            changeObjectStoreStorageManager.delete(new LocalPathElement("./"));
+            changeObjectStoreStorageManager.delete(new TreePathElement("./"));
 
             Set<String> deletedPathsInTheMeanTime = updatedOrDeletedPaths.get(ObjectStore.MergedObjectType.DELETED);
             Set<String> updatedPathsInTheMeanTime = updatedOrDeletedPaths.get(ObjectStore.MergedObjectType.CHANGED);

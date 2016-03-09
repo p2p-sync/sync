@@ -3,8 +3,8 @@ package org.rmatil.sync.core.init.objecstore;
 import org.rmatil.sync.core.exception.InitializationException;
 import org.rmatil.sync.core.exception.InitializationStartException;
 import org.rmatil.sync.core.init.IInitializer;
-import org.rmatil.sync.persistence.api.IStorageAdapter;
-import org.rmatil.sync.persistence.core.local.LocalStorageAdapter;
+import org.rmatil.sync.persistence.core.tree.ITreeStorageAdapter;
+import org.rmatil.sync.persistence.core.tree.local.LocalStorageAdapter;
 import org.rmatil.sync.persistence.exceptions.InputOutputException;
 import org.rmatil.sync.version.api.IObjectStore;
 import org.rmatil.sync.version.core.ObjectStore;
@@ -18,8 +18,8 @@ public class ObjectStoreInitializer implements IInitializer<IObjectStore> {
     protected String indexFileName;
     protected String objectFolderName;
 
-    protected IStorageAdapter syncFolderStorageAdapter;
-    protected IObjectStore    objectStore;
+    protected ITreeStorageAdapter syncFolderStorageAdapter;
+    protected IObjectStore        objectStore;
 
     public ObjectStoreInitializer(Path rootPath, String syncFolderName, String indexFileName, String objectFolderName) {
         this.rootPath = rootPath;

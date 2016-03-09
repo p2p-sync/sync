@@ -11,7 +11,7 @@ import org.rmatil.sync.network.api.INodeManager;
 import org.rmatil.sync.network.core.ANetworkHandler;
 import org.rmatil.sync.network.core.model.ClientDevice;
 import org.rmatil.sync.network.core.model.NodeLocation;
-import org.rmatil.sync.persistence.api.IStorageAdapter;
+import org.rmatil.sync.persistence.core.tree.ITreeStorageAdapter;
 import org.rmatil.sync.persistence.exceptions.InputOutputException;
 import org.rmatil.sync.version.api.AccessType;
 import org.rmatil.sync.version.api.IObjectStore;
@@ -48,7 +48,7 @@ public class FileDeleteExchangeHandler extends ANetworkHandler<FileDeleteExchang
     /**
      * The storage adapter to access the synced folder
      */
-    protected IStorageAdapter storageAdapter;
+    protected ITreeStorageAdapter storageAdapter;
 
     /**
      * The client manager to get the client locations from
@@ -87,7 +87,7 @@ public class FileDeleteExchangeHandler extends ANetworkHandler<FileDeleteExchang
      * @param receivers      The receiver addresses which should receive the delete requests
      * @param deleteEvent    The actual delete event to propagate
      */
-    public FileDeleteExchangeHandler(UUID exchangeId, ClientDevice clientDevice, IStorageAdapter storageAdapter, INodeManager nodeManager, INode client, IObjectStore objectStore, MBassador<IBusEvent> globalEventBus, List<NodeLocation> receivers, DeleteEvent deleteEvent) {
+    public FileDeleteExchangeHandler(UUID exchangeId, ClientDevice clientDevice, ITreeStorageAdapter storageAdapter, INodeManager nodeManager, INode client, IObjectStore objectStore, MBassador<IBusEvent> globalEventBus, List<NodeLocation> receivers, DeleteEvent deleteEvent) {
         super(client);
         this.exchangeId = exchangeId;
         this.clientDevice = clientDevice;

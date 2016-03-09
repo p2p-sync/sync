@@ -12,8 +12,8 @@ import org.rmatil.sync.network.api.INode;
 import org.rmatil.sync.network.api.INodeManager;
 import org.rmatil.sync.network.core.ConnectionConfiguration;
 import org.rmatil.sync.network.core.model.ClientDevice;
-import org.rmatil.sync.persistence.api.IStorageAdapter;
-import org.rmatil.sync.persistence.core.local.LocalStorageAdapter;
+import org.rmatil.sync.persistence.core.tree.ITreeStorageAdapter;
+import org.rmatil.sync.persistence.core.tree.local.LocalStorageAdapter;
 import org.rmatil.sync.persistence.exceptions.InputOutputException;
 import org.rmatil.sync.test.config.Config;
 import org.rmatil.sync.test.messaging.base.BaseNetworkHandlerTest;
@@ -39,11 +39,11 @@ public class BaseIT extends BaseNetworkHandlerTest {
     protected static MBassador<IBusEvent> GLOBAL_EVENT_BUS_3;
     protected static MBassador<IBusEvent> GLOBAL_EVENT_BUS_4;
 
-    protected static IStorageAdapter STORAGE_ADAPTER_3;
-    protected static IObjectStore    OBJECT_STORE_3;
+    protected static ITreeStorageAdapter STORAGE_ADAPTER_3;
+    protected static IObjectStore        OBJECT_STORE_3;
 
-    protected static IStorageAdapter STORAGE_ADAPTER_4;
-    protected static IObjectStore    OBJECT_STORE_4;
+    protected static ITreeStorageAdapter STORAGE_ADAPTER_4;
+    protected static IObjectStore        OBJECT_STORE_4;
 
     protected static INode CLIENT_3;
     protected static INode CLIENT_4;

@@ -15,10 +15,9 @@ import org.rmatil.sync.network.api.IRequest;
 import org.rmatil.sync.network.api.IResponse;
 import org.rmatil.sync.network.core.model.ClientDevice;
 import org.rmatil.sync.network.core.model.NodeLocation;
-import org.rmatil.sync.persistence.api.IPathElement;
-import org.rmatil.sync.persistence.api.IStorageAdapter;
 import org.rmatil.sync.persistence.api.StorageType;
-import org.rmatil.sync.persistence.core.local.LocalPathElement;
+import org.rmatil.sync.persistence.core.tree.ITreeStorageAdapter;
+import org.rmatil.sync.persistence.core.tree.TreePathElement;
 import org.rmatil.sync.persistence.exceptions.InputOutputException;
 import org.rmatil.sync.version.api.AccessType;
 import org.rmatil.sync.version.api.IObjectStore;
@@ -36,7 +35,7 @@ public class ShareRequestHandler implements ILocalStateRequestCallback {
     /**
      * The storage adapter to access the synchronized folder
      */
-    protected IStorageAdapter storageAdapter;
+    protected ITreeStorageAdapter storageAdapter;
 
     /**
      * The object store to access versions
@@ -64,7 +63,7 @@ public class ShareRequestHandler implements ILocalStateRequestCallback {
     protected IAccessManager accessManager;
 
     @Override
-    public void setStorageAdapter(IStorageAdapter storageAdapter) {
+    public void setStorageAdapter(ITreeStorageAdapter storageAdapter) {
         this.storageAdapter = storageAdapter;
     }
 
@@ -122,7 +121,7 @@ public class ShareRequestHandler implements ILocalStateRequestCallback {
                     }
 
                     // place the file in the root if it's parent does not exist anymore
-                    if (! this.storageAdapter.exists(StorageType.DIRECTORY, new LocalPathElement(parent.toString()))) {
+                    if (! this.storageAdapter.exists(StorageType.DIRECTORY, new TreePathElement(parent.toString()))) {
                         logger.info("Parent of file " + this.request.getRelativePathToSharedFolder() + " does not exist (anymore). Placing file at root of shared dir");
                         relPathToSharedFolder = relPathToSharedFolder.getFileName();
                     }
@@ -142,7 +141,7 @@ public class ShareRequestHandler implements ILocalStateRequestCallback {
             }
 
             StorageType storageType = this.request.isFile() ? StorageType.FILE : StorageType.DIRECTORY;
-            IPathElement pathElement = new LocalPathElement(relativePath);
+            TreePathElement pathElement = new TreePathElement(relativePath);
 
             if (this.request.isFile() && StatusCode.FILE_CHANGED.equals(this.request.getStatusCode()) &&
                     this.storageAdapter.exists(storageType, pathElement)) {
@@ -200,7 +199,7 @@ public class ShareRequestHandler implements ILocalStateRequestCallback {
                         // create the hash of the file / directory
                         String hash = Hash.hash(
                                 org.rmatil.sync.event.aggregator.config.Config.DEFAULT.getHashingAlgorithm(),
-                                this.storageAdapter.getRootDir().resolve(pathElement.getPath()).toFile()
+                                Paths.get(this.storageAdapter.getRootDir().getPath()).resolve(pathElement.getPath()).toFile()
                         );
 
                         this.objectStore.onCreateFile(relativePath, hash);

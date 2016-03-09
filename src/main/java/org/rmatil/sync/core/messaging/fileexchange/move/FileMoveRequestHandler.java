@@ -11,10 +11,9 @@ import org.rmatil.sync.network.api.INode;
 import org.rmatil.sync.network.api.IRequest;
 import org.rmatil.sync.network.core.model.ClientDevice;
 import org.rmatil.sync.network.core.model.NodeLocation;
-import org.rmatil.sync.persistence.api.IPathElement;
-import org.rmatil.sync.persistence.api.IStorageAdapter;
 import org.rmatil.sync.persistence.api.StorageType;
-import org.rmatil.sync.persistence.core.local.LocalPathElement;
+import org.rmatil.sync.persistence.core.tree.ITreeStorageAdapter;
+import org.rmatil.sync.persistence.core.tree.TreePathElement;
 import org.rmatil.sync.persistence.exceptions.InputOutputException;
 import org.rmatil.sync.version.api.AccessType;
 import org.rmatil.sync.version.api.IObjectStore;
@@ -40,7 +39,7 @@ public class FileMoveRequestHandler implements ILocalStateRequestCallback {
     /**
      * The storage adapter to access the synchronized folder
      */
-    protected IStorageAdapter storageAdapter;
+    protected ITreeStorageAdapter storageAdapter;
 
     /**
      * The object store to access versions
@@ -68,7 +67,7 @@ public class FileMoveRequestHandler implements ILocalStateRequestCallback {
     protected IAccessManager accessManager;
 
     @Override
-    public void setStorageAdapter(IStorageAdapter storageAdapter) {
+    public void setStorageAdapter(ITreeStorageAdapter storageAdapter) {
         this.storageAdapter = storageAdapter;
     }
 
@@ -112,8 +111,8 @@ public class FileMoveRequestHandler implements ILocalStateRequestCallback {
                 return;
             }
 
-            IPathElement oldPathElement = new LocalPathElement(this.request.getOldPath());
-            IPathElement newPathElement = new LocalPathElement(this.request.getNewPath());
+            TreePathElement oldPathElement = new TreePathElement(this.request.getOldPath());
+            TreePathElement newPathElement = new TreePathElement(this.request.getNewPath());
 
             StorageType storageType = this.request.isFile() ? StorageType.FILE : StorageType.DIRECTORY;
 
@@ -169,14 +168,15 @@ public class FileMoveRequestHandler implements ILocalStateRequestCallback {
      *
      * @throws InputOutputException If moving failed
      */
-    protected void move(StorageType storageType, IPathElement oldPath, IPathElement newPath)
+    protected void move(StorageType storageType, TreePathElement oldPath, TreePathElement newPath)
             throws InputOutputException {
 
+        // TODO: use get directory contents
         if (StorageType.DIRECTORY == storageType) {
-            try (Stream<Path> paths = Files.walk(this.storageAdapter.getRootDir().resolve(oldPath.getPath()))) {
+            try (Stream<Path> paths = Files.walk(Paths.get(this.storageAdapter.getRootDir().getPath()).resolve(oldPath.getPath()))) {
                 paths.forEach((entry) -> {
-                    Path oldFilePath = this.storageAdapter.getRootDir().relativize(entry);
-                    Path newFilePath = Paths.get(newPath.getPath()).resolve(Paths.get(oldPath.getPath()).relativize(this.storageAdapter.getRootDir().relativize(Paths.get(entry.toString()))));
+                    Path oldFilePath = Paths.get(this.storageAdapter.getRootDir().getPath()).relativize(entry);
+                    Path newFilePath = Paths.get(newPath.getPath()).resolve(Paths.get(oldPath.getPath()).relativize(Paths.get(this.storageAdapter.getRootDir().getPath()).relativize(Paths.get(entry.toString()))));
 
                     this.globalEventBus.publish(new IgnoreBusEvent(
                             new MoveEvent(
@@ -206,7 +206,7 @@ public class FileMoveRequestHandler implements ILocalStateRequestCallback {
                     )
             ));
 
-            this.storageAdapter.move(StorageType.FILE, oldPath, new LocalPathElement(newPath.getPath()));
+            this.storageAdapter.move(StorageType.FILE, oldPath, new TreePathElement(newPath.getPath()));
         }
     }
 }

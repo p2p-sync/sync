@@ -11,9 +11,9 @@ import org.rmatil.sync.network.api.INode;
 import org.rmatil.sync.network.api.IRequest;
 import org.rmatil.sync.network.core.model.ClientDevice;
 import org.rmatil.sync.network.core.model.NodeLocation;
-import org.rmatil.sync.persistence.api.IStorageAdapter;
 import org.rmatil.sync.persistence.api.StorageType;
-import org.rmatil.sync.persistence.core.local.LocalPathElement;
+import org.rmatil.sync.persistence.core.tree.ITreeStorageAdapter;
+import org.rmatil.sync.persistence.core.tree.TreePathElement;
 import org.rmatil.sync.persistence.exceptions.InputOutputException;
 import org.rmatil.sync.version.api.AccessType;
 import org.rmatil.sync.version.api.IObjectStore;
@@ -24,6 +24,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.HashSet;
 import java.util.stream.Stream;
 
@@ -39,7 +40,7 @@ public class FileDeleteRequestHandler implements ILocalStateRequestCallback {
     /**
      * The storage adapter to access the synced folder
      */
-    protected IStorageAdapter storageAdapter;
+    protected ITreeStorageAdapter storageAdapter;
 
     /**
      * The object store
@@ -67,7 +68,7 @@ public class FileDeleteRequestHandler implements ILocalStateRequestCallback {
     protected IAccessManager accessManager;
 
     @Override
-    public void setStorageAdapter(IStorageAdapter storageAdapter) {
+    public void setStorageAdapter(ITreeStorageAdapter storageAdapter) {
         this.storageAdapter = storageAdapter;
     }
 
@@ -105,13 +106,13 @@ public class FileDeleteRequestHandler implements ILocalStateRequestCallback {
         try {
             logger.info("Deleting path on " + this.request.getPathToDelete());
 
-            LocalPathElement pathToDelete;
+            TreePathElement pathToDelete;
             if ((null != this.request.getOwner() && this.node.getUser().getUserName().equals(this.request.getOwner())) ||
                     null != this.request.getFileId()) {
                 // we have to use our path: if we are either the owner or a sharer
-                pathToDelete = new LocalPathElement(this.node.getIdentifierManager().getKey(this.request.getFileId()));
+                pathToDelete = new TreePathElement(this.node.getIdentifierManager().getKey(this.request.getFileId()));
             } else {
-                pathToDelete = new LocalPathElement(this.request.getPathToDelete());
+                pathToDelete = new TreePathElement(this.request.getPathToDelete());
             }
 
             if (! this.node.getUser().getUserName().equals(this.request.getClientDevice().getUserName()) && ! this.accessManager.hasAccess(this.request.getClientDevice().getUserName(), AccessType.WRITE, pathToDelete.getPath())) {
@@ -124,12 +125,13 @@ public class FileDeleteRequestHandler implements ILocalStateRequestCallback {
             try {
                 if (this.storageAdapter.exists(StorageType.DIRECTORY, pathToDelete) || this.storageAdapter.exists(StorageType.FILE, pathToDelete)) {
                     // create ignore events for all dir contents
-                    try (Stream<Path> paths = Files.walk(this.storageAdapter.getRootDir().resolve(pathToDelete.getPath()))) {
+                    // TODO: use getDirectoryContents
+                    try (Stream<Path> paths = Files.walk(Paths.get(this.storageAdapter.getRootDir().getPath()).resolve(pathToDelete.getPath()))) {
                         paths.forEach((entry) -> {
                             this.globalEventBus.publish(new IgnoreBusEvent(
                                     new DeleteEvent(
-                                            this.storageAdapter.getRootDir().relativize(entry),
-                                            this.storageAdapter.getRootDir().relativize(entry).getFileName().toString(),
+                                            Paths.get(this.storageAdapter.getRootDir().getPath()).relativize(entry),
+                                            Paths.get(this.storageAdapter.getRootDir().getPath()).relativize(entry).getFileName().toString(),
                                             "weIgnoreTheHash",
                                             System.currentTimeMillis()
                                     )
@@ -138,7 +140,7 @@ public class FileDeleteRequestHandler implements ILocalStateRequestCallback {
                             try {
                                 logger.trace("Removing sharing information from object store for file " + entry + " and exchange " + this.request.getExchangeId());
                                 // remove all connections to any sharers
-                                PathObject deletedObject = this.objectStore.getObjectManager().getObjectForPath(this.storageAdapter.getRootDir().relativize(entry).toString());
+                                PathObject deletedObject = this.objectStore.getObjectManager().getObjectForPath(Paths.get(this.storageAdapter.getRootDir().getPath()).relativize(entry).toString());
                                 deletedObject.setSharers(new HashSet<>());
                                 deletedObject.setIsShared(false);
                                 deletedObject.setAccessType(null);

@@ -3,11 +3,10 @@ package org.rmatil.sync.core;
 import org.rmatil.sync.core.syncer.background.fetchobjectstore.FetchObjectStoreExchangeHandlerResult;
 import org.rmatil.sync.core.syncer.background.fetchobjectstore.FetchObjectStoreResponse;
 import org.rmatil.sync.network.core.model.ClientDevice;
-import org.rmatil.sync.persistence.api.IPathElement;
-import org.rmatil.sync.persistence.api.IStorageAdapter;
 import org.rmatil.sync.persistence.api.StorageType;
-import org.rmatil.sync.persistence.core.local.LocalPathElement;
-import org.rmatil.sync.persistence.core.local.LocalStorageAdapter;
+import org.rmatil.sync.persistence.core.tree.ITreeStorageAdapter;
+import org.rmatil.sync.persistence.core.tree.TreePathElement;
+import org.rmatil.sync.persistence.core.tree.local.LocalStorageAdapter;
 import org.rmatil.sync.persistence.exceptions.InputOutputException;
 import org.rmatil.sync.version.api.IObjectStore;
 import org.rmatil.sync.version.core.ObjectStore;
@@ -48,12 +47,12 @@ public class Zip {
             throws IOException, InputOutputException {
 
         ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-        IStorageAdapter objectStorageAdapter = objectStore.getObjectManager().getStorageAdapater();
+        ITreeStorageAdapter objectStorageAdapter = objectStore.getObjectManager().getStorageAdapater();
 
-        List<IPathElement> directoryContents = objectStorageAdapter.getDirectoryContents(new LocalPathElement("."));
+        List<TreePathElement> directoryContents = objectStorageAdapter.getDirectoryContents(new TreePathElement("."));
 
         try (ZipOutputStream zipOutputStream = new ZipOutputStream(byteArrayOutputStream)) {
-            for (IPathElement pathElement : directoryContents) {
+            for (TreePathElement pathElement : directoryContents) {
                 // zip entries are only detected as directories if they are ending
                 // with a slash..?!?
 
@@ -95,21 +94,21 @@ public class Zip {
     public static Map<ClientDevice, IObjectStore> unzipObjectStore(IObjectStore objectStore, FetchObjectStoreExchangeHandlerResult result) {
         Map<ClientDevice, IObjectStore> objectStores = new HashMap<>();
         // we create the zip file in our .sync folder
-        IStorageAdapter objectStoreStorageAdapter = objectStore.getObjectManager().getStorageAdapater();
+        ITreeStorageAdapter objectStoreStorageAdapter = objectStore.getObjectManager().getStorageAdapater();
 
         for (FetchObjectStoreResponse response : result.getResponses()) {
             try {
                 logger.trace("Creating object store directory for client " + response.getClientDevice().getClientDeviceId());
                 // path is .sync/<ClientDevice>
                 Path objectStorePath = Paths.get(response.getClientDevice().getClientDeviceId().toString());
-                objectStoreStorageAdapter.persist(StorageType.DIRECTORY, new LocalPathElement(objectStorePath.toString()), null);
+                objectStoreStorageAdapter.persist(StorageType.DIRECTORY, new TreePathElement(objectStorePath.toString()), null);
 
                 // create .sync folder in it
-                objectStoreStorageAdapter.persist(StorageType.DIRECTORY, new LocalPathElement(objectStorePath.resolve(".sync").toString()), null);
+                objectStoreStorageAdapter.persist(StorageType.DIRECTORY, new TreePathElement(objectStorePath.resolve(".sync").toString()), null);
 
                 // create storage adapter for object store
-                IStorageAdapter localStorageAdapter = new LocalStorageAdapter(
-                        objectStoreStorageAdapter.getRootDir().resolve(objectStorePath).resolve(".sync")
+                ITreeStorageAdapter localStorageAdapter = new LocalStorageAdapter(
+                        Paths.get(objectStoreStorageAdapter.getRootDir().getPath()).resolve(objectStorePath).resolve(".sync")
                 );
 
 
@@ -143,21 +142,21 @@ public class Zip {
      */
     public static IObjectStore unzipObjectStore(IObjectStore objectStore, String objectStoreName, byte[] zippedObjectStore) {
         // we create the zip file in our .sync folder
-        IStorageAdapter objectStoreStorageAdapter = objectStore.getObjectManager().getStorageAdapater();
+        ITreeStorageAdapter objectStoreStorageAdapter = objectStore.getObjectManager().getStorageAdapater();
 
 
         try {
             // path is .sync/<ClientDevice>
             Path objectStorePath = Paths.get(objectStoreName);
-            logger.trace("Creating object store directory in dir " + objectStore.getObjectManager().getStorageAdapater().getRootDir().resolve(objectStoreName));
-            objectStoreStorageAdapter.persist(StorageType.DIRECTORY, new LocalPathElement(objectStorePath.toString()), null);
+            logger.trace("Creating object store directory in dir " + Paths.get(objectStore.getObjectManager().getStorageAdapater().getRootDir().getPath()).resolve(objectStoreName));
+            objectStoreStorageAdapter.persist(StorageType.DIRECTORY, new TreePathElement(objectStorePath.toString()), null);
 
             // create .sync folder in it
-            objectStoreStorageAdapter.persist(StorageType.DIRECTORY, new LocalPathElement(objectStorePath.resolve(".sync").toString()), null);
+            objectStoreStorageAdapter.persist(StorageType.DIRECTORY, new TreePathElement(objectStorePath.resolve(".sync").toString()), null);
 
             // create storage adapter for object store
-            IStorageAdapter localStorageAdapter = new LocalStorageAdapter(
-                    objectStoreStorageAdapter.getRootDir().resolve(objectStorePath).resolve(".sync")
+            ITreeStorageAdapter localStorageAdapter = new LocalStorageAdapter(
+                    Paths.get(objectStoreStorageAdapter.getRootDir().getPath()).resolve(objectStorePath).resolve(".sync")
             );
 
             ByteArrayInputStream inputStream = new ByteArrayInputStream(zippedObjectStore);
@@ -182,7 +181,7 @@ public class Zip {
      * @throws IOException          If reading or writing the zip input stream fails
      * @throws InputOutputException If reading or writing the storage adapter fails
      */
-    protected static void unzip(ZipInputStream zipInputStream, IStorageAdapter storageAdapter)
+    protected static void unzip(ZipInputStream zipInputStream, ITreeStorageAdapter storageAdapter)
             throws IOException, InputOutputException {
         ZipEntry entry;
         while ((entry = zipInputStream.getNextEntry()) != null) {
@@ -209,9 +208,9 @@ public class Zip {
                     path = path.substring(0, path.length() - 1);
                 }
 
-                storageAdapter.persist(StorageType.DIRECTORY, new LocalPathElement(path), null);
+                storageAdapter.persist(StorageType.DIRECTORY, new TreePathElement(path), null);
             } else {
-                storageAdapter.persist(StorageType.FILE, new LocalPathElement(entry.getName()), outputStream.toByteArray());
+                storageAdapter.persist(StorageType.FILE, new TreePathElement(entry.getName()), outputStream.toByteArray());
             }
         }
 

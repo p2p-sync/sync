@@ -7,7 +7,7 @@ import org.rmatil.sync.core.eventbus.IgnoreBusEvent;
 import org.rmatil.sync.core.messaging.fileexchange.delete.FileDeleteExchangeHandler;
 import org.rmatil.sync.core.messaging.fileexchange.delete.FileDeleteExchangeHandlerResult;
 import org.rmatil.sync.event.aggregator.core.events.DeleteEvent;
-import org.rmatil.sync.persistence.core.local.LocalPathElement;
+import org.rmatil.sync.persistence.core.tree.TreePathElement;
 import org.rmatil.sync.persistence.exceptions.InputOutputException;
 import org.rmatil.sync.test.messaging.base.BaseNetworkHandlerTest;
 
@@ -43,7 +43,7 @@ public class FileDeleteExchangeHandlerTest extends BaseNetworkHandlerTest {
     @Test
     public void testDelete()
             throws InputOutputException, InterruptedException {
-        STORAGE_ADAPTER_1.delete(new LocalPathElement(TEST_DIR_1.toString()));
+        STORAGE_ADAPTER_1.delete(new TreePathElement(TEST_DIR_1.toString()));
         // Note: do not sync object store so that delete ignore events are published
         // to the global event bus for the children
 

@@ -6,7 +6,7 @@ import org.rmatil.sync.core.messaging.fileexchange.move.FileMoveExchangeHandler;
 import org.rmatil.sync.core.messaging.fileexchange.move.FileMoveExchangeHandlerResult;
 import org.rmatil.sync.event.aggregator.core.events.MoveEvent;
 import org.rmatil.sync.persistence.api.StorageType;
-import org.rmatil.sync.persistence.core.local.LocalPathElement;
+import org.rmatil.sync.persistence.core.tree.TreePathElement;
 import org.rmatil.sync.persistence.exceptions.InputOutputException;
 import org.rmatil.sync.test.messaging.base.BaseNetworkHandlerTest;
 import org.rmatil.sync.version.core.model.PathObject;
@@ -60,7 +60,7 @@ public class FileMoveExchangeHandlerTest extends BaseNetworkHandlerTest {
             throws InterruptedException, InputOutputException {
 
         // move
-        STORAGE_ADAPTER_1.move(StorageType.DIRECTORY, new LocalPathElement(TEST_DIR_1.toString()), new LocalPathElement(TARGET_DIR.resolve(TEST_DIR_1).toString()));
+        STORAGE_ADAPTER_1.move(StorageType.DIRECTORY, new TreePathElement(TEST_DIR_1.toString()), new TreePathElement(TARGET_DIR.resolve(TEST_DIR_1).toString()));
         // rebuild object store
         OBJECT_STORE_1.sync(ROOT_TEST_DIR1.toFile());
 
@@ -114,7 +114,7 @@ public class FileMoveExchangeHandlerTest extends BaseNetworkHandlerTest {
     public void testMoveFile()
             throws InputOutputException, InterruptedException {
         // move
-        STORAGE_ADAPTER_1.move(StorageType.FILE, new LocalPathElement(TEST_FILE_3.toString()), new LocalPathElement(TARGET_DIR.resolve(TEST_FILE_3).toString()));
+        STORAGE_ADAPTER_1.move(StorageType.FILE, new TreePathElement(TEST_FILE_3.toString()), new TreePathElement(TARGET_DIR.resolve(TEST_FILE_3).toString()));
         // rebuild object store
         OBJECT_STORE_1.sync(ROOT_TEST_DIR1.toFile());
 

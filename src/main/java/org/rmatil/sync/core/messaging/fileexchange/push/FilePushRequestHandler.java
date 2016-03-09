@@ -15,9 +15,9 @@ import org.rmatil.sync.network.api.IResponse;
 import org.rmatil.sync.network.core.model.ClientDevice;
 import org.rmatil.sync.network.core.model.NodeLocation;
 import org.rmatil.sync.persistence.api.IPathElement;
-import org.rmatil.sync.persistence.api.IStorageAdapter;
 import org.rmatil.sync.persistence.api.StorageType;
-import org.rmatil.sync.persistence.core.local.LocalPathElement;
+import org.rmatil.sync.persistence.core.tree.ITreeStorageAdapter;
+import org.rmatil.sync.persistence.core.tree.TreePathElement;
 import org.rmatil.sync.persistence.exceptions.InputOutputException;
 import org.rmatil.sync.version.api.AccessType;
 import org.rmatil.sync.version.api.IObjectStore;
@@ -35,7 +35,7 @@ public class FilePushRequestHandler implements ILocalStateRequestCallback {
     /**
      * The storage adapter to access the synchronized folder
      */
-    protected IStorageAdapter storageAdapter;
+    protected ITreeStorageAdapter storageAdapter;
 
     /**
      * The object store to access versions
@@ -63,7 +63,7 @@ public class FilePushRequestHandler implements ILocalStateRequestCallback {
     protected IAccessManager accessManager;
 
     @Override
-    public void setStorageAdapter(IStorageAdapter storageAdapter) {
+    public void setStorageAdapter(ITreeStorageAdapter storageAdapter) {
         this.storageAdapter = storageAdapter;
     }
 
@@ -100,7 +100,7 @@ public class FilePushRequestHandler implements ILocalStateRequestCallback {
     public void run() {
         try {
             boolean fileIsChildFromSharedFolder = false;
-            LocalPathElement localPathElement;
+            TreePathElement localPathElement;
             if ((null != this.request.getOwner() && this.node.getUser().getUserName().equals(this.request.getOwner())) ||
                     null != this.request.getFileId()) {
                 // we have to use our path: if we are either the owner or a sharer
@@ -141,7 +141,7 @@ public class FilePushRequestHandler implements ILocalStateRequestCallback {
                             }
 
                             // place the file in the root if it's parent does not exist anymore
-                            if (! this.storageAdapter.exists(StorageType.DIRECTORY, new LocalPathElement(parent.toString()))) {
+                            if (! this.storageAdapter.exists(StorageType.DIRECTORY, new TreePathElement(parent.toString()))) {
                                 logger.info("Parent of file " + this.request.getRelativeFilePath() + " does not exist (anymore). Placing file at root of shared dir");
                                 relPathToSharedFolder = relPathToSharedFolder.getFileName();
                             }
@@ -158,7 +158,7 @@ public class FilePushRequestHandler implements ILocalStateRequestCallback {
                         relativePath = ShareNaming.getUniqueFileName(this.storageAdapter, relativePath, this.request.isFile());
                         // add relativePath <-> fileId to DHT
                         this.node.getIdentifierManager().addIdentifier(relativePath, this.request.getFileId());
-                        localPathElement = new LocalPathElement(relativePath);
+                        localPathElement = new TreePathElement(relativePath);
 
                     } catch (InputOutputException e) {
                         logger.error("Failed to get relative path to shared folder (by owner). Message: " + e.getMessage() + ". Aborting filePushExchange " + this.request.getExchangeId());
@@ -167,10 +167,10 @@ public class FilePushRequestHandler implements ILocalStateRequestCallback {
                     }
 
                 } else {
-                    localPathElement = new LocalPathElement(pathToFile);
+                    localPathElement = new TreePathElement(pathToFile);
                 }
             } else {
-                localPathElement = new LocalPathElement(this.request.getRelativeFilePath());
+                localPathElement = new TreePathElement(this.request.getRelativeFilePath());
 
                 // only check access if the file is not from a sharer
                 // to prevent errors when the pathObject is not yet created

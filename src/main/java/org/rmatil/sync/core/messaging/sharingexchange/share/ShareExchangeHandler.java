@@ -9,8 +9,8 @@ import org.rmatil.sync.network.api.IResponse;
 import org.rmatil.sync.network.core.ANetworkHandler;
 import org.rmatil.sync.network.core.model.ClientDevice;
 import org.rmatil.sync.network.core.model.NodeLocation;
-import org.rmatil.sync.persistence.api.IStorageAdapter;
-import org.rmatil.sync.persistence.core.local.LocalPathElement;
+import org.rmatil.sync.persistence.core.tree.ITreeStorageAdapter;
+import org.rmatil.sync.persistence.core.tree.TreePathElement;
 import org.rmatil.sync.persistence.exceptions.InputOutputException;
 import org.rmatil.sync.version.api.AccessType;
 import org.rmatil.sync.version.api.IObjectStore;
@@ -44,7 +44,7 @@ public class ShareExchangeHandler extends ANetworkHandler<ShareExchangeHandlerRe
     /**
      * The storage adapter to read the file chunks from
      */
-    protected IStorageAdapter storageAdapter;
+    protected ITreeStorageAdapter storageAdapter;
 
     /**
      * The object store
@@ -106,7 +106,7 @@ public class ShareExchangeHandler extends ANetworkHandler<ShareExchangeHandlerRe
      * @param isFile                         Whether the path represents a file or directory
      * @param exchangeId                     The exchangeId
      */
-    public ShareExchangeHandler(INode client, NodeLocation receiverAddress, IStorageAdapter storageAdapter, IObjectStore objectStore, String relativeFilePath, String relativeFilePathToSharedFolder, AccessType accessType, UUID fileId, boolean isFile, UUID exchangeId) {
+    public ShareExchangeHandler(INode client, NodeLocation receiverAddress, ITreeStorageAdapter storageAdapter, IObjectStore objectStore, String relativeFilePath, String relativeFilePathToSharedFolder, AccessType accessType, UUID fileId, boolean isFile, UUID exchangeId) {
         super(client);
         this.receiverAddress = receiverAddress;
         this.storageAdapter = storageAdapter;
@@ -122,7 +122,7 @@ public class ShareExchangeHandler extends ANetworkHandler<ShareExchangeHandlerRe
         this.chunkProvider = new ChunkProvider(
                 this.storageAdapter,
                 this.objectStore,
-                new LocalPathElement(relativeFilePath)
+                new TreePathElement(relativeFilePath)
         );
     }
 

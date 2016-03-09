@@ -14,7 +14,7 @@ import org.rmatil.sync.network.api.*;
 import org.rmatil.sync.network.core.messaging.ObjectDataReplyHandler;
 import org.rmatil.sync.network.core.model.ClientDevice;
 import org.rmatil.sync.network.core.model.NodeLocation;
-import org.rmatil.sync.persistence.api.IStorageAdapter;
+import org.rmatil.sync.persistence.core.tree.ITreeStorageAdapter;
 import org.rmatil.sync.version.api.IObjectStore;
 
 import java.nio.file.Path;
@@ -23,7 +23,7 @@ import java.util.*;
 
 public class LocalStateObjectDataReplyHandler extends ObjectDataReplyHandler {
 
-    protected IStorageAdapter      storageAdapter;
+    protected ITreeStorageAdapter  storageAdapter;
     protected IObjectStore         objectStore;
     protected MBassador<IBusEvent> globalEventBus;
     protected IEventAggregator     eventAggregator;
@@ -32,7 +32,7 @@ public class LocalStateObjectDataReplyHandler extends ObjectDataReplyHandler {
 
     protected Map<String, Set<UUID>> pathsInProgress = new HashMap<>();
 
-    public LocalStateObjectDataReplyHandler(IStorageAdapter storageAdapter, IObjectStore objectStore, INode node, MBassador<IBusEvent> globalEventBus, IEventAggregator eventAggregator, INodeManager nodeManager, IAccessManager accessManager, Map<UUID, IResponseCallback> responseCallbackHandlers, Map<Class<? extends IRequest>, Class<? extends IRequestCallback>> requestCallbackHandlers) {
+    public LocalStateObjectDataReplyHandler(ITreeStorageAdapter storageAdapter, IObjectStore objectStore, INode node, MBassador<IBusEvent> globalEventBus, IEventAggregator eventAggregator, INodeManager nodeManager, IAccessManager accessManager, Map<UUID, IResponseCallback> responseCallbackHandlers, Map<Class<? extends IRequest>, Class<? extends IRequestCallback>> requestCallbackHandlers) {
         super(node, responseCallbackHandlers, requestCallbackHandlers);
         this.storageAdapter = storageAdapter;
         this.objectStore = objectStore;
@@ -42,7 +42,7 @@ public class LocalStateObjectDataReplyHandler extends ObjectDataReplyHandler {
         this.accessManager = accessManager;
     }
 
-    public LocalStateObjectDataReplyHandler(IStorageAdapter storageAdapter, IObjectStore objectStore, INode client, MBassador<IBusEvent> globalEventBus, IEventAggregator eventAggregator, INodeManager nodeManager, IAccessManager accessManager) {
+    public LocalStateObjectDataReplyHandler(ITreeStorageAdapter storageAdapter, IObjectStore objectStore, INode client, MBassador<IBusEvent> globalEventBus, IEventAggregator eventAggregator, INodeManager nodeManager, IAccessManager accessManager) {
         super(client);
         this.storageAdapter = storageAdapter;
         this.objectStore = objectStore;

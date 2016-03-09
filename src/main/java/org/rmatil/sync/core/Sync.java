@@ -51,7 +51,8 @@ import org.rmatil.sync.network.core.Node;
 import org.rmatil.sync.network.core.model.ClientDevice;
 import org.rmatil.sync.network.core.model.User;
 import org.rmatil.sync.persistence.api.IStorageAdapter;
-import org.rmatil.sync.persistence.core.local.LocalStorageAdapter;
+import org.rmatil.sync.persistence.core.tree.ITreeStorageAdapter;
+import org.rmatil.sync.persistence.core.tree.local.LocalStorageAdapter;
 import org.rmatil.sync.version.api.IObjectStore;
 
 import java.io.FileNotFoundException;
@@ -85,7 +86,7 @@ public class Sync {
     /**
      * The storage adapter managing the synced folder
      */
-    protected IStorageAdapter storageAdapter;
+    protected ITreeStorageAdapter storageAdapter;
 
     /**
      * A syncer to allow sharing of files

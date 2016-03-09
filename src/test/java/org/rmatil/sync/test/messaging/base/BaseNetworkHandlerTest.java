@@ -47,8 +47,8 @@ import org.rmatil.sync.network.core.Node;
 import org.rmatil.sync.network.core.model.ClientDevice;
 import org.rmatil.sync.network.core.model.NodeLocation;
 import org.rmatil.sync.network.core.model.User;
-import org.rmatil.sync.persistence.api.IStorageAdapter;
-import org.rmatil.sync.persistence.core.local.LocalStorageAdapter;
+import org.rmatil.sync.persistence.core.tree.ITreeStorageAdapter;
+import org.rmatil.sync.persistence.core.tree.local.LocalStorageAdapter;
 import org.rmatil.sync.persistence.exceptions.InputOutputException;
 import org.rmatil.sync.test.base.BaseTest;
 import org.rmatil.sync.test.config.Config;
@@ -65,8 +65,6 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 
 public abstract class BaseNetworkHandlerTest extends BaseTest {
 
@@ -94,11 +92,11 @@ public abstract class BaseNetworkHandlerTest extends BaseTest {
     protected static GlobalEventBusDummyListener EVENT_BUS_LISTENER_1;
     protected static GlobalEventBusDummyListener EVENT_BUS_LISTENER_2;
 
-    protected static IStorageAdapter STORAGE_ADAPTER_1;
-    protected static IObjectStore    OBJECT_STORE_1;
+    protected static ITreeStorageAdapter STORAGE_ADAPTER_1;
+    protected static IObjectStore        OBJECT_STORE_1;
 
-    protected static IStorageAdapter STORAGE_ADAPTER_2;
-    protected static IObjectStore    OBJECT_STORE_2;
+    protected static ITreeStorageAdapter STORAGE_ADAPTER_2;
+    protected static IObjectStore        OBJECT_STORE_2;
 
     protected static INode CLIENT_1;
     protected static INode CLIENT_2;
@@ -294,7 +292,7 @@ public abstract class BaseNetworkHandlerTest extends BaseTest {
      *
      * @return The configured and started client
      */
-    protected static INode createClient(ConnectionConfiguration connectionConfiguration, IUser user, IStorageAdapter storageAdapter, IObjectStore objectStore, MBassador<IBusEvent> globalEventBus, RemoteClientLocation bootstrapLocation) {
+    protected static INode createClient(ConnectionConfiguration connectionConfiguration, IUser user, ITreeStorageAdapter storageAdapter, IObjectStore objectStore, MBassador<IBusEvent> globalEventBus, RemoteClientLocation bootstrapLocation) {
         INode client = new Node(null, user, null);
         LocalStateObjectDataReplyHandler objectDataReplyHandler = new LocalStateObjectDataReplyHandler(
                 storageAdapter,

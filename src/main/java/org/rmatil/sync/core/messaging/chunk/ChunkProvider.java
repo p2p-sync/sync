@@ -2,8 +2,8 @@ package org.rmatil.sync.core.messaging.chunk;
 
 import org.rmatil.sync.network.core.model.Data;
 import org.rmatil.sync.persistence.api.IFileMetaInfo;
-import org.rmatil.sync.persistence.api.IPathElement;
-import org.rmatil.sync.persistence.api.IStorageAdapter;
+import org.rmatil.sync.persistence.core.tree.ITreeStorageAdapter;
+import org.rmatil.sync.persistence.core.tree.TreePathElement;
 import org.rmatil.sync.persistence.exceptions.InputOutputException;
 import org.rmatil.sync.version.api.AccessType;
 import org.rmatil.sync.version.api.IObjectStore;
@@ -20,7 +20,7 @@ public class ChunkProvider {
     /**
      * The storage adapter to access files
      */
-    protected IStorageAdapter storageAdapter;
+    protected ITreeStorageAdapter storageAdapter;
 
     /**
      * The object store to fetch information about sharers, etc
@@ -30,14 +30,14 @@ public class ChunkProvider {
     /**
      * The path element from which to fetch chunks
      */
-    protected IPathElement pathElement;
+    protected TreePathElement pathElement;
 
     /**
      * @param storageAdapter The storage adapter to access files
      * @param objectStore    The object store to fetch information of the files, like sharers
      * @param pathElement    The path element from which to get chunks
      */
-    public ChunkProvider(IStorageAdapter storageAdapter, IObjectStore objectStore, IPathElement pathElement) {
+    public ChunkProvider(ITreeStorageAdapter storageAdapter, IObjectStore objectStore, TreePathElement pathElement) {
         this.storageAdapter = storageAdapter;
         this.objectStore = objectStore;
         this.pathElement = pathElement;

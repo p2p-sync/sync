@@ -15,9 +15,9 @@ import org.rmatil.sync.network.api.IRequest;
 import org.rmatil.sync.network.api.IResponse;
 import org.rmatil.sync.network.core.model.ClientDevice;
 import org.rmatil.sync.network.core.model.NodeLocation;
-import org.rmatil.sync.persistence.api.IStorageAdapter;
 import org.rmatil.sync.persistence.api.StorageType;
-import org.rmatil.sync.persistence.core.local.LocalPathElement;
+import org.rmatil.sync.persistence.core.tree.ITreeStorageAdapter;
+import org.rmatil.sync.persistence.core.tree.TreePathElement;
 import org.rmatil.sync.persistence.exceptions.InputOutputException;
 import org.rmatil.sync.version.api.AccessType;
 import org.rmatil.sync.version.api.IObjectStore;
@@ -51,7 +51,7 @@ public class FileOfferRequestHandler implements ILocalStateRequestCallback {
     /**
      * The storage adapter to access the synchronized folder
      */
-    protected IStorageAdapter storageAdapter;
+    protected ITreeStorageAdapter storageAdapter;
 
     /**
      * The object store to access versions
@@ -79,7 +79,7 @@ public class FileOfferRequestHandler implements ILocalStateRequestCallback {
     protected IAccessManager accessManager;
 
     @Override
-    public void setStorageAdapter(IStorageAdapter storageAdapter) {
+    public void setStorageAdapter(ITreeStorageAdapter storageAdapter) {
         this.storageAdapter = storageAdapter;
     }
 
@@ -115,7 +115,7 @@ public class FileOfferRequestHandler implements ILocalStateRequestCallback {
     @Override
     public void run() {
         try {
-            LocalPathElement pathElement;
+            TreePathElement pathElement;
             if ((null != this.request.getOwner() && this.node.getUser().getUserName().equals(this.request.getOwner())) ||
                     null != this.request.getFileId()) {
                 logger.debug("Using the path registered with the file id " + this.request.getFileId() + " to answer the file offer request");
@@ -130,11 +130,11 @@ public class FileOfferRequestHandler implements ILocalStateRequestCallback {
                     this.sendResponse(this.createResponse(StatusCode.ACCEPTED));
                     return;
                 } else {
-                    pathElement = new LocalPathElement(pathToFile);
+                    pathElement = new TreePathElement(pathToFile);
                 }
             } else {
                 logger.debug("Using the path from the request " + this.request.getEvent().getPath() + " to answer the file offer request");
-                pathElement = new LocalPathElement(this.request.getEvent().getPath());
+                pathElement = new TreePathElement(this.request.getEvent().getPath());
             }
 
             logger.info("Processing file offer request for path " + pathElement.getPath());
@@ -164,7 +164,7 @@ public class FileOfferRequestHandler implements ILocalStateRequestCallback {
                     // TODO: what is intended to be done, if target already exists?
                     // overwrite path element to check with target
                     // moves are not sent from clients of different users
-                    pathElement = new LocalPathElement(this.request.getEvent().getNewPath());
+                    pathElement = new TreePathElement(this.request.getEvent().getNewPath());
                 case CreateEvent.EVENT_NAME:
                 case ModifyEvent.EVENT_NAME:
                     try {
@@ -261,7 +261,7 @@ public class FileOfferRequestHandler implements ILocalStateRequestCallback {
      *
      * @return True, if a conflict has been detected, false otherwise
      */
-    protected CONFLICT_TYPE hasVersionConflict(LocalPathElement pathElement) {
+    protected CONFLICT_TYPE hasVersionConflict(TreePathElement pathElement) {
         String lastLocalFileVersionHash = null;
         String eventHash = null;
         // could be null, if the file contains only the first version

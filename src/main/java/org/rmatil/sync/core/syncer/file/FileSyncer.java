@@ -26,8 +26,8 @@ import org.rmatil.sync.network.api.IUser;
 import org.rmatil.sync.network.core.ANetworkHandler;
 import org.rmatil.sync.network.core.model.ClientDevice;
 import org.rmatil.sync.network.core.model.NodeLocation;
-import org.rmatil.sync.persistence.api.IStorageAdapter;
-import org.rmatil.sync.persistence.core.local.LocalPathElement;
+import org.rmatil.sync.persistence.core.tree.ITreeStorageAdapter;
+import org.rmatil.sync.persistence.core.tree.TreePathElement;
 import org.rmatil.sync.persistence.exceptions.InputOutputException;
 import org.rmatil.sync.version.api.IObjectStore;
 import org.slf4j.Logger;
@@ -48,19 +48,19 @@ public class FileSyncer implements IFileSyncer {
 
     public static final int NUMBER_OF_SYNCS = 1;
 
-    protected       IUser           user;
-    protected       INode           node;
-    protected       INodeManager    nodeManager;
-    protected       IStorageAdapter storageAdapter;
-    protected       IObjectStore    objectStore;
-    protected final List<IEvent>    eventsToIgnore;
+    protected       IUser               user;
+    protected       INode               node;
+    protected       INodeManager        nodeManager;
+    protected       ITreeStorageAdapter storageAdapter;
+    protected       IObjectStore        objectStore;
+    protected final List<IEvent>        eventsToIgnore;
 
     protected MBassador<IBusEvent> globalEventBus;
     protected ExecutorService      syncExecutor;
 
     protected ClientDevice clientDevice;
 
-    public FileSyncer(IUser user, INode node, INodeManager nodeManager, IStorageAdapter storageAdapter, IObjectStore objectStore, MBassador<IBusEvent> globalEventBus) {
+    public FileSyncer(IUser user, INode node, INodeManager nodeManager, ITreeStorageAdapter storageAdapter, IObjectStore objectStore, MBassador<IBusEvent> globalEventBus) {
         this.user = user;
         this.node = node;
         this.nodeManager = nodeManager;
@@ -122,7 +122,7 @@ public class FileSyncer implements IFileSyncer {
             // directory modifications will happen, since we need them to correctly identify
             // a move of a directory.
             try {
-                if (this.storageAdapter.isDir(new LocalPathElement(event.getPath().toString()))) {
+                if (this.storageAdapter.isDir(new TreePathElement(event.getPath().toString()))) {
                     logger.info("Skipping received modified event for directory " + event.getPath().toString() + " on client " + this.node.getPeerAddress().inetAddress().getHostName() + ":" + this.node.getPeerAddress().tcpPort() + ")");
                     return;
                 }
@@ -215,7 +215,7 @@ public class FileSyncer implements IFileSyncer {
                     this.clientDevice.getClientDeviceId().toString(),
                     this.objectStore,
                     this.storageAdapter,
-                    new LocalPathElement(event.getPath().toString())
+                    new TreePathElement(event.getPath().toString())
             );
 
             // move element in the IdentifierManager too

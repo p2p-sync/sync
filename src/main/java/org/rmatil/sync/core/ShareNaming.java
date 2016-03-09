@@ -1,10 +1,9 @@
 package org.rmatil.sync.core;
 
 import org.rmatil.sync.commons.path.Naming;
-import org.rmatil.sync.persistence.api.IPathElement;
-import org.rmatil.sync.persistence.api.IStorageAdapter;
 import org.rmatil.sync.persistence.api.StorageType;
-import org.rmatil.sync.persistence.core.local.LocalPathElement;
+import org.rmatil.sync.persistence.core.tree.ITreeStorageAdapter;
+import org.rmatil.sync.persistence.core.tree.TreePathElement;
 import org.rmatil.sync.persistence.exceptions.InputOutputException;
 import org.rmatil.sync.version.api.AccessType;
 import org.rmatil.sync.version.api.IObjectStore;
@@ -34,7 +33,7 @@ public class ShareNaming {
      *
      * @throws InputOutputException If reading the storage adapter / object store failed
      */
-    public static String getRelativePathToSharedFolderBySharer(IStorageAdapter storageAdapter, IObjectStore objectStore, String relativeFilePath, String sharerUsername, AccessType accessType)
+    public static String getRelativePathToSharedFolderBySharer(ITreeStorageAdapter storageAdapter, IObjectStore objectStore, String relativeFilePath, String sharerUsername, AccessType accessType)
             throws InputOutputException {
         // look up if there is any direct parent directory which is also shared with the given path.
         // if so, then we "add" the given file to that directory, resolving the path relatively to that one
@@ -45,7 +44,7 @@ public class ShareNaming {
         int pathCtr = path.getNameCount() - 1;
         while (path.getNameCount() > 1) {
             Path subPath = path.subpath(0, path.getNameCount() - 1); // endIndex is exclusive
-            IPathElement subPathElement = new LocalPathElement(subPath.toString());
+            TreePathElement subPathElement = new TreePathElement(subPath.toString());
 
             if (storageAdapter.exists(StorageType.DIRECTORY, subPathElement) ||
                     storageAdapter.exists(StorageType.FILE, subPathElement)) {
@@ -103,7 +102,7 @@ public class ShareNaming {
      *
      * @throws InputOutputException If reading the storage adapter / object store failed
      */
-    public static String getRelativePathToSharedFolderByOwner(IStorageAdapter storageAdapter, IObjectStore objectStore, String relativeFilePath, String ownerUsername)
+    public static String getRelativePathToSharedFolderByOwner(ITreeStorageAdapter storageAdapter, IObjectStore objectStore, String relativeFilePath, String ownerUsername)
             throws InputOutputException {
         // look up if there is any direct parent directory which is also shared with the given path.
         // if so, then we "add" the given file to that directory, resolving the path relatively to that one
@@ -114,7 +113,7 @@ public class ShareNaming {
         int pathCtr = path.getNameCount() - 1;
         while (path.getNameCount() > 1) {
             Path subPath = path.subpath(0, path.getNameCount() - 1); // endIndex is exclusive
-            IPathElement subPathElement = new LocalPathElement(subPath.toString());
+            TreePathElement subPathElement = new TreePathElement(subPath.toString());
 
             boolean ownerIsPresent = false;
             if (storageAdapter.exists(StorageType.DIRECTORY, subPathElement) ||
@@ -157,7 +156,7 @@ public class ShareNaming {
      *
      * @throws InputOutputException If checking whether the path exists or not fails
      */
-    public static String getUniqueFileName(IStorageAdapter storageAdapter, String relativePath, boolean isFile)
+    public static String getUniqueFileName(ITreeStorageAdapter storageAdapter, String relativePath, boolean isFile)
             throws InputOutputException {
         String oldFileName = Paths.get(relativePath).getFileName().toString();
         String newFileName = oldFileName;
@@ -167,7 +166,7 @@ public class ShareNaming {
         String pathToFileWithoutFileName = Naming.getPathWithoutFileName(oldFileName, relativePath);
 
         int ctr = 1;
-        while (storageAdapter.exists(storageType, new LocalPathElement(pathToFileWithoutFileName + "/" + newFileName))) {
+        while (storageAdapter.exists(storageType, new TreePathElement(pathToFileWithoutFileName + "/" + newFileName))) {
             int firstIndexOfDot = oldFileName.indexOf(".");
 
             if (- 1 != firstIndexOfDot) {

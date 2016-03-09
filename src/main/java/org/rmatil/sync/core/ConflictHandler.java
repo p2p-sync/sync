@@ -8,10 +8,9 @@ import org.rmatil.sync.core.eventbus.IgnoreBusEvent;
 import org.rmatil.sync.event.aggregator.core.events.CreateEvent;
 import org.rmatil.sync.event.aggregator.core.events.MoveEvent;
 import org.rmatil.sync.persistence.api.IFileMetaInfo;
-import org.rmatil.sync.persistence.api.IPathElement;
-import org.rmatil.sync.persistence.api.IStorageAdapter;
 import org.rmatil.sync.persistence.api.StorageType;
-import org.rmatil.sync.persistence.core.local.LocalPathElement;
+import org.rmatil.sync.persistence.core.tree.ITreeStorageAdapter;
+import org.rmatil.sync.persistence.core.tree.TreePathElement;
 import org.rmatil.sync.persistence.exceptions.InputOutputException;
 import org.rmatil.sync.version.api.IObjectStore;
 import org.rmatil.sync.version.core.model.PathObject;
@@ -41,7 +40,7 @@ public class ConflictHandler {
      * @param storageAdapter      The storage adapter to access the path element
      * @param pathElement         The path element for which to create a conflict file
      */
-    public static Path createConflictFile(MBassador<IBusEvent> globalEventBus, String conflictFilePostfix, IObjectStore objectStore, IStorageAdapter storageAdapter, IPathElement pathElement) {
+    public static Path createConflictFile(MBassador<IBusEvent> globalEventBus, String conflictFilePostfix, IObjectStore objectStore, ITreeStorageAdapter storageAdapter, TreePathElement pathElement) {
         logger.info("Creating conflict file for file " + pathElement.getPath());
         PathObject pathObject;
         try {
@@ -84,7 +83,7 @@ public class ConflictHandler {
         }
 
         try {
-            storageAdapter.move(StorageType.FILE, pathElement, new LocalPathElement(conflictFilePath.toString()));
+            storageAdapter.move(StorageType.FILE, pathElement, new TreePathElement(conflictFilePath.toString()));
         } catch (InputOutputException e) {
             logger.error("Can not move conflict file " + pathElement.getPath() + " to " + conflictFilePath.toString() + ". Message: " + e.getMessage());
         }

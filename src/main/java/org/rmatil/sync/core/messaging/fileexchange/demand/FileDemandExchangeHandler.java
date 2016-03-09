@@ -14,10 +14,9 @@ import org.rmatil.sync.network.api.IResponse;
 import org.rmatil.sync.network.core.ANetworkHandler;
 import org.rmatil.sync.network.core.model.ClientDevice;
 import org.rmatil.sync.network.core.model.NodeLocation;
-import org.rmatil.sync.persistence.api.IPathElement;
-import org.rmatil.sync.persistence.api.IStorageAdapter;
 import org.rmatil.sync.persistence.api.StorageType;
-import org.rmatil.sync.persistence.core.local.LocalPathElement;
+import org.rmatil.sync.persistence.core.tree.ITreeStorageAdapter;
+import org.rmatil.sync.persistence.core.tree.TreePathElement;
 import org.rmatil.sync.persistence.exceptions.InputOutputException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,7 +43,7 @@ public class FileDemandExchangeHandler extends ANetworkHandler<FileDemandExchang
     /**
      * The storage adapter for the synchronized folder
      */
-    protected IStorageAdapter storageAdapter;
+    protected ITreeStorageAdapter storageAdapter;
 
     /**
      * The client manager to fetch client locations
@@ -94,7 +93,7 @@ public class FileDemandExchangeHandler extends ANetworkHandler<FileDemandExchang
      * @param pathToFetch    The path to the file which is requested
      * @param exchangeId     The id of the exchange
      */
-    public FileDemandExchangeHandler(IStorageAdapter storageAdapter, INode client, INodeManager nodeManager, MBassador<IBusEvent> globalEventBus, NodeLocation fetchAddress, String pathToFetch, UUID exchangeId) {
+    public FileDemandExchangeHandler(ITreeStorageAdapter storageAdapter, INode client, INodeManager nodeManager, MBassador<IBusEvent> globalEventBus, NodeLocation fetchAddress, String pathToFetch, UUID exchangeId) {
         super(client);
         this.nodeManager = nodeManager;
         this.storageAdapter = storageAdapter;
@@ -149,7 +148,7 @@ public class FileDemandExchangeHandler extends ANetworkHandler<FileDemandExchang
 
         logger.info("Writing chunk " + fileDemandResponse.getChunkCounter() + " for file " + fileDemandResponse.getRelativeFilePath() + " for exchangeId " + fileDemandResponse.getExchangeId());
 
-        IPathElement localPathElement = new LocalPathElement(fileDemandResponse.getRelativeFilePath());
+        TreePathElement localPathElement = new TreePathElement(fileDemandResponse.getRelativeFilePath());
 
         if (StatusCode.DENIED.equals(fileDemandResponse.getStatusCode()) || StatusCode.FILE_MISSING.equals(fileDemandResponse.getStatusCode())) {
             // the other client does not have the file anymore or we do not have the correct access rights to fetch it...
@@ -272,7 +271,7 @@ public class FileDemandExchangeHandler extends ANetworkHandler<FileDemandExchang
         return new FileDemandExchangeHandlerResult();
     }
 
-    protected void publishIgnoreEvents(FileDemandResponse fileDemandResponse, IPathElement localPathElement) {
+    protected void publishIgnoreEvents(FileDemandResponse fileDemandResponse, TreePathElement localPathElement) {
         // if the chunk counter is greater than 0
         // we only modify the existing file, so we generate an ignore modify event
         if (fileDemandResponse.getChunkCounter() > 0) {

@@ -15,8 +15,8 @@ import org.rmatil.sync.core.syncer.sharing.event.UnshareEvent;
 import org.rmatil.sync.network.api.INode;
 import org.rmatil.sync.network.api.INodeManager;
 import org.rmatil.sync.network.core.model.NodeLocation;
-import org.rmatil.sync.persistence.api.IStorageAdapter;
-import org.rmatil.sync.persistence.core.local.LocalPathElement;
+import org.rmatil.sync.persistence.core.tree.ITreeStorageAdapter;
+import org.rmatil.sync.persistence.core.tree.TreePathElement;
 import org.rmatil.sync.persistence.exceptions.InputOutputException;
 import org.rmatil.sync.version.api.IObjectStore;
 import org.slf4j.Logger;
@@ -29,13 +29,13 @@ public class SharingSyncer implements ISharingSyncer {
 
     private static final Logger logger = LoggerFactory.getLogger(SharingSyncer.class);
 
-    protected INode           node;
-    protected INodeManager    nodeManager;
-    protected IStorageAdapter storageAdapter;
-    protected IObjectStore    objectStore;
+    protected INode               node;
+    protected INodeManager        nodeManager;
+    protected ITreeStorageAdapter storageAdapter;
+    protected IObjectStore        objectStore;
 
 
-    public SharingSyncer(INode node, INodeManager nodeManager, IStorageAdapter storageAdapter, IObjectStore objectStore) {
+    public SharingSyncer(INode node, INodeManager nodeManager, ITreeStorageAdapter storageAdapter, IObjectStore objectStore) {
         this.node = node;
         this.nodeManager = nodeManager;
         this.storageAdapter = storageAdapter;
@@ -84,7 +84,7 @@ public class SharingSyncer implements ISharingSyncer {
 
         boolean isFile = true;
         try {
-            isFile = this.storageAdapter.isFile(new LocalPathElement(sharingEvent.getRelativePath().toString()));
+            isFile = this.storageAdapter.isFile(new TreePathElement(sharingEvent.getRelativePath().toString()));
         } catch (InputOutputException e) {
             String msg = "Can not determine whether the path " + sharingEvent.getRelativePath().toString() + " is a file or directory. Aborting share";
             logger.error(msg);

@@ -11,8 +11,8 @@ import org.rmatil.sync.network.api.IResponse;
 import org.rmatil.sync.network.core.ANetworkHandler;
 import org.rmatil.sync.network.core.model.ClientDevice;
 import org.rmatil.sync.network.core.model.NodeLocation;
-import org.rmatil.sync.persistence.api.IStorageAdapter;
-import org.rmatil.sync.persistence.core.local.LocalPathElement;
+import org.rmatil.sync.persistence.core.tree.ITreeStorageAdapter;
+import org.rmatil.sync.persistence.core.tree.TreePathElement;
 import org.rmatil.sync.persistence.exceptions.InputOutputException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,7 +31,7 @@ public class FileMoveExchangeHandler extends ANetworkHandler<FileMoveExchangeHan
 
     protected ClientDevice clientDevice;
 
-    protected IStorageAdapter storageAdapter;
+    protected ITreeStorageAdapter storageAdapter;
 
     protected INodeManager nodeManager;
 
@@ -47,7 +47,7 @@ public class FileMoveExchangeHandler extends ANetworkHandler<FileMoveExchangeHan
 
     protected int clientCounter;
 
-    public FileMoveExchangeHandler(UUID exchangeId, ClientDevice clientDevice, IStorageAdapter storageAdapter, INodeManager nodeManager, INode client, MBassador<IBusEvent> globalEventBus, List<NodeLocation> receivers, MoveEvent moveEvent) {
+    public FileMoveExchangeHandler(UUID exchangeId, ClientDevice clientDevice, ITreeStorageAdapter storageAdapter, INodeManager nodeManager, INode client, MBassador<IBusEvent> globalEventBus, List<NodeLocation> receivers, MoveEvent moveEvent) {
         super(client);
         this.exchangeId = exchangeId;
         this.clientDevice = clientDevice;
@@ -62,7 +62,7 @@ public class FileMoveExchangeHandler extends ANetworkHandler<FileMoveExchangeHan
     @Override
     public void run() {
         try {
-            boolean isFile = this.storageAdapter.isFile(new LocalPathElement(this.moveEvent.getNewPath().toString()));
+            boolean isFile = this.storageAdapter.isFile(new TreePathElement(this.moveEvent.getNewPath().toString()));
 
             // check whether the own client is also in the list (should be usually, but you never know...)
             this.clientCounter = this.receivers.size();

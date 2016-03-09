@@ -14,7 +14,7 @@ import org.rmatil.sync.network.api.IResponse;
 import org.rmatil.sync.network.core.ANetworkHandler;
 import org.rmatil.sync.network.core.model.ClientDevice;
 import org.rmatil.sync.network.core.model.NodeLocation;
-import org.rmatil.sync.persistence.api.IStorageAdapter;
+import org.rmatil.sync.persistence.core.tree.ITreeStorageAdapter;
 import org.rmatil.sync.persistence.exceptions.InputOutputException;
 import org.rmatil.sync.version.api.AccessType;
 import org.rmatil.sync.version.api.IObjectStore;
@@ -28,6 +28,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -78,7 +79,7 @@ public class FileOfferExchangeHandler extends ANetworkHandler<FileOfferExchangeH
     /**
      * The storage adapter for the synchronized folder
      */
-    protected IStorageAdapter storageAdapter;
+    protected ITreeStorageAdapter storageAdapter;
 
     /**
      * The global bus event used for adding events
@@ -95,7 +96,7 @@ public class FileOfferExchangeHandler extends ANetworkHandler<FileOfferExchangeH
      * @param globalEventBus   The global event bus to add events to
      * @param eventToPropagate The actual event to check for conflicts
      */
-    public FileOfferExchangeHandler(UUID exchangeId, ClientDevice clientDevice, INodeManager nodeManager, INode client, IObjectStore objectStore, IStorageAdapter storageAdapter, MBassador<IBusEvent> globalEventBus, IEvent eventToPropagate) {
+    public FileOfferExchangeHandler(UUID exchangeId, ClientDevice clientDevice, INodeManager nodeManager, INode client, IObjectStore objectStore, ITreeStorageAdapter storageAdapter, MBassador<IBusEvent> globalEventBus, IEvent eventToPropagate) {
         super(client);
         this.clientDevice = clientDevice;
         this.exchangeId = exchangeId;
@@ -129,11 +130,11 @@ public class FileOfferExchangeHandler extends ANetworkHandler<FileOfferExchangeH
             // done on this client, therefore we traverse the dir on the new path
             if (isDir && this.eventToPropagate instanceof MoveEvent) {
                 // we only offer the move event from the "root" directory
-                Path dirToMove = this.storageAdapter.getRootDir().resolve(((MoveEvent) this.eventToPropagate).getNewPath());
+                Path dirToMove = Paths.get(this.storageAdapter.getRootDir().getPath()).resolve(((MoveEvent) this.eventToPropagate).getNewPath());
                 try (Stream<Path> paths = Files.walk(dirToMove)) {
                     paths.forEach((entry) -> {
                         // do not use toAbsolutePath() since we could have also paths starting with "./myDir"
-                        Path relPath = this.storageAdapter.getRootDir().relativize(entry);
+                        Path relPath = Paths.get(this.storageAdapter.getRootDir().getPath()).relativize(entry);
                         Path oldPath = this.eventToPropagate.getPath().resolve(((MoveEvent) this.eventToPropagate).getNewPath().relativize(relPath));
 
                         // move also file id
