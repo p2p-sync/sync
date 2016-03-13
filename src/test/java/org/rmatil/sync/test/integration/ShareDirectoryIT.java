@@ -23,6 +23,22 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.Matchers.empty;
 import static org.junit.Assert.*;
 
+/**
+ * This test ensures correct sharing and unsharing
+ * of a directory containing two files.
+ * <p>
+ * Setup:
+ * <p>
+ * User1: Client1 and Client2
+ * User2: Client3 and Client4
+ * <p>
+ * Procedure:
+ * On Client1, the test directory is shared recursively.
+ * It is expected, that Client2 adds the sharer to its Object Store.
+ * <p>
+ * Client3 should then receive the new file and finally propagating
+ * this to the other client (i.e. Client 4)
+ */
 public class ShareDirectoryIT extends BaseIT {
 
     /**
