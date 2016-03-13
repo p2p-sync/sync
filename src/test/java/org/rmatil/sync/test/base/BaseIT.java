@@ -100,7 +100,6 @@ public class BaseIT extends BaseNetworkHandlerTest {
                 GLOBAL_EVENT_BUS_3,
                 new RemoteClientLocation(
                         CLIENT_1.getPeerAddress().inetAddress().getHostName(),
-                        CLIENT_1.getPeerAddress().isIPv6(),
                         CLIENT_1.getPeerAddress().tcpPort()
                 )
         );
@@ -121,7 +120,6 @@ public class BaseIT extends BaseNetworkHandlerTest {
                 GLOBAL_EVENT_BUS_4,
                 new RemoteClientLocation(
                         CLIENT_1.getPeerAddress().inetAddress().getHostName(),
-                        CLIENT_1.getPeerAddress().isIPv6(),
                         CLIENT_1.getPeerAddress().tcpPort()
                 )
         );

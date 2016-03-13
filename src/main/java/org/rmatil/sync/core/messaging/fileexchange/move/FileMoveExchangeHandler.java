@@ -73,7 +73,6 @@ public class FileMoveExchangeHandler extends ANetworkHandler<FileMoveExchangeHan
                 }
             }
 
-            // TODO: move path for file ID too if it exists...
             // move element in the IdentifierManager too
             UUID fileId = this.node.getIdentifierManager().getValue(this.moveEvent.getPath().toString());
             try {

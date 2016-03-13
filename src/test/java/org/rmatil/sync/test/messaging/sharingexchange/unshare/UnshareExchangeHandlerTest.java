@@ -52,7 +52,6 @@ public class UnshareExchangeHandlerTest extends BaseNetworkHandlerTest {
                 GLOBAL_EVENT_BUS_2,
                 new RemoteClientLocation(
                         CLIENT_1.getPeerAddress().inetAddress().getHostName(),
-                        CLIENT_1.getPeerAddress().isIPv6(),
                         CLIENT_1.getPeerAddress().tcpPort()
                 )
         );
