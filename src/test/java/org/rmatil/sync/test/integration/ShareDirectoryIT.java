@@ -1,4 +1,4 @@
-package org.rmatil.sync.test.syncer.file;
+package org.rmatil.sync.test.integration;
 
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -23,7 +23,7 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.Matchers.empty;
 import static org.junit.Assert.*;
 
-public class FileSyncerIT extends BaseIT {
+public class ShareDirectoryIT extends BaseIT {
 
     /**
      * The chunk size is 1MB. Therefore, to force sending multiple
