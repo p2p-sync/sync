@@ -3,7 +3,6 @@ package org.rmatil.sync.core.init;
 import org.rmatil.sync.core.config.Config;
 import org.rmatil.sync.core.model.ApplicationConfig;
 import org.rmatil.sync.core.model.RemoteClientLocation;
-import org.rmatil.sync.persistence.core.tree.TreePathElement;
 
 import java.nio.file.FileSystem;
 import java.nio.file.Files;
