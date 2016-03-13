@@ -1,17 +1,21 @@
 package org.rmatil.sync.core.config;
 
 public enum Config {
-    DEFAULT(".sync", "~/.syncconfig", "config", "rsa_id.pub", "rsa_id", "index.json", "object", "sharedWithOthers (read-only)", "sharedWithOthers (read-write)");
+    DEFAULT(".sync", "config", 0L, 20000L, 20000L, 5000L, 4003, "index.json", "object", "sharedWithOthers (read-only)", "sharedWithOthers (read-write)");
 
     private String osFolderName;
 
-    private String configFolderPath;
-
     private String configFileName;
 
-    private String publicKeyFileName;
+    private long cacheTtl;
 
-    private String privateKeyFileName;
+    private long peerDiscoveryTimeout;
+
+    private long peerBootstrapTimeout;
+
+    private long shutdownAnnounceTimeout;
+
+    private int defaultPort;
 
     private String osIndexName;
 
@@ -21,12 +25,14 @@ public enum Config {
 
     private String sharedWithOthersReadWriteFolderName;
 
-    Config(String osFolderName, String configFolderPath, String configFileName, String publicKeyFileName, String privateKeyFileName, String osIndexName, String osObjectFolderName, String sharedWithOthersReadOnlyFolderName, String sharedWithOthersReadWriteFolderName) {
+    Config(String osFolderName, String configFileName, long cacheTtl, long peerDiscoveryTimeout, long peerBootstrapTimeout, long shutdownAnnounceTimeout, int defaultPort, String osIndexName, String osObjectFolderName, String sharedWithOthersReadOnlyFolderName, String sharedWithOthersReadWriteFolderName) {
         this.osFolderName = osFolderName;
-        this.configFolderPath = configFolderPath;
         this.configFileName = configFileName;
-        this.publicKeyFileName = publicKeyFileName;
-        this.privateKeyFileName = privateKeyFileName;
+        this.cacheTtl = cacheTtl;
+        this.peerDiscoveryTimeout = peerDiscoveryTimeout;
+        this.peerBootstrapTimeout = peerBootstrapTimeout;
+        this.shutdownAnnounceTimeout = shutdownAnnounceTimeout;
+        this.defaultPort = defaultPort;
         this.osIndexName = osIndexName;
         this.osObjectFolderName = osObjectFolderName;
         this.sharedWithOthersReadOnlyFolderName = sharedWithOthersReadOnlyFolderName;
@@ -41,16 +47,24 @@ public enum Config {
         return configFileName;
     }
 
-    public String getConfigFolderPath() {
-        return configFolderPath;
+    public long getCacheTtl() {
+        return cacheTtl;
     }
 
-    public String getPublicKeyFileName() {
-        return publicKeyFileName;
+    public long getPeerDiscoveryTimeout() {
+        return peerDiscoveryTimeout;
     }
 
-    public String getPrivateKeyFileName() {
-        return privateKeyFileName;
+    public long getPeerBootstrapTimeout() {
+        return peerBootstrapTimeout;
+    }
+
+    public long getShutdownAnnounceTimeout() {
+        return shutdownAnnounceTimeout;
+    }
+
+    public int getDefaultPort() {
+        return defaultPort;
     }
 
     public String getOsIndexName() {

@@ -32,7 +32,6 @@ import org.rmatil.sync.core.messaging.sharingexchange.unshare.UnshareRequestHand
 import org.rmatil.sync.core.messaging.sharingexchange.unshared.UnsharedRequest;
 import org.rmatil.sync.core.messaging.sharingexchange.unshared.UnsharedRequestHandler;
 import org.rmatil.sync.core.model.ApplicationConfig;
-import org.rmatil.sync.core.model.RemoteClientLocation;
 import org.rmatil.sync.core.security.AccessManager;
 import org.rmatil.sync.core.syncer.background.IBackgroundSyncer;
 import org.rmatil.sync.core.syncer.background.NonBlockingBackgroundSyncer;
@@ -54,14 +53,10 @@ import org.rmatil.sync.persistence.core.tree.ITreeStorageAdapter;
 import org.rmatil.sync.persistence.core.tree.local.LocalStorageAdapter;
 import org.rmatil.sync.version.api.IObjectStore;
 
-import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.StandardOpenOption;
-import java.security.KeyPair;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -118,205 +113,6 @@ public class Sync {
     protected SyncFileChangeListener syncFileChangeListener;
 
     /**
-     * Creates a new Sync application.
-     *
-     * @param rootPath The path to the synced folder
-     */
-    public Sync(Path rootPath) {
-        if (null == rootPath) {
-            throw new IllegalArgumentException("Root path must not be null");
-        }
-
-        this.rootPath = rootPath;
-    }
-
-    /**
-     * Creates the config file for the application
-     * in the user's home directory
-     *
-     * @return Returns the path to the configuration directory
-     *
-     * @throws IOException If writing the file failed
-     */
-    public static Path createDefaultApplicationConfig()
-            throws IOException {
-        // replace any user home with the actual path to the folder
-        String resolvedFolderPath = Config.DEFAULT.getConfigFolderPath().replaceFirst("^~", System.getProperty("user.home"));
-        Path defaultFolderPath = Paths.get(resolvedFolderPath).toAbsolutePath();
-
-        if (! defaultFolderPath.toFile().exists()) {
-            Files.createDirectories(defaultFolderPath);
-        }
-
-        return Sync.createDefaultApplicationConfig(defaultFolderPath);
-    }
-
-    /**
-     * Writes the default application config at the given path
-     *
-     * @param appConfigFolderPath The path to the application config directory
-     *
-     * @return The path on which the config was written
-     *
-     * @throws IOException If writing fails
-     */
-    public static Path createDefaultApplicationConfig(Path appConfigFolderPath)
-            throws IOException {
-
-        if (! appConfigFolderPath.toFile().exists()) {
-            throw new FileNotFoundException(appConfigFolderPath.toString() + " (No such file or directory)");
-        }
-
-        Path configFilePath = appConfigFolderPath.resolve(Config.DEFAULT.getConfigFileName());
-        if (! configFilePath.toFile().exists()) {
-            Files.createFile(configFilePath);
-        }
-
-        List<String> ignorePatterns = new ArrayList<>();
-        ignorePatterns.add("**.DS_Store");
-        ignorePatterns.add("**.ds_store");
-        ignorePatterns.add("**.swp");
-        ignorePatterns.add("**.swx");
-        ignorePatterns.add("**.fseventd");
-        ignorePatterns.add("**.apidisk");
-        ignorePatterns.add("**.apdisk");
-        ignorePatterns.add("**.htaccess");
-        ignorePatterns.add("**.directory");
-        ignorePatterns.add("**.part");
-        ignorePatterns.add("**.filepart");
-        ignorePatterns.add("**.crdownload");
-        ignorePatterns.add("**.kate-swp");
-        ignorePatterns.add("**.gnucash.tmp-*");
-        ignorePatterns.add("**.synkron.*");
-        ignorePatterns.add("**.sync.ffs_db");
-        ignorePatterns.add("**.symform");
-        ignorePatterns.add("**.symform-store");
-        ignorePatterns.add("**.fuse_hidden*");
-        ignorePatterns.add("**.unison");
-        ignorePatterns.add("**.nfs*");
-        ignorePatterns.add("**.Win7.vdi");
-        ignorePatterns.add("**~");
-        ignorePatterns.add("**~$*");
-        ignorePatterns.add("**.~lock.*");
-        ignorePatterns.add("**~*.tmp");
-        ignorePatterns.add("**~.~*");
-        ignorePatterns.add("**Icon\r*");
-        ignorePatterns.add("**._*");
-        ignorePatterns.add("**Thumbs.db");
-        ignorePatterns.add("**desktop.ini");
-        ignorePatterns.add("**.*.sw?");
-        ignorePatterns.add("**.*.*sw?");
-        ignorePatterns.add("**.TemporaryItems");
-        ignorePatterns.add("**.Trashes");
-        ignorePatterns.add("**.DocumentRevisions-V100");
-
-        // write the application config
-        ApplicationConfig appConfig = new ApplicationConfig(
-                null,
-                null,
-                null,
-                0L,
-                20000L,
-                20000L,
-                5000L,
-                4003,
-                appConfigFolderPath.resolve(Config.DEFAULT.getPublicKeyFileName()).toString(),
-                appConfigFolderPath.resolve(Config.DEFAULT.getPrivateKeyFileName()).toString(),
-                null,
-                ignorePatterns
-        );
-
-        // actually write the config file
-        Files.write(configFilePath, appConfig.toJson().getBytes(), StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE);
-
-
-        return appConfigFolderPath;
-    }
-
-    /**
-     * Returns the saved application config from the
-     * user's home directory
-     *
-     * @return The application config
-     *
-     * @throws IOException              If the application config does not exist
-     * @throws IllegalArgumentException If the application config file does not exist yet
-     */
-    public static ApplicationConfig getApplicationConfig()
-            throws IllegalArgumentException, IOException {
-        String resolvedFolderPath = Config.DEFAULT.getConfigFolderPath().replaceFirst("^~", System.getProperty("user.home"));
-        Path defaultFolderPath = Paths.get(resolvedFolderPath).toAbsolutePath();
-
-        return Sync.getApplicationConfig(defaultFolderPath);
-    }
-
-    /**
-     * Returns the saved application config from the given path.
-     *
-     * @param appConfigFolderPath The path to the application config directory
-     *
-     * @return The saved application config
-     *
-     * @throws IOException              If the application config does not exist
-     * @throws IllegalArgumentException If the application config file does not exist yet
-     */
-    public static ApplicationConfig getApplicationConfig(Path appConfigFolderPath) {
-        Path configFilePath = appConfigFolderPath.resolve(Config.DEFAULT.getConfigFileName());
-
-        if (! appConfigFolderPath.toFile().exists() || ! configFilePath.toFile().exists()) {
-            throw new IllegalArgumentException("Application config does not exist yet. Create it first");
-        }
-
-        try {
-            byte[] appConfigBytes = Files.readAllBytes(configFilePath);
-            return ApplicationConfig.fromJson(new String(appConfigBytes, StandardCharsets.UTF_8));
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to read the application config. Try to rebuild it first. Error: " + e.getMessage());
-        }
-    }
-
-    /**
-     * Writes the given application config to the sync app
-     * on the given path
-     *
-     * @param appConfig The app config to write
-     *
-     * @throws IOException If writing the application config failed
-     */
-    public static void writeApplicationConfig(ApplicationConfig appConfig)
-            throws IOException {
-
-        String resolvedFolderPath = Config.DEFAULT.getConfigFolderPath().replaceFirst("^~", System.getProperty("user.home"));
-        Path defaultFolderPath = Paths.get(resolvedFolderPath).toAbsolutePath();
-
-        Sync.writeApplicationConfig(appConfig, defaultFolderPath);
-    }
-
-    /**
-     * Writes the given application config to the specified path.
-     * Creates the path, if it does not exist yet
-     *
-     * @param appConfig           The application config to write
-     * @param appConfigFolderPath The path to the config directory
-     *
-     * @throws IOException If writing the application config fails
-     */
-    public static void writeApplicationConfig(ApplicationConfig appConfig, Path appConfigFolderPath)
-            throws IOException {
-        if (! appConfigFolderPath.toFile().exists()) {
-            Files.createDirectories(appConfigFolderPath);
-        }
-
-        Path configFilePath = appConfigFolderPath.resolve(Config.DEFAULT.getConfigFileName());
-        if (! configFilePath.toFile().exists()) {
-            Files.createFile(configFilePath);
-        }
-
-        String json = appConfig.toJson();
-        Files.write(configFilePath, json.getBytes(StandardCharsets.UTF_8), StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE);
-    }
-
-    /**
      * Initializes the app in means of creating
      * all required app folders and files, e.g. the default application
      * configuration file, the object store directory and more.
@@ -353,53 +149,37 @@ public class Sync {
     }
 
     /**
-     * Start the client as bootstrap peer
+     * Creates a new Sync application.
      *
-     * @param keyPair                 The RSA keypair which is used to sign & encrypt messages
-     * @param userName                The username of the user
-     * @param password                The password of the user
-     * @param salt                    The salt of the user
-     * @param cacheTtl                The time to live for values in the DHT cache
-     * @param peerDiscoveryTimeout    The max timeout for peer discovery (in milliseconds)
-     * @param peerBootstrapTimeout    The max timeout for bootstrapping to another peer (in milliseconds)
-     * @param shutdownAnnounceTimeout The max timeout for announcing a friendly shutdown (in milliseconds)
-     * @param port                    The port on which the client should be started
-     *
-     * @return A client device representing the created and bootstrapped client
-     *
-     * @throws InitializationStartException If the client could not have been started
+     * @param rootPath The path to the synced folder
      */
-    public ClientDevice connect(KeyPair keyPair, String userName, String password, String salt, long cacheTtl, long peerDiscoveryTimeout, long peerBootstrapTimeout, long shutdownAnnounceTimeout, int port, List<String> ignorePatterns)
-            throws InitializationStartException {
-        return this.connect(keyPair, userName, password, salt, cacheTtl, peerDiscoveryTimeout, peerBootstrapTimeout, shutdownAnnounceTimeout, port, null, ignorePatterns);
+    public Sync(Path rootPath) {
+        if (null == rootPath) {
+            throw new IllegalArgumentException("Root path must not be null");
+        }
+
+        this.rootPath = rootPath;
     }
 
     /**
-     * Start the client either as a bootstrap peer or connect it to an already online one.
+     * Start the client either as a bootstrap peer or connect it to an already online one
+     * depending on the given application configuration.
+     * If the remote
      *
-     * @param keyPair                 The RSA keypair which is used to sign & encrypt messages
-     * @param userName                The username of the user
-     * @param password                The password of the user
-     * @param salt                    The salt of the user
-     * @param cacheTtl                The time to live for values in the DHT cache
-     * @param peerDiscoveryTimeout    The max timeout for peer discovery (in milliseconds)
-     * @param peerBootstrapTimeout    The max timeout for bootstrapping to another peer (in milliseconds)
-     * @param shutdownAnnounceTimeout The max timeout for announcing a friendly shutdown (in milliseconds)
-     * @param port                    The port on which the client should be started
-     * @param bootstrapLocation       The bootstrap location to which to connect. If null, then this peer will be created as bootstrap peer
+     * @param applicationConfig The application configuration
      *
      * @return A client device representing the created and connected client
      *
      * @throws InitializationStartException If the client could not have been started
      */
-    public ClientDevice connect(KeyPair keyPair, String userName, String password, String salt, long cacheTtl, long peerDiscoveryTimeout, long peerBootstrapTimeout, long shutdownAnnounceTimeout, int port, RemoteClientLocation bootstrapLocation, List<String> ignorePatterns)
+    public ClientDevice connect(ApplicationConfig applicationConfig)
             throws InitializationStartException {
         IUser user = new User(
-                userName,
-                password,
-                salt,
-                keyPair.getPublic(),
-                keyPair.getPrivate(),
+                applicationConfig.getUserName(),
+                applicationConfig.getPassword(),
+                applicationConfig.getSalt(),
+                applicationConfig.getPublicKey(),
+                applicationConfig.getPrivateKey(),
                 new ArrayList<>()
         );
 
@@ -451,16 +231,16 @@ public class Sync {
         ClientInitializer clientInitializer = new ClientInitializer(
                 new ConnectionConfiguration(
                         clientId.toString(),
-                        port,
-                        cacheTtl,
-                        peerDiscoveryTimeout,
-                        peerBootstrapTimeout,
-                        shutdownAnnounceTimeout,
+                        applicationConfig.getPort(),
+                        applicationConfig.getCacheTtl(),
+                        applicationConfig.getPeerDiscoveryTimeout(),
+                        applicationConfig.getPeerBootstrapTimeout(),
+                        applicationConfig.getShutdownAnnounceTimeout(),
                         false
                 ),
                 objectDataReplyHandler,
                 user,
-                bootstrapLocation
+                applicationConfig.getBootstrapLocation()
         );
         this.node = clientInitializer.init();
         clientInitializer.start();
@@ -500,7 +280,14 @@ public class Sync {
         // Init event aggregator
         List<Path> ignoredPaths = new ArrayList<>();
         ignoredPaths.add(this.rootPath.relativize(rootPath.resolve(Paths.get(Config.DEFAULT.getOsFolderName()))));
-        EventAggregatorInitializer eventAggregatorInitializer = new EventAggregatorInitializer(this.rootPath, objectStore, eventListeners, ignoredPaths, ignorePatterns, 5000L);
+        EventAggregatorInitializer eventAggregatorInitializer = new EventAggregatorInitializer(
+                this.rootPath,
+                objectStore,
+                eventListeners,
+                ignoredPaths,
+                applicationConfig.getIgnorePatterns(),
+                5000L
+        );
         this.eventAggregator = eventAggregatorInitializer.init();
         eventAggregatorInitializer.start();
 
@@ -514,7 +301,7 @@ public class Sync {
                 this.storageAdapter,
                 globalEventBus,
                 ignoredPaths,
-                ignorePatterns
+                applicationConfig.getIgnorePatterns()
         );
 
         this.sharingSyncer = new SharingSyncer(
@@ -529,7 +316,11 @@ public class Sync {
         this.backgroundSyncerExecutorService.scheduleAtFixedRate(backgroundSyncer, 0L, 300L, TimeUnit.SECONDS);
 
         // now set the peer address once we know it
-        return new ClientDevice(userName, clientId, node.getPeerAddress());
+        return new ClientDevice(
+                this.node.getUser().getUserName(),
+                this.node.getClientDeviceId(),
+                this.node.getPeerAddress()
+        );
     }
 
     /**

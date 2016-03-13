@@ -2,7 +2,11 @@ package org.rmatil.sync.core.model;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import org.rmatil.sync.core.serializer.RsaPrivateKeySerializer;
+import org.rmatil.sync.core.serializer.RsaPublicKeySerializer;
 
+import java.security.interfaces.RSAPrivateKey;
+import java.security.interfaces.RSAPublicKey;
 import java.util.List;
 
 /**
@@ -11,7 +15,12 @@ import java.util.List;
  */
 public class ApplicationConfig {
 
-    protected static Gson gson = new GsonBuilder().setPrettyPrinting().serializeNulls().create();
+    protected static Gson gson = new GsonBuilder()
+            .registerTypeAdapter(RSAPublicKey.class, new RsaPublicKeySerializer())
+            .registerTypeAdapter(RSAPrivateKey.class, new RsaPrivateKeySerializer())
+            .setPrettyPrinting()
+            .serializeNulls()
+            .create();
 
     /**
      * The name of the user
@@ -55,17 +64,17 @@ public class ApplicationConfig {
      * The default port on which the client should
      * be started
      */
-    protected int defaultPort;
+    protected int port;
 
     /**
-     * The path to the public key of the user
+     * The public key of the user.
      */
-    protected String publicKeyPath;
+    protected RSAPublicKey publicKeyObject;
 
     /**
-     * The path to the private key of the user
+     * The private key of the user.
      */
-    protected String privateKeyPath;
+    protected RSAPrivateKey privateKeyObject;
 
     /**
      * The default bootstrap locations
@@ -86,13 +95,21 @@ public class ApplicationConfig {
      * @param peerDiscoveryTimeout     The timeout in milliseconds used until peer discovery should be successful
      * @param peerBootstrapTimeout     The amount of milliseconds until which the bootstrap process should be successful
      * @param shutdownAnnounceTimeout  How many milliseconds should be waited before the client is unfriendly shutdown
-     * @param defaultPort              The default port on which the client should be started
-     * @param publicKeyPath            The path to the public key of the user
-     * @param privateKeyPath           The path to the private key of the user
+     * @param port              The default port on which the client should be started
+     * @param publicKey                The RSA public key to use
+     * @param privateKey               The RSA private key to use
      * @param defaultBootstrapLocation The default bootstrap location to which the client should be connected on startup. May be null
      * @param ignorePatterns           A list of file glob patterns which are ignored during sync
+     *
+     * @throws IllegalArgumentException If the RSA Public or Private Key is omitted
      */
-    public ApplicationConfig(String userName, String password, String salt, long cacheTtl, long peerDiscoveryTimeout, long peerBootstrapTimeout, long shutdownAnnounceTimeout, int defaultPort, String publicKeyPath, String privateKeyPath, RemoteClientLocation defaultBootstrapLocation, List<String> ignorePatterns) {
+    public ApplicationConfig(String userName, String password, String salt, long cacheTtl, long peerDiscoveryTimeout, long peerBootstrapTimeout, long shutdownAnnounceTimeout, int port, RSAPublicKey publicKey, RSAPrivateKey privateKey, RemoteClientLocation defaultBootstrapLocation, List<String> ignorePatterns)
+            throws IllegalArgumentException {
+
+        if (null == publicKey || null == privateKey) {
+            throw new IllegalArgumentException("RSA Public and Private Keys must be set");
+        }
+
         this.userName = userName;
         this.password = password;
         this.salt = salt;
@@ -100,9 +117,9 @@ public class ApplicationConfig {
         this.peerDiscoveryTimeout = peerDiscoveryTimeout;
         this.peerBootstrapTimeout = peerBootstrapTimeout;
         this.shutdownAnnounceTimeout = shutdownAnnounceTimeout;
-        this.defaultPort = defaultPort;
-        this.publicKeyPath = publicKeyPath;
-        this.privateKeyPath = privateKeyPath;
+        this.port = port;
+        this.publicKeyObject = publicKey;
+        this.privateKeyObject = privateKey;
         this.defaultBootstrapLocation = defaultBootstrapLocation;
         this.ignorePatterns = ignorePatterns;
     }
@@ -238,17 +255,17 @@ public class ApplicationConfig {
      *
      * @return The default port
      */
-    public int getDefaultPort() {
-        return defaultPort;
+    public int getPort() {
+        return port;
     }
 
     /**
      * Set the default port
      *
-     * @param defaultPort The default port
+     * @param port The default port
      */
-    public void setDefaultPort(int defaultPort) {
-        this.defaultPort = defaultPort;
+    public void setPort(int port) {
+        this.port = port;
     }
 
     /**
@@ -256,17 +273,17 @@ public class ApplicationConfig {
      *
      * @return The path to the public key
      */
-    public String getPublicKeyPath() {
-        return publicKeyPath;
+    public RSAPublicKey getPublicKey() {
+        return publicKeyObject;
     }
 
     /**
      * Set the public key path of the user
      *
-     * @param publicKeyPath The path to the public key of the user
+     * @param publicKey The path to the public key of the user
      */
-    public void setPublicKeyPath(String publicKeyPath) {
-        this.publicKeyPath = publicKeyPath;
+    public void setPublicKey(RSAPublicKey publicKey) {
+        this.publicKeyObject = publicKey;
     }
 
     /**
@@ -274,17 +291,17 @@ public class ApplicationConfig {
      *
      * @return The path to the private key of the user
      */
-    public String getPrivateKeyPath() {
-        return privateKeyPath;
+    public RSAPrivateKey getPrivateKey() {
+        return privateKeyObject;
     }
 
     /**
      * Set the private key path
      *
-     * @param privateKeyPath The path to the private key of the user
+     * @param privateKey The path to the private key of the user
      */
-    public void setPrivateKeyPath(String privateKeyPath) {
-        this.privateKeyPath = privateKeyPath;
+    public void setPrivateKey(RSAPrivateKey privateKey) {
+        this.privateKeyObject = privateKey;
     }
 
     /**
@@ -293,7 +310,7 @@ public class ApplicationConfig {
      *
      * @return The default bootstrap location
      */
-    public RemoteClientLocation getDefaultBootstrapLocation() {
+    public RemoteClientLocation getBootstrapLocation() {
         return defaultBootstrapLocation;
     }
 
@@ -303,7 +320,7 @@ public class ApplicationConfig {
      *
      * @param defaultBootstrapLocation The default bootstrap location
      */
-    public void setDefaultBootstrapLocation(RemoteClientLocation defaultBootstrapLocation) {
+    public void setBootstrapLocation(RemoteClientLocation defaultBootstrapLocation) {
         this.defaultBootstrapLocation = defaultBootstrapLocation;
     }
 
