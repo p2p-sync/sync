@@ -44,8 +44,8 @@ public class FileDemandExchangeHandlerTest extends BaseNetworkHandlerTest {
         // write a bit more than two chunks to the file
         Files.write(ROOT_TEST_DIR1.resolve(TEST_FILE_1), FILE_CONTENT);
 
-        OBJECT_STORE_1.sync(ROOT_TEST_DIR1.toFile());
-        OBJECT_STORE_2.sync(ROOT_TEST_DIR2.toFile());
+        OBJECT_STORE_1.sync();
+        OBJECT_STORE_2.sync();
     }
 
     @Test

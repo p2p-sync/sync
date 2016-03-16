@@ -48,7 +48,7 @@ public class ShareNamingTest extends BaseNetworkHandlerTest {
         Files.createDirectory(ROOT_TEST_DIR1.resolve(SOME_FILE));
 
         OBJECT_STORE_1.getObjectManager().clear();
-        OBJECT_STORE_1.sync(ROOT_TEST_DIR1.toFile());
+        OBJECT_STORE_1.sync();
 
         OBJECT_STORE_1.getSharerManager().addSharer(
                 USER_2.getUserName(),

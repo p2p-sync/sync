@@ -66,10 +66,10 @@ public class ModifyReadSharedFileIT extends BaseIT {
         Files.write(ROOT_TEST_DIR4.resolve(READ_SHARED_TEST_FILE_2), FILE_CONTENT, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE);
 
         // apply changes
-        OBJECT_STORE_1.sync(ROOT_TEST_DIR1.toFile());
-        OBJECT_STORE_2.sync(ROOT_TEST_DIR2.toFile());
-        OBJECT_STORE_3.sync(ROOT_TEST_DIR3.toFile());
-        OBJECT_STORE_4.sync(ROOT_TEST_DIR4.toFile());
+        OBJECT_STORE_1.sync();
+        OBJECT_STORE_2.sync();
+        OBJECT_STORE_3.sync();
+        OBJECT_STORE_4.sync();
 
         // share the files
         OBJECT_STORE_1.getSharerManager().addOwner(USER_1.getUserName(), TEST_DIR.toString());

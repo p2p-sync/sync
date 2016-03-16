@@ -44,7 +44,7 @@ public class SharingSyncerTest extends BaseNetworkHandlerTest {
         Files.createDirectory(ROOT_TEST_DIR1.resolve(TEST_DIR));
         Files.createFile(ROOT_TEST_DIR1.resolve(TEST_FILE));
 
-        OBJECT_STORE_1.sync(ROOT_TEST_DIR1.toFile());
+        OBJECT_STORE_1.sync();
 
         OBJECT_STORE_1.getSharerManager().addSharer(
                 USER_2.getUserName(),

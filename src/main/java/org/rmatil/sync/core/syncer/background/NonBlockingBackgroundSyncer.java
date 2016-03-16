@@ -237,8 +237,9 @@ public class NonBlockingBackgroundSyncer implements IBackgroundSyncer {
 
                 // only check version, if the file does exist on our disk,
                 // if not, we have to fetch it anyway
-                if (this.storageAdapter.exists(storageType, new TreePathElement(mergedPathObject.getAbsolutePath()))) {
-                    this.objectStore.syncFile(Paths.get(this.storageAdapter.getRootDir().getPath()).resolve(mergedPathObject.getAbsolutePath()).toFile());
+                TreePathElement mergedTreeElement = new TreePathElement(mergedPathObject.getAbsolutePath());
+                if (this.storageAdapter.exists(storageType, mergedTreeElement)) {
+                    this.objectStore.syncFile(mergedTreeElement);
                     PathObject modifiedPathObject = this.objectStore.getObjectManager().getObjectForPath(entry.getKey());
                     Version modifiedLastVersion = modifiedPathObject.getVersions().get(Math.max(0, modifiedPathObject.getVersions().size() - 1));
 
@@ -315,15 +316,14 @@ public class NonBlockingBackgroundSyncer implements IBackgroundSyncer {
             objectStoreStorageManager.persist(StorageType.DIRECTORY, pathElement, null);
 
             // create the temporary object store in the .sync folder
-            Path rootPath = Paths.get(this.storageAdapter.getRootDir().getPath());
             ITreeStorageAdapter changeObjectStoreStorageManager = new LocalStorageAdapter(Paths.get(objectStoreStorageManager.getRootDir().getPath()).resolve(pathElement.getPath()));
-            IObjectStore changeObjectStore = new ObjectStore(rootPath, "index.json", "object", changeObjectStoreStorageManager);
+            IObjectStore changeObjectStore = new ObjectStore(this.storageAdapter, "index.json", "object", changeObjectStoreStorageManager);
 
             // build object store for differences in the mean time
             List<String> ignoredPaths = new ArrayList<>();
             Path origSyncFolder = Paths.get(this.objectStore.getObjectManager().getStorageAdapater().getRootDir().getPath()).getFileName();
             ignoredPaths.add(origSyncFolder.toString());
-            changeObjectStore.sync(rootPath.toFile(), ignoredPaths);
+            changeObjectStore.sync(ignoredPaths);
 
             // get differences between disk and merged object store
             HashMap<ObjectStore.MergedObjectType, Set<String>> updatedOrDeletedPaths = this.objectStore.mergeObjectStore(changeObjectStore);

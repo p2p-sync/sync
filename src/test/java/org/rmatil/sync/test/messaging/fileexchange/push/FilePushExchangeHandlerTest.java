@@ -48,7 +48,7 @@ public class FilePushExchangeHandlerTest extends BaseNetworkHandlerTest {
         Files.createFile(ROOT_TEST_DIR1.resolve(TEST_FILE_1));
         Files.createFile(ROOT_TEST_DIR1.resolve(TEST_FILE_2));
 
-        OBJECT_STORE_1.sync(ROOT_TEST_DIR1.toFile());
+        OBJECT_STORE_1.sync();
 
         RandomAccessFile randomAccessFile = new RandomAccessFile(ROOT_TEST_DIR1.resolve(TEST_FILE_1).toString(), "rw");
         randomAccessFile.write(content);

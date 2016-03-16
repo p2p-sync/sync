@@ -92,8 +92,8 @@ public class FileOfferExchangeHandlerTest extends BaseNetworkHandlerTest {
         Files.createDirectory(ROOT_TEST_DIR2.resolve(TARGET_DIR));
 
         // force recreation of object store
-        OBJECT_STORE_1.sync(ROOT_TEST_DIR1.toFile());
-        OBJECT_STORE_2.sync(ROOT_TEST_DIR2.toFile());
+        OBJECT_STORE_1.sync();
+        OBJECT_STORE_2.sync();
 
         // do not start the event aggregator but manually sync the event
         PathObject pathObject = OBJECT_STORE_1.getObjectManager().getObjectForPath(TEST_DIR_1.toString());
@@ -132,7 +132,7 @@ public class FileOfferExchangeHandlerTest extends BaseNetworkHandlerTest {
         // first move the directory
         STORAGE_ADAPTER_1.move(StorageType.DIRECTORY, new TreePathElement(TEST_DIR_1.toString()), new TreePathElement(TARGET_DIR.resolve(TEST_DIR_1).toString()));
         // force recreation of object store
-        OBJECT_STORE_1.sync(ROOT_TEST_DIR1.toFile());
+        OBJECT_STORE_1.sync();
 
         UUID exchangeId = UUID.randomUUID();
 
@@ -174,7 +174,7 @@ public class FileOfferExchangeHandlerTest extends BaseNetworkHandlerTest {
         // first move the file
         STORAGE_ADAPTER_1.move(StorageType.FILE, new TreePathElement(TEST_FILE_2.toString()), new TreePathElement(TARGET_DIR.resolve(TEST_FILE_2.getFileName().toString()).toString()));
         // force recreation of object store
-        OBJECT_STORE_1.sync(ROOT_TEST_DIR1.toFile());
+        OBJECT_STORE_1.sync();
 
         UUID exchangeId = UUID.randomUUID();
 
@@ -214,12 +214,12 @@ public class FileOfferExchangeHandlerTest extends BaseNetworkHandlerTest {
         // first move the file
         STORAGE_ADAPTER_1.move(StorageType.FILE, new TreePathElement(TEST_FILE_3.toString()), new TreePathElement(TARGET_DIR.resolve(TEST_FILE_3.getFileName().toString()).toString()));
         // force recreation of object store
-        OBJECT_STORE_1.sync(ROOT_TEST_DIR1.toFile());
+        OBJECT_STORE_1.sync();
 
         // now adjust the file on client2 to get a different version
         STORAGE_ADAPTER_2.persist(StorageType.FILE, new TreePathElement(TEST_FILE_3.toString()), "Some different content causing a conflict".getBytes());
         STORAGE_ADAPTER_2.move(StorageType.FILE, new TreePathElement(TEST_FILE_3.toString()), new TreePathElement(TARGET_DIR.resolve(TEST_FILE_3.getFileName().toString()).toString()));
-        OBJECT_STORE_2.sync(ROOT_TEST_DIR2.toFile());
+        OBJECT_STORE_2.sync();
 
         UUID exchangeId = UUID.randomUUID();
 

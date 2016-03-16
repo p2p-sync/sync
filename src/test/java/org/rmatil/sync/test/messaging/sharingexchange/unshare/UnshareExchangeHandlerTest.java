@@ -61,8 +61,8 @@ public class UnshareExchangeHandlerTest extends BaseNetworkHandlerTest {
         Files.createDirectory(ROOT_TEST_DIR1.resolve(TEST_DIR_1));
         Files.createDirectory(ROOT_TEST_DIR2.resolve(TEST_DIR_1));
 
-        OBJECT_STORE_1.sync(ROOT_TEST_DIR1.toFile());
-        OBJECT_STORE_2.sync(ROOT_TEST_DIR2.toFile());
+        OBJECT_STORE_1.sync();
+        OBJECT_STORE_2.sync();
 
         Sharer sharer = new Sharer(
                 USERNAME,

@@ -51,8 +51,8 @@ public class FileMoveExchangeHandlerTest extends BaseNetworkHandlerTest {
         Files.createFile(ROOT_TEST_DIR1.resolve(TEST_FILE_3));
         Files.createFile(ROOT_TEST_DIR2.resolve(TEST_FILE_3));
 
-        OBJECT_STORE_1.sync(ROOT_TEST_DIR1.toFile());
-        OBJECT_STORE_2.sync(ROOT_TEST_DIR2.toFile());
+        OBJECT_STORE_1.sync();
+        OBJECT_STORE_2.sync();
     }
 
     @Test
@@ -62,7 +62,7 @@ public class FileMoveExchangeHandlerTest extends BaseNetworkHandlerTest {
         // move
         STORAGE_ADAPTER_1.move(StorageType.DIRECTORY, new TreePathElement(TEST_DIR_1.toString()), new TreePathElement(TARGET_DIR.resolve(TEST_DIR_1).toString()));
         // rebuild object store
-        OBJECT_STORE_1.sync(ROOT_TEST_DIR1.toFile());
+        OBJECT_STORE_1.sync();
 
 
         MoveEvent moveEvent = new MoveEvent(
@@ -116,7 +116,7 @@ public class FileMoveExchangeHandlerTest extends BaseNetworkHandlerTest {
         // move
         STORAGE_ADAPTER_1.move(StorageType.FILE, new TreePathElement(TEST_FILE_3.toString()), new TreePathElement(TARGET_DIR.resolve(TEST_FILE_3).toString()));
         // rebuild object store
-        OBJECT_STORE_1.sync(ROOT_TEST_DIR1.toFile());
+        OBJECT_STORE_1.sync();
 
         PathObject pathObject = OBJECT_STORE_1.getObjectManager().getObjectForPath(TARGET_DIR.resolve(TEST_FILE_3).toString());
 

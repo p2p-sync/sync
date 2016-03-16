@@ -18,6 +18,7 @@ public class ObjectStoreInitializer implements IInitializer<IObjectStore> {
     protected String indexFileName;
     protected String objectFolderName;
 
+    protected ITreeStorageAdapter synchronisedFolderStorageAdapter;
     protected ITreeStorageAdapter syncFolderStorageAdapter;
     protected IObjectStore        objectStore;
 
@@ -32,11 +33,13 @@ public class ObjectStoreInitializer implements IInitializer<IObjectStore> {
     public IObjectStore init()
             throws InitializationException {
 
+        this.synchronisedFolderStorageAdapter = new LocalStorageAdapter(this.rootPath);
         this.syncFolderStorageAdapter = new LocalStorageAdapter(this.rootPath.resolve(this.syncFolderName));
+
 
         try {
             this.objectStore = new ObjectStore(
-                    this.rootPath,
+                    this.synchronisedFolderStorageAdapter,
                     this.indexFileName,
                     this.objectFolderName,
                     this.syncFolderStorageAdapter
@@ -53,7 +56,7 @@ public class ObjectStoreInitializer implements IInitializer<IObjectStore> {
             throws InitializationStartException {
         // sync object store with contents in the root path
         try {
-            this.objectStore.sync(this.rootPath.toFile());
+            this.objectStore.sync();
         } catch (InputOutputException e) {
             throw new InitializationStartException(e);
         }

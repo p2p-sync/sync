@@ -94,9 +94,9 @@ public class ShareExchangeHandlerTest extends BaseNetworkHandlerTest {
         Files.createFile(ROOT_TEST_DIR1.resolve(TEST_FILE_1));
 
         OBJECT_STORE_1.getObjectManager().clear();
-        OBJECT_STORE_1.sync(ROOT_TEST_DIR1.toFile());
+        OBJECT_STORE_1.sync();
         OBJECT_STORE_2.getObjectManager().clear();
-        OBJECT_STORE_2.sync(ROOT_TEST_DIR2.toFile());
+        OBJECT_STORE_2.sync();
 
         RandomAccessFile randomAccessFile = new RandomAccessFile(ROOT_TEST_DIR1.resolve(TEST_FILE_1).toString(), "rw");
         randomAccessFile.write(content);

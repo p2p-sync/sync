@@ -92,8 +92,8 @@ public class NonBlockingBackgroundSyncerTest extends BaseNetworkHandlerTest {
         STORAGE_ADAPTER_1.persist(StorageType.FILE, outdatedFile, "Some outdated content".getBytes());
         STORAGE_ADAPTER_2.persist(StorageType.FILE, outdatedFile, "Some outdated content".getBytes());
 
-        OBJECT_STORE_1.sync(ROOT_TEST_DIR1.toFile());
-        OBJECT_STORE_2.sync(ROOT_TEST_DIR2.toFile());
+        OBJECT_STORE_1.sync();
+        OBJECT_STORE_2.sync();
 
         // remove file on storage adapter 2
         OBJECT_STORE_2.onRemoveFile(DELETED_FILE.toString());

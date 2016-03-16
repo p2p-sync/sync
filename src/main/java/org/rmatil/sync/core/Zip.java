@@ -120,7 +120,7 @@ public class Zip {
                 // actually unzip
                 unzip(zipInputStream, localStorageAdapter);
 
-                ObjectStore createdObjectStore = new ObjectStore(Paths.get(".sync"), "index.json", "object", localStorageAdapter);
+                ObjectStore createdObjectStore = new ObjectStore(localStorageAdapter, "index.json", "object", localStorageAdapter);
                 objectStores.put(response.getClientDevice(), createdObjectStore);
             } catch (InputOutputException | IOException e) {
                 logger.error("Could not write object store for client " + response.getClientDevice().getClientDeviceId() + "(" + response.getClientDevice().getPeerAddress().inetAddress().getHostName() + ":" + response.getClientDevice().getPeerAddress().tcpPort() + ". Message: " + e.getMessage());
@@ -165,7 +165,7 @@ public class Zip {
             // actually unzip
             unzip(zipInputStream, localStorageAdapter);
 
-            return new ObjectStore(Paths.get(".sync"), "index.json", "object", localStorageAdapter);
+            return new ObjectStore(localStorageAdapter, "index.json", "object", localStorageAdapter);
         } catch (InputOutputException | IOException e) {
             logger.error("Could not write object store in dir " + objectStoreName + ". Message: " + e.getMessage());
             return null;
