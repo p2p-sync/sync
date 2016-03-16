@@ -7,7 +7,16 @@
 P2P-Sync is a library for distributed file synchronising and sharing. It is a refined version of [Hive2Hive](https://github.com/Hive2Hive/Hive2Hive). For the underlying functionality to build the P2P network, this library
 depends on [TomP2P](https://github.com/tomp2p/TomP2P).
 
-# Functionality
+# Features
+
+* Synchronise a folder among all your nodes in the same network
+* Share particular files or folders with other users in the network
+* Profit from your own personal cloud: All file data is stored only on your peers
+* Messages sent between the nodes are encrypted using RSA resp. AES
+* A console based Java Client is built and waiting for you at [P2P-Sync Client](http://p2p-sync.github.io/client/)
+
+# Requirements
+* Java 8
 
 # Install using Maven
 To use this library, add the following to your `pom.xml`:
@@ -47,3 +56,7 @@ is maintained in its own repository:
 * [Core](https://github.com/p2p-sync/sync) (this repository)
 * [End-User Client](https://github.com/p2p-sync/client)
  
+
+## Usage
+
+
