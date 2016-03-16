@@ -81,8 +81,8 @@ public class BaseIT extends BaseNetworkHandlerTest {
         STORAGE_ADAPTER_3 = new LocalStorageAdapter(ROOT_TEST_DIR3);
         STORAGE_ADAPTER_4 = new LocalStorageAdapter(ROOT_TEST_DIR4);
 
-        OBJECT_STORE_3 = BaseNetworkHandlerTest.createObjectStore(ROOT_TEST_DIR3);
-        OBJECT_STORE_4 = BaseNetworkHandlerTest.createObjectStore(ROOT_TEST_DIR4);
+        OBJECT_STORE_3 = BaseNetworkHandlerTest.createObjectStore(STORAGE_ADAPTER_3);
+        OBJECT_STORE_4 = BaseNetworkHandlerTest.createObjectStore(STORAGE_ADAPTER_4);
 
         CLIENT_3 = BaseNetworkHandlerTest.createClient(
                 new ConnectionConfiguration(
@@ -131,8 +131,8 @@ public class BaseIT extends BaseNetworkHandlerTest {
         FILE_SYNCER_4 = createFileSyncer(CLIENT_4, ROOT_TEST_DIR4, OBJECT_STORE_4, GLOBAL_EVENT_BUS_4);
 
         // Note: start the event aggregator manually in the subclasses
-        EVENT_AGGREGATOR_3 = createEventAggregator(ROOT_TEST_DIR3, OBJECT_STORE_3, FILE_SYNCER_3, GLOBAL_EVENT_BUS_3);
-        EVENT_AGGREGATOR_4 = createEventAggregator(ROOT_TEST_DIR4, OBJECT_STORE_4, FILE_SYNCER_4, GLOBAL_EVENT_BUS_4);
+        EVENT_AGGREGATOR_3 = createEventAggregator(STORAGE_ADAPTER_3, OBJECT_STORE_3, FILE_SYNCER_3, GLOBAL_EVENT_BUS_3);
+        EVENT_AGGREGATOR_4 = createEventAggregator(STORAGE_ADAPTER_4, OBJECT_STORE_4, FILE_SYNCER_4, GLOBAL_EVENT_BUS_4);
 
         ObjectStoreFileChangeListener listener3 = new ObjectStoreFileChangeListener(OBJECT_STORE_3);
         GLOBAL_EVENT_BUS_3.subscribe(listener3);

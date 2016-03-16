@@ -9,11 +9,10 @@ import org.rmatil.sync.persistence.exceptions.InputOutputException;
 import org.rmatil.sync.version.api.IObjectStore;
 import org.rmatil.sync.version.core.ObjectStore;
 
-import java.nio.file.Path;
+import java.nio.file.Paths;
 
 public class ObjectStoreInitializer implements IInitializer<IObjectStore> {
 
-    protected Path   rootPath;
     protected String syncFolderName;
     protected String indexFileName;
     protected String objectFolderName;
@@ -22,20 +21,20 @@ public class ObjectStoreInitializer implements IInitializer<IObjectStore> {
     protected ITreeStorageAdapter syncFolderStorageAdapter;
     protected IObjectStore        objectStore;
 
-    public ObjectStoreInitializer(Path rootPath, String syncFolderName, String indexFileName, String objectFolderName) {
-        this.rootPath = rootPath;
+    public ObjectStoreInitializer(ITreeStorageAdapter treeStorageAdapterh, String syncFolderName, String indexFileName, String objectFolderName) {
+        this.synchronisedFolderStorageAdapter = treeStorageAdapterh;
         this.syncFolderName = syncFolderName;
         this.indexFileName = indexFileName;
         this.objectFolderName = objectFolderName;
+        // create dedicated storage adapter for sync folder
+        this.syncFolderStorageAdapter = new LocalStorageAdapter(
+                Paths.get(this.synchronisedFolderStorageAdapter.getRootDir().getPath()).resolve(this.syncFolderName)
+        );
     }
 
     @Override
     public IObjectStore init()
             throws InitializationException {
-
-        this.synchronisedFolderStorageAdapter = new LocalStorageAdapter(this.rootPath);
-        this.syncFolderStorageAdapter = new LocalStorageAdapter(this.rootPath.resolve(this.syncFolderName));
-
 
         try {
             this.objectStore = new ObjectStore(

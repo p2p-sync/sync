@@ -95,7 +95,7 @@ public class ApplicationConfig {
      * @param peerDiscoveryTimeout     The timeout in milliseconds used until peer discovery should be successful
      * @param peerBootstrapTimeout     The amount of milliseconds until which the bootstrap process should be successful
      * @param shutdownAnnounceTimeout  How many milliseconds should be waited before the client is unfriendly shutdown
-     * @param port              The default port on which the client should be started
+     * @param port                     The default port on which the client should be started
      * @param publicKey                The RSA public key to use
      * @param privateKey               The RSA private key to use
      * @param defaultBootstrapLocation The default bootstrap location to which the client should be connected on startup. May be null

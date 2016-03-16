@@ -1,6 +1,7 @@
 package org.rmatil.sync.test.base;
 
 import org.rmatil.sync.core.init.objecstore.ObjectStoreInitializer;
+import org.rmatil.sync.persistence.core.tree.ITreeStorageAdapter;
 import org.rmatil.sync.persistence.exceptions.InputOutputException;
 import org.rmatil.sync.test.config.Config;
 import org.rmatil.sync.version.api.IObjectStore;
@@ -22,13 +23,13 @@ public class BaseTest {
     /**
      * Creates, inits and starts an object store in the given root test dir
      *
-     * @param rootTestDir The root directory in which to create the object store
+     * @param treeStorageAdapter A tree storage adapter pointing to the root directory in which to create the object store
      *
      * @return The created object store
      */
-    protected static IObjectStore createObjectStore(Path rootTestDir) {
+    protected static IObjectStore createObjectStore(ITreeStorageAdapter treeStorageAdapter) {
         ObjectStoreInitializer objectStoreInitializer1 = new ObjectStoreInitializer(
-                rootTestDir,
+                treeStorageAdapter,
                 SYNC_FOLDER_NAME,
                 INDEX_FILE_NAME,
                 OBJECT_FOLDER_NAME

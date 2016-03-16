@@ -10,15 +10,17 @@ import org.rmatil.sync.event.aggregator.core.aggregator.HistoryMoveAggregator;
 import org.rmatil.sync.event.aggregator.core.aggregator.IAggregator;
 import org.rmatil.sync.event.aggregator.core.modifier.*;
 import org.rmatil.sync.event.aggregator.core.pathwatcher.PerlockPathWatcherFactory;
+import org.rmatil.sync.persistence.core.tree.ITreeStorageAdapter;
 import org.rmatil.sync.version.api.IObjectStore;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.List;
 
 public class EventAggregatorInitializer implements IInitializer<IEventAggregator> {
 
-    Path                 rootPath;
+    ITreeStorageAdapter  treeStorageAdapter;
     IObjectStore         objectStore;
     List<Path>           ignoredPaths;
     List<String>         ignoredPatterns;
@@ -26,8 +28,8 @@ public class EventAggregatorInitializer implements IInitializer<IEventAggregator
     IEventAggregator     eventAggregator;
     List<IEventListener> eventListeners;
 
-    public EventAggregatorInitializer(Path rootPath, IObjectStore objectStore, List<IEventListener> eventListeners, List<Path> ignoredRelativePaths, List<String> ignoredPatterns, long aggregationInterval) {
-        this.rootPath = rootPath;
+    public EventAggregatorInitializer(ITreeStorageAdapter treeStorageAdapter, IObjectStore objectStore, List<IEventListener> eventListeners, List<Path> ignoredRelativePaths, List<String> ignoredPatterns, long aggregationInterval) {
+        this.treeStorageAdapter = treeStorageAdapter;
         this.objectStore = objectStore;
         this.ignoredPaths = ignoredRelativePaths;
         this.ignoredPatterns = ignoredPatterns;
@@ -37,15 +39,16 @@ public class EventAggregatorInitializer implements IInitializer<IEventAggregator
 
     @Override
     public IEventAggregator init() {
-        IModifier relativePathModifier = new RelativePathModifier(this.rootPath);
-        IModifier addDirectoryContentModifier = new AddDirectoryContentModifier(this.rootPath, this.objectStore);
+        Path rootPath = Paths.get(this.treeStorageAdapter.getRootDir().getPath());
+        IModifier relativePathModifier = new RelativePathModifier(rootPath);
+        IModifier addDirectoryContentModifier = new AddDirectoryContentModifier(rootPath, this.objectStore);
         IModifier ignorePathsModifier = new IgnorePathsModifier(ignoredPaths, this.ignoredPatterns);
-        IModifier ignoreDirectoryModifier = new IgnoreDirectoryModifier(this.rootPath);
+        IModifier ignoreDirectoryModifier = new IgnoreDirectoryModifier(rootPath);
         IModifier sameHashModifier = new IgnoreSameHashModifier(this.objectStore.getObjectManager());
 
         IAggregator historyMoveAggregator = new HistoryMoveAggregator(objectStore.getObjectManager());
 
-        this.eventAggregator = new EventAggregator(this.rootPath, new PerlockPathWatcherFactory());
+        this.eventAggregator = new EventAggregator(rootPath, new PerlockPathWatcherFactory());
 
         this.eventAggregator.setAggregationInterval(this.aggregationInterval);
 

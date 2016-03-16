@@ -5,6 +5,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.rmatil.sync.core.security.AccessManager;
 import org.rmatil.sync.core.security.IAccessManager;
+import org.rmatil.sync.persistence.core.tree.local.LocalStorageAdapter;
 import org.rmatil.sync.persistence.exceptions.InputOutputException;
 import org.rmatil.sync.test.base.BaseTest;
 import org.rmatil.sync.version.api.AccessType;
@@ -37,7 +38,7 @@ public class AccessManagerTest extends BaseTest {
             throws InputOutputException, IOException {
         createTestDirs();
         createObjectStoreDirs();
-        objectStore = createObjectStore(ROOT_TEST_DIR1);
+        objectStore = createObjectStore(new LocalStorageAdapter(ROOT_TEST_DIR1));
 
         Set<Sharer> sharers = new HashSet<>();
         sharers.add(new Sharer(

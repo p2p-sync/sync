@@ -140,8 +140,8 @@ public abstract class BaseNetworkHandlerTest extends BaseTest {
         STORAGE_ADAPTER_1 = new LocalStorageAdapter(ROOT_TEST_DIR1);
         STORAGE_ADAPTER_2 = new LocalStorageAdapter(ROOT_TEST_DIR2);
 
-        OBJECT_STORE_1 = createObjectStore(ROOT_TEST_DIR1);
-        OBJECT_STORE_2 = createObjectStore(ROOT_TEST_DIR2);
+        OBJECT_STORE_1 = createObjectStore(STORAGE_ADAPTER_1);
+        OBJECT_STORE_2 = createObjectStore(STORAGE_ADAPTER_2);
 
         CLIENT_1 = createClient(
                 new ConnectionConfiguration(
@@ -188,8 +188,8 @@ public abstract class BaseNetworkHandlerTest extends BaseTest {
         FILE_SYNCER_2 = createFileSyncer(CLIENT_2, ROOT_TEST_DIR2, OBJECT_STORE_2, GLOBAL_EVENT_BUS_2);
 
         // Note: start the event aggregator manually in the subclasses
-        EVENT_AGGREGATOR_1 = createEventAggregator(ROOT_TEST_DIR1, OBJECT_STORE_1, FILE_SYNCER_1, GLOBAL_EVENT_BUS_1);
-        EVENT_AGGREGATOR_2 = createEventAggregator(ROOT_TEST_DIR2, OBJECT_STORE_2, FILE_SYNCER_2, GLOBAL_EVENT_BUS_2);
+        EVENT_AGGREGATOR_1 = createEventAggregator(STORAGE_ADAPTER_1, OBJECT_STORE_1, FILE_SYNCER_1, GLOBAL_EVENT_BUS_1);
+        EVENT_AGGREGATOR_2 = createEventAggregator(STORAGE_ADAPTER_2, OBJECT_STORE_2, FILE_SYNCER_2, GLOBAL_EVENT_BUS_2);
 
         ObjectStoreFileChangeListener listener1 = new ObjectStoreFileChangeListener(OBJECT_STORE_1);
         GLOBAL_EVENT_BUS_1.subscribe(listener1);
@@ -354,14 +354,14 @@ public abstract class BaseNetworkHandlerTest extends BaseTest {
     /**
      * Create and start event aggregator
      *
-     * @param rootPath       The root path to watch for changes
-     * @param objectStore    The object store to check for versions
-     * @param fileSyncer     The file syncer to create the listener for events
-     * @param globalEventBus The global event bus to add events
+     * @param treeStorageAdapter A tree storage adapter pointing to the  root path to watch for changes
+     * @param objectStore        The object store to check for versions
+     * @param fileSyncer         The file syncer to create the listener for events
+     * @param globalEventBus     The global event bus to add events
      *
      * @return The started event aggregator
      */
-    protected static IEventAggregator createEventAggregator(Path rootPath, IObjectStore objectStore, FileSyncer fileSyncer, MBassador<IBusEvent> globalEventBus) {
+    protected static IEventAggregator createEventAggregator(ITreeStorageAdapter treeStorageAdapter, IObjectStore objectStore, FileSyncer fileSyncer, MBassador<IBusEvent> globalEventBus) {
         // Add sync file change listener to event aggregator
         SyncFileChangeListener syncFileChangeListener = new SyncFileChangeListener(fileSyncer);
         ExecutorService executorService = Executors.newSingleThreadExecutor();
@@ -374,9 +374,13 @@ public abstract class BaseNetworkHandlerTest extends BaseTest {
 
         // Init event aggregator
         List<Path> ignoredPaths = new ArrayList<>();
-        ignoredPaths.add(rootPath.relativize(rootPath.resolve(Paths.get(".sync"))));
+        ignoredPaths.add(
+                Paths.get(treeStorageAdapter.getRootDir().getPath())
+                        .relativize(Paths.get(treeStorageAdapter.getRootDir().getPath()).resolve(".sync"))
+        );
+
         EventAggregatorInitializer eventAggregatorInitializer = new EventAggregatorInitializer(
-                rootPath,
+                treeStorageAdapter,
                 objectStore,
                 eventListeners,
                 ignoredPaths,

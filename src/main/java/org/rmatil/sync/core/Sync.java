@@ -49,12 +49,12 @@ import org.rmatil.sync.network.core.ConnectionConfiguration;
 import org.rmatil.sync.network.core.Node;
 import org.rmatil.sync.network.core.model.ClientDevice;
 import org.rmatil.sync.network.core.model.User;
+import org.rmatil.sync.persistence.api.StorageType;
 import org.rmatil.sync.persistence.core.tree.ITreeStorageAdapter;
-import org.rmatil.sync.persistence.core.tree.local.LocalStorageAdapter;
+import org.rmatil.sync.persistence.core.tree.TreePathElement;
+import org.rmatil.sync.persistence.exceptions.InputOutputException;
 import org.rmatil.sync.version.api.IObjectStore;
 
-import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -73,14 +73,14 @@ import java.util.concurrent.TimeUnit;
 public class Sync {
 
     /**
-     * The root path of the synced folder
-     */
-    protected Path rootPath;
-
-    /**
      * The storage adapter managing the synced folder
      */
     protected ITreeStorageAdapter storageAdapter;
+
+    /**
+     * The file syncer used to propagate file change events to other clients
+     */
+    protected FileSyncer fileSyncer;
 
     /**
      * A syncer to allow sharing of files
@@ -113,52 +113,63 @@ public class Sync {
     protected SyncFileChangeListener syncFileChangeListener;
 
     /**
-     * Initializes the app in means of creating
-     * all required app folders and files, e.g. the default application
-     * configuration file, the object store directory and more.
+     * Creates a new Sync application.
      *
-     * @throws IOException If writing any file or directory fails
+     * @param treeStorageAdapter A storage adapter pointing to the root directory of the synchronised folder
      */
-    public static void init(Path rootPath)
-            throws IOException {
-
-        if (! rootPath.toFile().exists()) {
-            // create the synced folder
-            Files.createDirectories(rootPath);
+    public Sync(ITreeStorageAdapter treeStorageAdapter) {
+        if (null == treeStorageAdapter) {
+            throw new IllegalArgumentException("Storage Adapter must not be null");
         }
 
-        Path objectStoreFolder = rootPath.resolve(Config.DEFAULT.getOsFolderName());
-        if (! objectStoreFolder.toFile().exists()) {
-            Files.createDirectory(objectStoreFolder);
-        }
-
-        Path objectStoreObjectFolder = objectStoreFolder.resolve(Config.DEFAULT.getOsObjectFolderName());
-        if (! objectStoreObjectFolder.toFile().exists()) {
-            Files.createDirectories(objectStoreObjectFolder);
-        }
-
-        Path sharedWithOthersReadWriteFolder = rootPath.resolve(Config.DEFAULT.getSharedWithOthersReadWriteFolderName());
-        if (! sharedWithOthersReadWriteFolder.toFile().exists()) {
-            Files.createDirectory(sharedWithOthersReadWriteFolder);
-        }
-
-        Path sharedWithOthersReadOnlyFolder = rootPath.resolve(Config.DEFAULT.getSharedWithOthersReadOnlyFolderName());
-        if (! sharedWithOthersReadOnlyFolder.toFile().exists()) {
-            Files.createDirectory(sharedWithOthersReadOnlyFolder);
-        }
+        this.storageAdapter = treeStorageAdapter;
     }
 
     /**
-     * Creates a new Sync application.
+     * Initializes the app by means of creating
+     * all required app folders and files. This includes
+     * <p>
+     * <ul>
+     * <li>the ObjectStore folder</li>
+     * <li>The ObjectStore's Object folder</li>
+     * <li>read-write shared folder</li>
+     * <li>read-only shared folder</li>
+     * </ul>
      *
-     * @param rootPath The path to the synced folder
+     * @throws InputOutputException If writing any of these elements fails
      */
-    public Sync(Path rootPath) {
-        if (null == rootPath) {
-            throw new IllegalArgumentException("Root path must not be null");
+    public void init()
+            throws InputOutputException {
+
+        TreePathElement objectStoreFolder = new TreePathElement(Config.DEFAULT.getOsFolderName());
+
+        if (! this.storageAdapter.exists(StorageType.DIRECTORY, objectStoreFolder)) {
+            // create Object Store folder if not yet existing
+            this.storageAdapter.persist(StorageType.DIRECTORY, objectStoreFolder, null);
         }
 
-        this.rootPath = rootPath;
+        TreePathElement objectStoreObjectFolder = new TreePathElement(
+                Paths.get(objectStoreFolder.getPath()).resolve(Config.DEFAULT.getOsObjectFolderName()).toString()
+        );
+
+        if (! this.storageAdapter.exists(StorageType.DIRECTORY, objectStoreObjectFolder)) {
+            // create the object folder inside the object store's directory
+            this.storageAdapter.persist(StorageType.DIRECTORY, objectStoreObjectFolder, null);
+        }
+
+        TreePathElement sharedWithOthersReadWriteFolder = new TreePathElement(Config.DEFAULT.getSharedWithOthersReadWriteFolderName());
+
+        if (! this.storageAdapter.exists(StorageType.DIRECTORY, sharedWithOthersReadWriteFolder)) {
+            // create sharedWithOthers (read-write) folder
+            this.storageAdapter.persist(StorageType.DIRECTORY, sharedWithOthersReadWriteFolder, null);
+        }
+
+        TreePathElement sharedWithOthersReadOnlyFolder = new TreePathElement(Config.DEFAULT.getSharedWithOthersReadOnlyFolderName());
+
+        if (! this.storageAdapter.exists(StorageType.DIRECTORY, sharedWithOthersReadOnlyFolder)) {
+            this.storageAdapter.persist(StorageType.DIRECTORY, sharedWithOthersReadOnlyFolder, null);
+        }
+
     }
 
     /**
@@ -185,19 +196,25 @@ public class Sync {
 
         UUID clientId = UUID.randomUUID();
 
-        this.storageAdapter = new LocalStorageAdapter(rootPath);
-
         // Use feature driven configuration to have more control over the configuration details
-        MBassador<IBusEvent> globalEventBus = new MBassador<>(new BusConfiguration()
-                .addFeature(Feature.SyncPubSub.Default())
-                .addFeature(Feature.AsynchronousHandlerInvocation.Default())
-                .addFeature(Feature.AsynchronousMessageDispatch.Default())
-                .addPublicationErrorHandler(new IPublicationErrorHandler.ConsoleLogger())
-                .setProperty(IBusConfiguration.Properties.BusId, "P2P-Sync-GlobalEventBus-" + UUID.randomUUID().toString())); // this is used for identification in #toString
+        MBassador<IBusEvent> globalEventBus = new MBassador<>(
+                new BusConfiguration()
+                        .addFeature(Feature.SyncPubSub.Default())
+                        .addFeature(Feature.AsynchronousHandlerInvocation.Default())
+                        .addFeature(Feature.AsynchronousMessageDispatch.Default())
+                        .addPublicationErrorHandler(new IPublicationErrorHandler.ConsoleLogger())
+                        .setProperty(IBusConfiguration.Properties.BusId, "P2P-Sync-GlobalEventBus-" + UUID.randomUUID().toString())); // this is used for identification in #toString
 
 
         // Init object store
-        ObjectStoreInitializer objectStoreInitializer = new ObjectStoreInitializer(this.rootPath, Config.DEFAULT.getOsFolderName(), Config.DEFAULT.getOsIndexName(), Config.DEFAULT.getOsObjectFolderName());
+        ObjectStoreInitializer objectStoreInitializer = new ObjectStoreInitializer(
+                this.storageAdapter,
+                Config.DEFAULT.getOsFolderName(),
+                Config.DEFAULT.getOsIndexName(),
+                Config.DEFAULT.getOsObjectFolderName()
+        );
+
+
         IObjectStore objectStore = objectStoreInitializer.init();
         objectStoreInitializer.start();
 
@@ -245,18 +262,17 @@ public class Sync {
         this.node = clientInitializer.init();
         clientInitializer.start();
 
-        // TODO: fix cycle with wrapper around client
         objectDataReplyHandler.setNode(this.node);
 
         this.nodeManager = clientInitializer.getNodeManager();
 
         objectDataReplyHandler.setNodeManager(this.nodeManager);
 
-        FileSyncer fileSyncer = new FileSyncer(
+        this.fileSyncer = new FileSyncer(
                 this.node.getUser(),
                 this.node,
                 this.nodeManager,
-                new LocalStorageAdapter(rootPath),
+                this.storageAdapter,
                 objectStore,
                 globalEventBus
         );
@@ -279,9 +295,13 @@ public class Sync {
 
         // Init event aggregator
         List<Path> ignoredPaths = new ArrayList<>();
-        ignoredPaths.add(this.rootPath.relativize(rootPath.resolve(Paths.get(Config.DEFAULT.getOsFolderName()))));
+        ignoredPaths.add(
+                Paths.get(this.storageAdapter.getRootDir().getPath())
+                        .relativize(Paths.get(this.storageAdapter.getRootDir().getPath()).resolve(Config.DEFAULT.getOsFolderName()))
+        );
+
         EventAggregatorInitializer eventAggregatorInitializer = new EventAggregatorInitializer(
-                this.rootPath,
+                this.storageAdapter,
                 objectStore,
                 eventListeners,
                 ignoredPaths,
@@ -324,7 +344,14 @@ public class Sync {
     }
 
     /**
-     * Shuts down the application and the node backing it up
+     * Stop all background processes and shut down this peer in the following order:
+     * </p>
+     * <ol>
+     * <li>Background Syncer</li>
+     * <li>Event Aggregator</li>
+     * <li>Sync File Change Listener</li>
+     * <li>Node</li>
+     * </ol>
      */
     public void shutdown() {
         this.backgroundSyncerExecutorService.shutdown();
@@ -334,35 +361,63 @@ public class Sync {
     }
 
     /**
-     * Returns the root path
+     * Get the file syncer which is propagating file changes
+     * to other nodes in the network.
+     * <b>Note</b>: This method may return null before the node is connected
      *
-     * @return
+     * @return The File Syncer or null, if this peer is not yet connected
      */
-    public Path getRootPath() {
-        return rootPath;
+    public FileSyncer getFileSyncer() {
+        return this.fileSyncer;
     }
 
+    /**
+     * Get the sharing syncer providing functionality to
+     * share resp. unshare elements with other users.
+     * <b>Note</b>: This method may return null before the node is connected
+     *
+     * @return The Sharing Syncer or null, if this peer is not yet connected
+     */
     public SharingSyncer getSharingSyncer() {
-        return sharingSyncer;
+        return this.sharingSyncer;
     }
 
-    public INodeManager getNodeManager() {
-        return nodeManager;
-    }
-
-    public INode getNode() {
-        return node;
-    }
-
+    /**
+     * Get the Event Aggregator, filtering resp. aggregating events from the storage layer.
+     * <b>Note</b>: This method may return null before the node is connected
+     *
+     * @return The event aggregator or null, if this peer is not yet connected
+     */
     public IEventAggregator getEventAggregator() {
-        return eventAggregator;
+        return this.eventAggregator;
     }
 
+    /**
+     * Get the executor service of the Background Syncer.
+     * <b>Note</b>: This method may return null before the node is connected.
+     *
+     * @return The scheduled executor service of the Background Syncer or null, if this peer is not yet connected
+     */
     public ScheduledExecutorService getBackgroundSyncerExecutorService() {
-        return backgroundSyncerExecutorService;
+        return this.backgroundSyncerExecutorService;
     }
 
+    /**
+     * Get the storage adapter pointing to the synchronised folder
+     *
+     * @return The storage adapter pointing to the synchronised folder
+     */
     public ITreeStorageAdapter getStorageAdapter() {
-        return storageAdapter;
+        return this.storageAdapter;
+    }
+
+    /**
+     * Get the node of this sync instance.
+     * <b>Note</b>: This method will return null, if this peer is not yet connected
+     *
+     * @return The node if connected. Null otherwise
+     */
+    public INode getNode() {
+        return this.node;
     }
 }
