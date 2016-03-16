@@ -113,19 +113,6 @@ public class Sync {
     protected SyncFileChangeListener syncFileChangeListener;
 
     /**
-     * Creates a new Sync application.
-     *
-     * @param treeStorageAdapter A storage adapter pointing to the root directory of the synchronised folder
-     */
-    public Sync(ITreeStorageAdapter treeStorageAdapter) {
-        if (null == treeStorageAdapter) {
-            throw new IllegalArgumentException("Storage Adapter must not be null");
-        }
-
-        this.storageAdapter = treeStorageAdapter;
-    }
-
-    /**
      * Initializes the app by means of creating
      * all required app folders and files. This includes
      * <p>
@@ -136,40 +123,55 @@ public class Sync {
      * <li>read-only shared folder</li>
      * </ul>
      *
+     * @param storageAdapter A tree storage adapter pointing to the root of the synchronised folder
+     *
      * @throws InputOutputException If writing any of these elements fails
      */
-    public void init()
+    public static void init(ITreeStorageAdapter storageAdapter)
             throws InputOutputException {
 
         TreePathElement objectStoreFolder = new TreePathElement(Config.DEFAULT.getOsFolderName());
 
-        if (! this.storageAdapter.exists(StorageType.DIRECTORY, objectStoreFolder)) {
+        if (! storageAdapter.exists(StorageType.DIRECTORY, objectStoreFolder)) {
             // create Object Store folder if not yet existing
-            this.storageAdapter.persist(StorageType.DIRECTORY, objectStoreFolder, null);
+            storageAdapter.persist(StorageType.DIRECTORY, objectStoreFolder, null);
         }
 
         TreePathElement objectStoreObjectFolder = new TreePathElement(
                 Paths.get(objectStoreFolder.getPath()).resolve(Config.DEFAULT.getOsObjectFolderName()).toString()
         );
 
-        if (! this.storageAdapter.exists(StorageType.DIRECTORY, objectStoreObjectFolder)) {
+        if (! storageAdapter.exists(StorageType.DIRECTORY, objectStoreObjectFolder)) {
             // create the object folder inside the object store's directory
-            this.storageAdapter.persist(StorageType.DIRECTORY, objectStoreObjectFolder, null);
+            storageAdapter.persist(StorageType.DIRECTORY, objectStoreObjectFolder, null);
         }
 
         TreePathElement sharedWithOthersReadWriteFolder = new TreePathElement(Config.DEFAULT.getSharedWithOthersReadWriteFolderName());
 
-        if (! this.storageAdapter.exists(StorageType.DIRECTORY, sharedWithOthersReadWriteFolder)) {
+        if (! storageAdapter.exists(StorageType.DIRECTORY, sharedWithOthersReadWriteFolder)) {
             // create sharedWithOthers (read-write) folder
-            this.storageAdapter.persist(StorageType.DIRECTORY, sharedWithOthersReadWriteFolder, null);
+            storageAdapter.persist(StorageType.DIRECTORY, sharedWithOthersReadWriteFolder, null);
         }
 
         TreePathElement sharedWithOthersReadOnlyFolder = new TreePathElement(Config.DEFAULT.getSharedWithOthersReadOnlyFolderName());
 
-        if (! this.storageAdapter.exists(StorageType.DIRECTORY, sharedWithOthersReadOnlyFolder)) {
-            this.storageAdapter.persist(StorageType.DIRECTORY, sharedWithOthersReadOnlyFolder, null);
+        if (! storageAdapter.exists(StorageType.DIRECTORY, sharedWithOthersReadOnlyFolder)) {
+            storageAdapter.persist(StorageType.DIRECTORY, sharedWithOthersReadOnlyFolder, null);
         }
 
+    }
+
+    /**
+     * Creates a new Sync application.
+     *
+     * @param treeStorageAdapter A storage adapter pointing to the root directory of the synchronised folder
+     */
+    public Sync(ITreeStorageAdapter treeStorageAdapter) {
+        if (null == treeStorageAdapter) {
+            throw new IllegalArgumentException("Storage Adapter must not be null");
+        }
+
+        this.storageAdapter = treeStorageAdapter;
     }
 
     /**
