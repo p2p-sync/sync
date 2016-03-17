@@ -59,4 +59,43 @@ is maintained in its own repository:
 
 ## Usage
 
+For more details about particular components and examples how to use them, see the Section `Usage` in the wiki.
 
+```java
+
+  Path rootDir = Paths.get("path/to/synchronised/folder");
+  ITreeStorageAdapter storageAdapter = new LocalStorageAdapter(rootDir);
+
+  // initialise the synchronised folder:
+  // - create folder for ObjectStore (usually .sync)
+  // - create folders for shared files:
+  //    - sharedWithOthers (read-write)
+  //    - sharedWithOthers (read-only)
+  Sync.init(storageAdapter);
+
+  KeyPairGenerator keyGen = KeyPairGenerator.getInstance("RSA");
+  KeyPair keyPair = keyGen.genKeyPair();
+
+  RSAPublicKey publicKey = (RSAPublicKey) keyPair.getPublic();
+  RSAPrivateKey privateKey = (RSAPrivateKey) keyPair.getPrivate();
+
+
+  ApplicationConfig appConfig = ApplicationConfigFactory.createBootstrapApplicationConfig(
+    "Piff Jenkins",
+    "ThisIsSafeUseIt",
+    "SaltAndPepperMakesTheMealBetter",
+    publicKey,
+    privateKey,
+    ApplicationConfigFactory.getDefaultIgnorePatterns()
+  );
+
+  // create a new Sync instance pointing to the root of the
+  // specified storage adapter, i.e. path/to/synchronised/folder
+  Sync sync = new Sync(storageAdapter);
+
+  // start the node as bootstrap peer (depending on the specified configuration),
+  // reconcile state of the synchronised folder with the ObjectStore,
+  // reconcile local state with other connected clients of the same user
+  NodeLocation nodeLocation = sync.connect(appConfig);
+
+```
