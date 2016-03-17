@@ -17,6 +17,7 @@ depends on [TomP2P](https://github.com/tomp2p/TomP2P).
 
 # Requirements
 * Java 8
+* Linux / Mac OS X
 
 # Install using Maven
 To use this library, add the following to your `pom.xml`:
