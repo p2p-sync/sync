@@ -17,6 +17,7 @@ depends on [TomP2P](https://github.com/tomp2p/TomP2P).
 
 # Requirements
 * Java 8
+* Linux / Mac OS X
 
 # Install using Maven
 To use this library, add the following to your `pom.xml`:
@@ -59,4 +60,63 @@ is maintained in its own repository:
 
 ## Usage
 
+For more details about particular components and examples how to use them, see the Section `Usage` in the wiki.
 
+```java
+
+  Path rootDir = Paths.get("path/to/synchronised/folder");
+  ITreeStorageAdapter storageAdapter = new LocalStorageAdapter(rootDir);
+
+  // initialise the synchronised folder:
+  // - create folder for ObjectStore (usually .sync)
+  // - create folders for shared files:
+  //    - sharedWithOthers (read-write)
+  //    - sharedWithOthers (read-only)
+  Sync.init(storageAdapter);
+
+  KeyPairGenerator keyGen = KeyPairGenerator.getInstance("RSA");
+  KeyPair keyPair = keyGen.genKeyPair();
+
+  RSAPublicKey publicKey = (RSAPublicKey) keyPair.getPublic();
+  RSAPrivateKey privateKey = (RSAPrivateKey) keyPair.getPrivate();
+
+
+  ApplicationConfig appConfig = ApplicationConfigFactory.createBootstrapApplicationConfig(
+    "Piff Jenkins",
+    "ThisIsSafeUseIt",
+    "SaltAndPepperMakesTheMealBetter",
+    publicKey,
+    privateKey,
+    ApplicationConfigFactory.getDefaultIgnorePatterns()
+  );
+
+  // create a new Sync instance pointing to the root of the
+  // specified storage adapter, i.e. path/to/synchronised/folder
+  Sync sync = new Sync(storageAdapter);
+
+  // start the node as bootstrap peer (depending on the specified configuration),
+  // reconcile state of the synchronised folder with the ObjectStore,
+  // reconcile local state with other connected clients of the same user
+  NodeLocation nodeLocation = sync.connect(appConfig);
+
+```
+
+# License
+
+```
+
+  Copyright 2015 rmatil
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+```
