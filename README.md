@@ -7,6 +7,8 @@
 P2P-Sync is a library for distributed file synchronising and sharing. It is a refined version of [Hive2Hive](https://github.com/Hive2Hive/Hive2Hive). For the underlying functionality to build the P2P network, this library
 depends on [TomP2P](https://github.com/tomp2p/TomP2P).
 
+Implementation details are documented in the [wiki](https://github.com/p2p-sync/sync/wiki).
+
 # Features
 
 * Synchronise a folder among all your nodes in the same network
@@ -60,7 +62,7 @@ is maintained in its own repository:
 
 ## Usage
 
-For more details about particular components and examples how to use them, see the Section `Usage` in the wiki.
+For more details about particular components and examples how to use them, see the Section `Usage` in the [wiki](https://github.com/p2p-sync/sync/wiki).
 
 ```java
 
