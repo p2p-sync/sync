@@ -161,8 +161,9 @@ public class FileOfferRequestHandler implements ILocalStateRequestCallback {
                     }
                     break;
                 case MoveEvent.EVENT_NAME:
-                    // TODO: what is intended to be done, if target already exists?
-                    // overwrite path element to check with target
+                    // If target already exists, move will throw an exception
+                    // -> rely on the background syncer to get changes
+
                     // moves are not sent from clients of different users
                     pathElement = new TreePathElement(this.request.getEvent().getNewPath());
                 case CreateEvent.EVENT_NAME:
