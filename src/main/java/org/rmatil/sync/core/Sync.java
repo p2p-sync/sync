@@ -47,7 +47,7 @@ import org.rmatil.sync.network.api.INodeManager;
 import org.rmatil.sync.network.api.IUser;
 import org.rmatil.sync.network.core.ConnectionConfiguration;
 import org.rmatil.sync.network.core.Node;
-import org.rmatil.sync.network.core.model.ClientDevice;
+import org.rmatil.sync.network.core.model.NodeLocation;
 import org.rmatil.sync.network.core.model.User;
 import org.rmatil.sync.persistence.api.StorageType;
 import org.rmatil.sync.persistence.core.tree.ITreeStorageAdapter;
@@ -76,6 +76,11 @@ public class Sync {
      * The storage adapter managing the synced folder
      */
     protected ITreeStorageAdapter storageAdapter;
+
+    /**
+     * The object store of the synchronised folder
+     */
+    protected IObjectStore objectStore;
 
     /**
      * The file syncer used to propagate file change events to other clients
@@ -181,11 +186,11 @@ public class Sync {
      *
      * @param applicationConfig The application configuration
      *
-     * @return A client device representing the created and connected client
+     * @return The node location of the created and connected client
      *
      * @throws InitializationStartException If the client could not have been started
      */
-    public ClientDevice connect(ApplicationConfig applicationConfig)
+    public NodeLocation connect(ApplicationConfig applicationConfig)
             throws InitializationStartException {
         IUser user = new User(
                 applicationConfig.getUserName(),
@@ -217,7 +222,7 @@ public class Sync {
         );
 
 
-        IObjectStore objectStore = objectStoreInitializer.init();
+        this.objectStore = objectStoreInitializer.init();
         objectStoreInitializer.start();
 
         // Init client
@@ -338,7 +343,7 @@ public class Sync {
         this.backgroundSyncerExecutorService.scheduleAtFixedRate(backgroundSyncer, 0L, 300L, TimeUnit.SECONDS);
 
         // now set the peer address once we know it
-        return new ClientDevice(
+        return new NodeLocation(
                 this.node.getUser().getUserName(),
                 this.node.getClientDeviceId(),
                 this.node.getPeerAddress()
@@ -402,6 +407,16 @@ public class Sync {
      */
     public ScheduledExecutorService getBackgroundSyncerExecutorService() {
         return this.backgroundSyncerExecutorService;
+    }
+
+    /**
+     * Get the object store of the synchronised folder.
+     * <b>Note</b>: This method may return null before the node is connected.
+     *
+     * @return The Object Store of the synchronised folder
+     */
+    public IObjectStore getObjectStore() {
+        return this.objectStore;
     }
 
     /**

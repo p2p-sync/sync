@@ -129,7 +129,7 @@ public final class ApplicationConfigFactory {
      *
      * @throws NoSuchAlgorithmException If no provider supports RSA
      */
-    public static ApplicationConfig createDefaultApplicationConfig()
+    public static ApplicationConfig createBootstrapApplicationConfig()
             throws NoSuchAlgorithmException {
         KeyPairGenerator keyPairGenerator;
         keyPairGenerator = KeyPairGenerator.getInstance("RSA");
@@ -138,7 +138,7 @@ public final class ApplicationConfigFactory {
         RSAPublicKey rsaPublicKey = (RSAPublicKey) keyPair.getPublic();
         RSAPrivateKey rsaPrivateKey = (RSAPrivateKey) keyPair.getPrivate();
 
-        return ApplicationConfigFactory.createDefaultApplicationConfig(
+        return ApplicationConfigFactory.createBootstrapApplicationConfig(
                 null,
                 null,
                 null,
@@ -150,7 +150,9 @@ public final class ApplicationConfigFactory {
 
     /**
      * Create a new application configuration containing default
-     * configuration values for the user parameters specified
+     * configuration values for the user parameters specified.
+     * This method specifically creates a configuration for a bootstrap node,
+     * i.e. no remote is used.
      *
      * @param username       The name of the user for which the config should be created
      * @param password       The password of that user
@@ -161,8 +163,33 @@ public final class ApplicationConfigFactory {
      *
      * @return The created application configuration
      */
-    public static ApplicationConfig createDefaultApplicationConfig(String username, String password, String salt, RSAPublicKey rsaPublicKey, RSAPrivateKey rsaPrivateKey, List<String> ignorePatterns) {
+    public static ApplicationConfig createBootstrapApplicationConfig(String username, String password, String salt, RSAPublicKey rsaPublicKey, RSAPrivateKey rsaPrivateKey, List<String> ignorePatterns) {
+        return ApplicationConfigFactory.createDefaultApplicationConfig(
+                username,
+                password,
+                salt,
+                rsaPublicKey,
+                rsaPrivateKey,
+                null,
+                ignorePatterns
+        );
+    }
 
+    /**
+     * Create a new application configuration containing default
+     * configuration values for the user parameters specified.
+     *
+     * @param username       The name of the user for which the config should be created
+     * @param password       The password of that user
+     * @param salt           The salt of that user
+     * @param rsaPublicKey   A RSA public key to use
+     * @param rsaPrivateKey  A RSA private key to use
+     * @param remote         The remote node location of a node already joined the network
+     * @param ignorePatterns Ignore Patterns to use
+     *
+     * @return The created application configuration
+     */
+    public static ApplicationConfig createDefaultApplicationConfig(String username, String password, String salt, RSAPublicKey rsaPublicKey, RSAPrivateKey rsaPrivateKey, RemoteClientLocation remote, List<String> ignorePatterns) {
         return new ApplicationConfig(
                 username,
                 password,
@@ -174,10 +201,7 @@ public final class ApplicationConfigFactory {
                 Config.DEFAULT.getDefaultPort(),
                 rsaPublicKey,
                 rsaPrivateKey,
-                new RemoteClientLocation(
-                        null,
-                        - 1
-                ),
+                remote,
                 ignorePatterns
         );
     }
