@@ -4,7 +4,7 @@
 [![Coverage Status](https://coveralls.io/repos/p2p-sync/sync/badge.svg?branch=master&service=github)](https://coveralls.io/github/p2p-sync/sync?branch=master)
 
 
-P2P-Sync is a library for distributed file synchronising and sharing. It is a refined version of [Hive2Hive](https://github.com/Hive2Hive/Hive2Hive). For the underlying functionality to build the P2P network, this library
+<img src="https://cdn.rawgit.com/p2p-sync/sync/b3d2d952489f5bcca63839c6223c81473b48703c/src/main/resources/sync-logo.png" width="12"> P2P-Sync is a library for distributed file synchronising and sharing. It is a refined version of [Hive2Hive](https://github.com/Hive2Hive/Hive2Hive). For the underlying functionality to build the P2P network, this library
 depends on [TomP2P](https://github.com/tomp2p/TomP2P).
 
 Implementation details are documented in the [wiki](https://github.com/p2p-sync/sync/wiki).
