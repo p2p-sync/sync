@@ -54,8 +54,6 @@ public class UnsharedExchangeHandler extends ANetworkHandler<UnsharedExchangeHan
                 return;
             }
 
-            // TODO: why not sending the file path instead the file id?
-
             UnsharedRequest unsharedRequest = new UnsharedRequest(
                     this.exchangeId,
                     StatusCode.NONE,

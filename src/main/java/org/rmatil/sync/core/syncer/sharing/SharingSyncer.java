@@ -46,9 +46,6 @@ public class SharingSyncer implements ISharingSyncer {
     public void sync(IShareEvent sharingEvent)
             throws SharingFailedException, UnsharingFailedException {
         // share event
-
-        // TODO: share events recursively from parent to children (only if folder)
-
         if (sharingEvent instanceof ShareEvent) {
             this.syncShareEvent((ShareEvent) sharingEvent);
         }

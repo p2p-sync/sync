@@ -150,15 +150,6 @@ public class NonBlockingBackgroundSyncer implements IBackgroundSyncer {
             Map<String, ClientDevice> updatedPaths = new TreeMap<>(new StringLengthComparator());
             Map<String, ClientDevice> conflictPaths = new TreeMap<>(new StringLengthComparator());
 
-            // TODO: what if different object stores have states on the same file?
-            // -> one has the same version
-            // -> one has a conflicting version
-            // --> the last wins here?
-            // delete <- change
-            // delete <- conflict
-            // conflict <- change
-
-            // TODO: use majority to decide on inconsistencies
             for (Map.Entry<ClientDevice, IObjectStore> entry : objectStores.entrySet()) {
                 HashMap<ObjectStore.MergedObjectType, Set<String>> outdatedOrDeletedPaths = this.objectStore.mergeObjectStore(entry.getValue());
 
