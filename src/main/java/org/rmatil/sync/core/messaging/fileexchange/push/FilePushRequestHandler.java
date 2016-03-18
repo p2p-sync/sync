@@ -183,10 +183,6 @@ public class FilePushRequestHandler implements ILocalStateRequestCallback {
 
             logger.info("Writing chunk " + this.request.getChunkCounter() + " for file " + localPathElement.getPath() + " for exchangeId " + this.request.getExchangeId());
 
-
-            // TODO: check whether the file isDeleted on each write, there might be a concurrent incoming delete request
-            // -> affected FilePaths? in ObjectDataReply?
-
             StorageType storageType = this.request.isFile() ? StorageType.FILE : StorageType.DIRECTORY;
 
             if (! fileIsChildFromSharedFolder && 0 == this.request.getChunkCounter()) {
