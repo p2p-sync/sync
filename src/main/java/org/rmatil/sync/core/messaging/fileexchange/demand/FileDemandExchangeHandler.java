@@ -5,6 +5,7 @@ import org.rmatil.sync.core.eventbus.AddSharerToObjectStoreBusEvent;
 import org.rmatil.sync.core.eventbus.CleanModifyIgnoreEventsBusEvent;
 import org.rmatil.sync.core.eventbus.IBusEvent;
 import org.rmatil.sync.core.eventbus.IgnoreBusEvent;
+import org.rmatil.sync.core.init.client.ILocalStateResponseCallback;
 import org.rmatil.sync.core.messaging.StatusCode;
 import org.rmatil.sync.event.aggregator.core.events.CreateEvent;
 import org.rmatil.sync.event.aggregator.core.events.ModifyEvent;
@@ -31,7 +32,7 @@ import java.util.concurrent.TimeUnit;
 /**
  * An exchange handler to request missing files from another client.
  */
-public class FileDemandExchangeHandler extends ANetworkHandler<FileDemandExchangeHandlerResult> {
+public class FileDemandExchangeHandler extends ANetworkHandler<FileDemandExchangeHandlerResult> implements ILocalStateResponseCallback {
 
     private static final Logger logger = LoggerFactory.getLogger(FileDemandExchangeHandler.class);
 
@@ -158,9 +159,6 @@ public class FileDemandExchangeHandler extends ANetworkHandler<FileDemandExchang
             return;
         }
 
-        // TODO: check whether the file isDeleted on each write, there might be a concurrent incoming delete request
-        // -> affected FilePaths? in ObjectDataReply?
-
         this.publishIgnoreEvents(fileDemandResponse, localPathElement);
 
         if (StatusCode.ACCEPTED.equals(fileDemandResponse.getStatusCode())) {
@@ -264,6 +262,13 @@ public class FileDemandExchangeHandler extends ANetworkHandler<FileDemandExchang
         // rewritten each time we call run()
         // -> therefore we have to await here
         return null != this.receivedAllChunksCountDownLatch && 0L == this.receivedAllChunksCountDownLatch.getCount();
+    }
+
+    @Override
+    public List<String> getAffectedFilePaths() {
+        List<String> affectedFiles = new ArrayList<>();
+        affectedFiles.add(this.pathToFetch);
+        return affectedFiles;
     }
 
     @Override
