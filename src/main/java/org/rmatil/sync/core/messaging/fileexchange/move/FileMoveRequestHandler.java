@@ -21,11 +21,10 @@ import org.rmatil.sync.version.core.model.PathObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.stream.Stream;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Handles incoming {@link FileMoveRequest} and moves the
@@ -117,10 +116,10 @@ public class FileMoveRequestHandler implements ILocalStateRequestCallback {
             StorageType storageType = this.request.isFile() ? StorageType.FILE : StorageType.DIRECTORY;
 
             try {
+                // if the file does not exist, do not move and rely on the background syncer
+                // which will fetch it
                 if (this.storageAdapter.exists(storageType, oldPathElement)) {
                     this.move(storageType, oldPathElement, newPathElement);
-                } else {
-                    // TODO: request file on the new path
                 }
             } catch (InputOutputException e) {
                 logger.error("Could not move path " + this.request.getOldPath() + " to " + this.request.getNewPath() + ". Message: " + e.getMessage());
@@ -171,27 +170,29 @@ public class FileMoveRequestHandler implements ILocalStateRequestCallback {
     protected void move(StorageType storageType, TreePathElement oldPath, TreePathElement newPath)
             throws InputOutputException {
 
-        // TODO: use get directory contents
         if (StorageType.DIRECTORY == storageType) {
-            try (Stream<Path> paths = Files.walk(Paths.get(this.storageAdapter.getRootDir().getPath()).resolve(oldPath.getPath()))) {
-                paths.forEach((entry) -> {
-                    Path oldFilePath = Paths.get(this.storageAdapter.getRootDir().getPath()).relativize(entry);
-                    Path newFilePath = Paths.get(newPath.getPath()).resolve(Paths.get(oldPath.getPath()).relativize(Paths.get(this.storageAdapter.getRootDir().getPath()).relativize(Paths.get(entry.toString()))));
+            List<TreePathElement> elementsToIgnore = new ArrayList<>();
+            elementsToIgnore.add(oldPath);
 
-                    this.globalEventBus.publish(new IgnoreBusEvent(
-                            new MoveEvent(
-                                    oldFilePath,
-                                    newFilePath,
-                                    Paths.get(oldPath.getPath()).getFileName().toString(),
-                                    "weIgnoreTheHash",
-                                    System.currentTimeMillis()
-                            )
-                    ));
-                });
-            } catch (IOException e) {
-                logger.error("Could not create ignore events for the move of " + oldPath.getPath() + ". Message: " + e.getMessage());
+            if (this.storageAdapter.isDir(oldPath)) {
+                // add all directory contents to the ignored files too
+                elementsToIgnore.addAll(this.storageAdapter.getDirectoryContents(oldPath));
             }
 
+            for (TreePathElement element : elementsToIgnore) {
+                Path oldFilePath = Paths.get(element.getPath());
+                Path newFilePath = Paths.get(newPath.getPath()).resolve(Paths.get(oldPath.getPath()).relativize(Paths.get(this.storageAdapter.getRootDir().getPath()).relativize(Paths.get(element.getPath().toString()))));
+
+                this.globalEventBus.publish(new IgnoreBusEvent(
+                        new MoveEvent(
+                                oldFilePath,
+                                newFilePath,
+                                Paths.get(oldPath.getPath()).getFileName().toString(),
+                                "weIgnoreTheHash",
+                                System.currentTimeMillis()
+                        )
+                ));
+            }
 
             this.storageAdapter.move(storageType, oldPath, newPath);
         } else {

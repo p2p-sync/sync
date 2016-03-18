@@ -21,12 +21,10 @@ import org.rmatil.sync.version.core.model.PathObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.stream.Stream;
+import java.util.List;
 
 /**
  * The request handler for a FileDeleteExchange.
@@ -125,34 +123,37 @@ public class FileDeleteRequestHandler implements ILocalStateRequestCallback {
             try {
                 if (this.storageAdapter.exists(StorageType.DIRECTORY, pathToDelete) || this.storageAdapter.exists(StorageType.FILE, pathToDelete)) {
                     // create ignore events for all dir contents
-                    // TODO: use getDirectoryContents
-                    try (Stream<Path> paths = Files.walk(Paths.get(this.storageAdapter.getRootDir().getPath()).resolve(pathToDelete.getPath()))) {
-                        paths.forEach((entry) -> {
-                            this.globalEventBus.publish(new IgnoreBusEvent(
-                                    new DeleteEvent(
-                                            Paths.get(this.storageAdapter.getRootDir().getPath()).relativize(entry),
-                                            Paths.get(this.storageAdapter.getRootDir().getPath()).relativize(entry).getFileName().toString(),
-                                            "weIgnoreTheHash",
-                                            System.currentTimeMillis()
-                                    )
-                            ));
+                    List<TreePathElement> elementsToIgnore = new ArrayList<>();
+                    elementsToIgnore.add(pathToDelete);
 
-                            try {
-                                logger.trace("Removing sharing information from object store for file " + entry + " and exchange " + this.request.getExchangeId());
-                                // remove all connections to any sharers
-                                PathObject deletedObject = this.objectStore.getObjectManager().getObjectForPath(Paths.get(this.storageAdapter.getRootDir().getPath()).relativize(entry).toString());
-                                deletedObject.setSharers(new HashSet<>());
-                                deletedObject.setIsShared(false);
-                                deletedObject.setAccessType(null);
-                                deletedObject.setOwner(null);
+                    if (this.storageAdapter.isDir(pathToDelete)) {
+                        // add all directory contents to the ignored files too
+                        elementsToIgnore.addAll(this.storageAdapter.getDirectoryContents(pathToDelete));
+                    }
 
-                                this.objectStore.getObjectManager().writeObject(deletedObject);
-                            } catch (InputOutputException e) {
-                                logger.error("Failed to remove sharing information from object store: " + e.getMessage());
-                            }
-                        });
-                    } catch (IOException e) {
-                        logger.error("Could not create ignore events for the deletion of " + pathToDelete.getPath() + ". Message: " + e.getMessage());
+                    for (TreePathElement element : elementsToIgnore) {
+                        this.globalEventBus.publish(new IgnoreBusEvent(
+                                new DeleteEvent(
+                                        Paths.get(element.getPath()),
+                                        Paths.get(element.getPath()).getFileName().toString(),
+                                        "weIgnoreTheHash",
+                                        System.currentTimeMillis()
+                                )
+                        ));
+
+                        try {
+                            logger.trace("Removing sharing information from object store for file " + element.getPath() + " and exchange " + this.request.getExchangeId());
+                            // remove all connections to any sharers
+                            PathObject deletedObject = this.objectStore.getObjectManager().getObjectForPath(element.getPath());
+                            deletedObject.setSharers(new HashSet<>());
+                            deletedObject.setIsShared(false);
+                            deletedObject.setAccessType(null);
+                            deletedObject.setOwner(null);
+
+                            this.objectStore.getObjectManager().writeObject(deletedObject);
+                        } catch (InputOutputException e) {
+                            logger.error("Failed to remove sharing information from object store: " + e.getMessage());
+                        }
                     }
 
                     this.storageAdapter.delete(pathToDelete);
