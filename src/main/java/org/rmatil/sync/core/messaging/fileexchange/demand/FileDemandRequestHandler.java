@@ -179,6 +179,12 @@ public class FileDemandRequestHandler implements ILocalStateRequestCallback {
 
         } catch (Exception e) {
             logger.error("Got exception in FileDemandRequestHandler. Message: " + e.getMessage(), e);
+
+            try {
+                this.sendResponse(this.createErrorResponse(StatusCode.ERROR, - 1, - 1));
+            } catch (Exception e1) {
+                logger.error("Failed to notify originating node about error in exchange " + this.request.getExchangeId() + ". Message: " + e1.getMessage(), e1);
+            }
         }
     }
 

@@ -212,7 +212,13 @@ public class FilePushExchangeHandler extends ANetworkHandler<FilePushExchangeHan
             return;
         }
 
-        if (- 1 < ((FilePushResponse) response).getChunkCounter()) {
+        if (StatusCode.ERROR.equals(((FilePushResponse) response).getStatusCode()) ||
+                0 > ((FilePushResponse) response).getChunkCounter()) {
+            // exchange is finished or an error occurred on the other side
+            super.node.getObjectDataReplyHandler().removeResponseCallbackHandler(response.getExchangeId());
+            super.onResponse(response);
+            this.chunkCountDownLatch.countDown();
+        } else {
             this.sendChunk(
                     ((FilePushResponse) response).getChunkCounter(),
                     this.fileId,
@@ -223,11 +229,6 @@ public class FilePushExchangeHandler extends ANetworkHandler<FilePushExchangeHan
                             response.getClientDevice().getClientDeviceId(),
                             response.getClientDevice().getPeerAddress())
             );
-        } else {
-            // exchange is finished
-            super.node.getObjectDataReplyHandler().removeResponseCallbackHandler(response.getExchangeId());
-            super.onResponse(response);
-            this.chunkCountDownLatch.countDown();
         }
     }
 

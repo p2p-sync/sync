@@ -111,7 +111,7 @@ public class ShareRequestHandler implements ILocalStateRequestCallback {
                     ! relativePath.startsWith(Config.DEFAULT.getSharedWithOthersReadWriteFolderName())) {
                 // we detected a circular reference for sharing
                 logger.warn("Detected a circular reference for file " + this.request.getFileId() + ". It is already stored at " + relativePath + ". Denying the incoming share request for exchange " + this.request.getExchangeId());
-                this.sendResponse(this.createErrorResponse());
+                this.sendResponse(this.createDeniedResponse());
                 return;
             }
 
@@ -263,6 +263,12 @@ public class ShareRequestHandler implements ILocalStateRequestCallback {
 
         } catch (Exception e) {
             logger.error("Got Error in ShareRequestHandler for exchange " + this.request.getExchangeId() + ": " + e.getMessage(), e);
+
+            try {
+                this.sendResponse(this.createResponse(StatusCode.ERROR, - 1));
+            } catch (Exception e1) {
+                logger.error("Failed to notify originating node about error in exchange " + this.request.getExchangeId() + ". Message: " + e1.getMessage(), e1);
+            }
         }
     }
 
@@ -274,9 +280,30 @@ public class ShareRequestHandler implements ILocalStateRequestCallback {
      * @return The created ShareResponse
      */
     protected ShareResponse createResponse(long requestingChunk) {
+        return this.createResponse(StatusCode.ACCEPTED, requestingChunk);
+    }
+
+    /**
+     * Creates an error share response with access denied
+     *
+     * @return The error share response
+     */
+    protected ShareResponse createDeniedResponse() {
+        return this.createResponse(StatusCode.ACCESS_DENIED, - 1);
+    }
+
+    /**
+     * Create a new response with the given status code and requesting chunk
+     *
+     * @param statusCode      The status code
+     * @param requestingChunk The chunk to request
+     *
+     * @return The created response
+     */
+    protected ShareResponse createResponse(StatusCode statusCode, long requestingChunk) {
         return new ShareResponse(
                 this.request.getExchangeId(),
-                StatusCode.ACCEPTED,
+                statusCode,
                 new ClientDevice(
                         this.node.getUser().getUserName(),
                         this.node.getClientDeviceId(),
@@ -289,30 +316,6 @@ public class ShareRequestHandler implements ILocalStateRequestCallback {
                         this.request.getClientDevice().getPeerAddress()
                 ),
                 requestingChunk
-        );
-    }
-
-    /**
-     * Creates an error share response
-     *
-     * @return The error share response
-     */
-    protected ShareResponse createErrorResponse() {
-        return new ShareResponse(
-                this.request.getExchangeId(),
-                StatusCode.DENIED,
-                new ClientDevice(
-                        this.node.getUser().getUserName(),
-                        this.node.getClientDeviceId(),
-                        this.node.getPeerAddress()
-                ),
-                this.request.getFileId(),
-                new NodeLocation(
-                        this.request.getClientDevice().getUserName(),
-                        this.request.getClientDevice().getClientDeviceId(),
-                        this.request.getClientDevice().getPeerAddress()
-                ),
-                - 1
         );
     }
 

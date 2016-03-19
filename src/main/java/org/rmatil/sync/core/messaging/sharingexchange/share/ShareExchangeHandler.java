@@ -145,8 +145,14 @@ public class ShareExchangeHandler extends ANetworkHandler<ShareExchangeHandlerRe
             return;
         }
 
-        if (- 1 < ((ShareResponse) response).getChunkCounter() &&
-                StatusCode.DENIED != ((ShareResponse) response).getStatusCode()) {
+        if (StatusCode.ERROR.equals(((ShareResponse) response).getStatusCode()) ||
+                StatusCode.DENIED.equals(((ShareResponse) response).getStatusCode()) ||
+                0 > ((ShareResponse) response).getChunkCounter()) {
+            // exchange is finished or an error occurred
+            super.node.getObjectDataReplyHandler().removeResponseCallbackHandler(response.getExchangeId());
+            super.onResponse(response);
+            this.chunkCountDownLatch.countDown();
+        } else {
             this.sendChunk(
                     ((ShareResponse) response).getChunkCounter(),
                     response.getExchangeId(),
@@ -156,13 +162,6 @@ public class ShareExchangeHandler extends ANetworkHandler<ShareExchangeHandlerRe
                             response.getClientDevice().getPeerAddress()
                     )
             );
-        } else {
-            // exchange is finished
-            super.node.getObjectDataReplyHandler().removeResponseCallbackHandler(response.getExchangeId());
-
-            super.onResponse(response);
-
-            this.chunkCountDownLatch.countDown();
         }
     }
 

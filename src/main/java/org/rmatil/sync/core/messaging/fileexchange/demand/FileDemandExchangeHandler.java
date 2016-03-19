@@ -151,9 +151,21 @@ public class FileDemandExchangeHandler extends ANetworkHandler<FileDemandExchang
 
         TreePathElement localPathElement = new TreePathElement(fileDemandResponse.getRelativeFilePath());
 
-        if (StatusCode.DENIED.equals(fileDemandResponse.getStatusCode()) || StatusCode.FILE_MISSING.equals(fileDemandResponse.getStatusCode())) {
+        if (StatusCode.DENIED.equals(fileDemandResponse.getStatusCode()) ||
+                StatusCode.ERROR.equals(fileDemandResponse.getStatusCode()) ||
+                StatusCode.FILE_MISSING.equals(fileDemandResponse.getStatusCode())) {
             // the other client does not have the file anymore or we do not have the correct access rights to fetch it...
-            logger.error("The answering client (" + fileDemandResponse.getClientDevice().getPeerAddress().inetAddress().getHostName() + ":" + fileDemandResponse.getClientDevice().getPeerAddress().tcpPort() + ") does not have the requested file (anymore) or denied our request due to missing access rights or due to another exchange for the file. Aborting file demand " + this.exchangeId);
+            // He may also just encountered an error
+            logger.error(
+                    "The answering client (" +
+                            fileDemandResponse.getClientDevice().getPeerAddress().inetAddress().getHostName() +
+                            ":" +
+                            fileDemandResponse.getClientDevice().getPeerAddress().tcpPort() +
+                            ") responded with status " +
+                            fileDemandResponse.getStatusCode().toString() +
+                            ". Aborting file demand " +
+                            this.exchangeId
+            );
             super.onResponse(fileDemandResponse);
             this.receivedAllChunksCountDownLatch.countDown();
             return;

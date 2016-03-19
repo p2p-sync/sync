@@ -43,6 +43,12 @@ public enum StatusCode {
     CONFLICT,
 
     /**
+     * If the receiving node got an error while executing
+     * the sent operation request
+     */
+    ERROR,
+
+    /**
      * If the client already has the state,
      * offered in an {@link FileOfferRequest}
      */

@@ -220,6 +220,12 @@ public class FileOfferRequestHandler implements ILocalStateRequestCallback {
             this.sendResponse(this.createResponse(statusCode));
         } catch (Exception e) {
             logger.error("Failed to handle file offer request " + this.request.getExchangeId() + ". Message: " + e.getMessage(), e);
+
+            try {
+                this.sendResponse(this.createResponse(StatusCode.ERROR));
+            } catch (Exception e1) {
+                logger.error("Failed to notify originating node about error in exchange " + this.request.getExchangeId() + ". Message: " + e1.getMessage(), e1);
+            }
         }
     }
 

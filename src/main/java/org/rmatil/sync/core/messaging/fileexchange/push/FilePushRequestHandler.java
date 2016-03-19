@@ -264,6 +264,12 @@ public class FilePushRequestHandler implements ILocalStateRequestCallback {
             this.sendResponse(this.createResponse(requestingChunk));
         } catch (Exception e) {
             logger.error("Error in FilePushRequestHandler for exchangeId " + this.request.getExchangeId() + ". Message: " + e.getMessage(), e);
+
+            try {
+                this.sendResponse(this.createResponse(StatusCode.ERROR, - 1));
+            } catch (Exception e1) {
+                logger.error("Failed to notify originating node about error in exchange " + this.request.getExchangeId() + ". Message: " + e1.getMessage(), e1);
+            }
         }
     }
 
@@ -275,9 +281,21 @@ public class FilePushRequestHandler implements ILocalStateRequestCallback {
      * @return The created FilePushResponse
      */
     protected FilePushResponse createResponse(long requestingChunk) {
+        return this.createResponse(StatusCode.ACCEPTED, requestingChunk);
+    }
+
+    /**
+     * Create an error response with the given status code
+     * and -1 as requesting chunk.
+     *
+     * @param statusCode The status code of the error response
+     *
+     * @return The error response
+     */
+    protected FilePushResponse createResponse(StatusCode statusCode, long requestingChunk) {
         return new FilePushResponse(
                 this.request.getExchangeId(),
-                StatusCode.ACCEPTED,
+                statusCode,
                 new ClientDevice(
                         this.node.getUser().getUserName(),
                         this.node.getClientDeviceId(),

@@ -119,6 +119,12 @@ public class UnshareRequestHandler implements ILocalStateRequestCallback {
             this.sendResponse(StatusCode.ACCEPTED);
         } catch (Exception e) {
             logger.error("Got exception in UnshareRequestHandler. Message: " + e.getMessage(), e);
+
+            try {
+                this.sendResponse(StatusCode.ERROR);
+            } catch (Exception e1) {
+                logger.error("Failed to notify originating node about error in exchange " + this.request.getExchangeId() + ". Message: " + e1.getMessage(), e1);
+            }
         }
     }
 
