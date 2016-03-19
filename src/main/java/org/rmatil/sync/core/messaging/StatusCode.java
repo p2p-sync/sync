@@ -1,11 +1,33 @@
 package org.rmatil.sync.core.messaging;
 
+import org.rmatil.sync.core.messaging.base.AMessage;
+import org.rmatil.sync.core.messaging.base.ARequest;
+import org.rmatil.sync.core.messaging.base.AResponse;
 import org.rmatil.sync.core.messaging.fileexchange.offer.FileOfferRequest;
+import org.rmatil.sync.core.messaging.fileexchange.push.FilePushExchangeHandler;
 
+/**
+ * Similar to HTTP responses, a {@link AMessage}, the base class
+ * for an {@link ARequest} resp. {@link AResponse}, contains
+ * a flag indicating the message's status.
+ * <p>
+ * However, not only responses may have a status but also
+ * requests. The {@link FilePushExchangeHandler} uses this flag
+ * to indicate whether a file has changed in the mean time of synchronising
+ * to allow the receiving client to restart the exchange.
+ */
 public enum StatusCode {
 
+    /**
+     * Used for initial requests
+     * which do not have any status yet
+     */
     NONE,
 
+    /**
+     * If the request was accepted
+     * and the corresponding operation executed
+     */
     ACCEPTED,
 
     /**
@@ -34,11 +56,9 @@ public enum StatusCode {
 
     /**
      * The status code of a file exchange message, if the
-     * file has changed while transferring
+     * file has changed while transmitting
      */
     FILE_CHANGED,
-
-    FILE_CORRUPT,
 
     /**
      * The status code of a file exchange, if the
