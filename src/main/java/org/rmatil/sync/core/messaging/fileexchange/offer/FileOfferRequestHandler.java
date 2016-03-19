@@ -154,6 +154,10 @@ public class FileOfferRequestHandler implements ILocalStateRequestCallback {
                         if ((this.request.getEvent().isFile() && this.storageAdapter.exists(StorageType.FILE, pathElement)) ||
                                 this.storageAdapter.exists(StorageType.DIRECTORY, pathElement)) {
                             statusCode = StatusCode.ACCEPTED;
+                        } else {
+                            // we do not have the file,
+                            // a delete request will therefore fail
+                            statusCode = StatusCode.REQUEST_OBSOLETE;
                         }
                     } catch (InputOutputException e) {
                         logger.error("Could not check whether the path " + pathElement.getPath() + " exists or not. Message: " + e.getMessage() + ". Sending back an unaccepted offer");
@@ -195,7 +199,9 @@ public class FileOfferRequestHandler implements ILocalStateRequestCallback {
                                     logger.warn("Failed to move conflicting file with id " + fileId + " on path " + pathElement.getPath() + " to new path too. Maybe another client moved it already? Message: " + e.getMessage());
                                 }
 
-                            } else if (CONFLICT_TYPE.NO_CONFLICT_REQUEST_REQUIRED == hasVersionConflict) {
+                            } else if (CONFLICT_TYPE.NO_CONFLICT_REQUEST_REQUIRED == hasVersionConflict ||
+                                    MoveEvent.EVENT_NAME.equals(this.request.getEvent().getEventName())) {
+                                // we always require a move event to be executed
                                 statusCode = StatusCode.ACCEPTED;
                             } else {
                                 statusCode = StatusCode.REQUEST_OBSOLETE;
