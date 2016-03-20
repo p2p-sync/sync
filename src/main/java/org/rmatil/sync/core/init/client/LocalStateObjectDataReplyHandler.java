@@ -21,6 +21,18 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
 
+/**
+ * Maps incoming {@link IRequest} resp. {@link IResponse} with
+ * their associated callback, i.e. {@link ILocalStateRequestCallback} resp. {@link ILocalStateResponseCallback}.
+ * Each callback is executed in its own thread, allowing concurrent information to be handled.
+ * <p>
+ * If a incoming object can not be handled by any of the registered callbacks, <code>null</code> is returned
+ * to the originating node.
+ * <p>
+ * {@link ILocalStateResponseCallback} can define a list of file paths which are affected of
+ * the operation. If any other request affects such an element, it gets denied, forcing the
+ * originating node to send the request again.
+ */
 public class LocalStateObjectDataReplyHandler extends ObjectDataReplyHandler {
 
     protected ITreeStorageAdapter  storageAdapter;
