@@ -12,6 +12,8 @@ import java.io.Serializable;
  */
 public class SerializableEvent implements Serializable {
 
+    private static final long serialVersionUID = - 80689716799205241L;
+    
     /**
      * The name of the event.
      * Matching {@link IEvent#getEventName()}

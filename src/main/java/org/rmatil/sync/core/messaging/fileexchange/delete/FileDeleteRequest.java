@@ -15,6 +15,8 @@ import java.util.UUID;
  */
 public class FileDeleteRequest extends ARequest {
 
+    private static final long serialVersionUID = 8342595024542895598L;
+
     /**
      * The path to delete relative to the synced folder's root
      */

@@ -17,6 +17,8 @@ public class AMessageTest {
 
     protected class DummyMessage extends AMessage {
 
+        private static final long serialVersionUID = 6018203538355605664L;
+
         /**
          * @param exchangeId The exchangeId of the message
          * @param statusCode The status code of the message

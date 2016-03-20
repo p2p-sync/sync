@@ -13,6 +13,8 @@ import java.util.UUID;
  */
 public class FetchObjectStoreResponse extends AResponse {
 
+    private static final long serialVersionUID = 5616031371343816971L;
+
     /**
      * The zipped object store
      */

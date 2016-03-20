@@ -9,6 +9,8 @@ import java.util.UUID;
 
 public class ShareResponse extends AResponse {
 
+    private static final long serialVersionUID = 4350264968709204649L;
+
     /**
      * The unique file id
      */

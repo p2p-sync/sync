@@ -4,7 +4,6 @@ import org.rmatil.sync.core.messaging.StatusCode;
 import org.rmatil.sync.core.messaging.base.AResponse;
 import org.rmatil.sync.network.core.model.ClientDevice;
 import org.rmatil.sync.network.core.model.NodeLocation;
-import org.rmatil.sync.network.core.model.NodeLocation;
 
 import java.util.UUID;
 
@@ -13,6 +12,8 @@ import java.util.UUID;
  * send a file offer request.
  */
 public class FileOfferResponse extends AResponse {
+
+    private static final long serialVersionUID = 6931319694062356099L;
 
     /**
      * @param exchangeId      The id of the file exchange

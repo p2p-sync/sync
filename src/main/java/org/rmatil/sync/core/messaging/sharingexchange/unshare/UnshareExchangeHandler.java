@@ -2,7 +2,6 @@ package org.rmatil.sync.core.messaging.sharingexchange.unshare;
 
 import org.rmatil.sync.core.messaging.StatusCode;
 import org.rmatil.sync.network.api.INode;
-import org.rmatil.sync.network.api.IResponse;
 import org.rmatil.sync.network.core.ANetworkHandler;
 import org.rmatil.sync.network.core.model.ClientDevice;
 import org.rmatil.sync.network.core.model.NodeLocation;
@@ -12,7 +11,6 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 
 public class UnshareExchangeHandler extends ANetworkHandler<UnshareExchangeHandlerResult> {
 

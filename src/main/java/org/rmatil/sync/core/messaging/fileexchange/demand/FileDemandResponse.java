@@ -16,6 +16,8 @@ import java.util.UUID;
  */
 public class FileDemandResponse extends AResponse {
 
+    private static final long serialVersionUID = 57343958332651070L;
+
     /**
      * A checksum over the content from the complete file,
      * i.e. the combination of all chunks.

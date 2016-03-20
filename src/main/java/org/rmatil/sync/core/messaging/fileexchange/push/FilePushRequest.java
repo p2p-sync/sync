@@ -18,6 +18,8 @@ import java.util.UUID;
  */
 public class FilePushRequest extends ARequest {
 
+    private static final long serialVersionUID = - 2486279872922997983L;
+
     /**
      * A checksum over the content from the complete file,
      * i.e. the combination of all chunks

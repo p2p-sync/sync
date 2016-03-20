@@ -110,7 +110,7 @@ public class Chunk {
     /**
      * Whether the file is a file or a directory
      *
-     * @return
+     * @return True, if a file, false otherwise
      */
     public boolean isFile() {
         return isFile;

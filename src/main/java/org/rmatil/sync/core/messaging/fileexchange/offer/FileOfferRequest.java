@@ -14,6 +14,8 @@ import java.util.UUID;
  */
 public class FileOfferRequest extends ARequest {
 
+    private static final long serialVersionUID = - 3074601001422173408L;
+
     /**
      * The event to offer to other clients
      */

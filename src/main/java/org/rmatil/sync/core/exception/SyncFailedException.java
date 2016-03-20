@@ -2,6 +2,8 @@ package org.rmatil.sync.core.exception;
 
 public class SyncFailedException extends RuntimeException {
 
+    private static final long serialVersionUID = 1269047290321287484L;
+
     public SyncFailedException() {
         super();
     }

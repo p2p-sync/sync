@@ -153,17 +153,11 @@ public class NonBlockingBackgroundSyncer implements IBackgroundSyncer {
             for (Map.Entry<ClientDevice, IObjectStore> entry : objectStores.entrySet()) {
                 HashMap<ObjectStore.MergedObjectType, Set<String>> outdatedOrDeletedPaths = this.objectStore.mergeObjectStore(entry.getValue());
 
-                outdatedOrDeletedPaths.get(ObjectStore.MergedObjectType.CHANGED).stream().filter(outDatedPath -> ! this.isIgnored(outDatedPath)).forEach(outDatedPath -> {
-                    updatedPaths.put(outDatedPath, entry.getKey());
-                });
+                outdatedOrDeletedPaths.get(ObjectStore.MergedObjectType.CHANGED).stream().filter(outDatedPath -> ! this.isIgnored(outDatedPath)).forEach(outDatedPath -> updatedPaths.put(outDatedPath, entry.getKey()));
 
-                outdatedOrDeletedPaths.get(ObjectStore.MergedObjectType.DELETED).stream().filter(deletedPath -> ! this.isIgnored(deletedPath)).forEach(deletedPath -> {
-                    deletedPaths.put(deletedPath, entry.getKey());
-                });
+                outdatedOrDeletedPaths.get(ObjectStore.MergedObjectType.DELETED).stream().filter(deletedPath -> ! this.isIgnored(deletedPath)).forEach(deletedPath -> deletedPaths.put(deletedPath, entry.getKey()));
 
-                outdatedOrDeletedPaths.get(ObjectStore.MergedObjectType.CONFLICT).stream().filter(conflictPath -> ! this.isIgnored(conflictPath)).forEach(conflictPath -> {
-                    conflictPaths.put(conflictPath, entry.getKey());
-                });
+                outdatedOrDeletedPaths.get(ObjectStore.MergedObjectType.CONFLICT).stream().filter(conflictPath -> ! this.isIgnored(conflictPath)).forEach(conflictPath -> conflictPaths.put(conflictPath, entry.getKey()));
 
                 entry.getValue().getObjectManager().getStorageAdapater().delete(new TreePathElement("./"));
                 this.objectStore.getObjectManager().getStorageAdapater().delete(new TreePathElement(entry.getKey().getClientDeviceId().toString()));

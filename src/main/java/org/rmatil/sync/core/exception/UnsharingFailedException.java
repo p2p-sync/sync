@@ -2,6 +2,8 @@ package org.rmatil.sync.core.exception;
 
 public class UnsharingFailedException extends RuntimeException {
 
+    private static final long serialVersionUID = 256384993647642082L;
+
     public UnsharingFailedException() {
         super();
     }

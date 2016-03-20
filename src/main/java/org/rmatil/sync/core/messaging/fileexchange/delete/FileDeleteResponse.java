@@ -14,6 +14,8 @@ import java.util.UUID;
  */
 public class FileDeleteResponse extends AResponse {
 
+    private static final long serialVersionUID = 4369723874688481606L;
+
     /**
      * @param exchangeId      The id of the exchange to which this request belongs
      * @param statusCode      The status code of this response

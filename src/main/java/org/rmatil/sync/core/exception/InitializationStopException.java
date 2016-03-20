@@ -2,6 +2,8 @@ package org.rmatil.sync.core.exception;
 
 public class InitializationStopException extends RuntimeException {
 
+    private static final long serialVersionUID = 6459729184360894692L;
+
     public InitializationStopException() {
         super();
     }

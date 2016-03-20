@@ -1,7 +1,6 @@
 package org.rmatil.sync.test.eventbus;
 
 import org.junit.Test;
-import org.rmatil.sync.core.eventbus.CreateBusEvent;
 import org.rmatil.sync.core.eventbus.IgnoreBusEvent;
 import org.rmatil.sync.event.aggregator.core.events.CreateEvent;
 import org.rmatil.sync.event.aggregator.core.events.IEvent;
@@ -9,7 +8,7 @@ import org.rmatil.sync.event.aggregator.core.events.IEvent;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 
 public class IgnoreBusEventTest {
 

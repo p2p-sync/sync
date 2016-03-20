@@ -10,8 +10,10 @@ import java.util.UUID;
 
 public abstract class ARequest extends AMessage implements IRequest {
 
+    private static final long serialVersionUID = 8542749638261528475L;
+
     /**
-     * /**
+     *
      * The client device which sends this request
      */
     protected ClientDevice clientDevice;

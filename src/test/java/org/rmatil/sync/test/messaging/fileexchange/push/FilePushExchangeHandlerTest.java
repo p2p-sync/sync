@@ -12,10 +12,8 @@ import org.rmatil.sync.core.messaging.fileexchange.push.FilePushExchangeHandler;
 import org.rmatil.sync.core.messaging.fileexchange.push.FilePushExchangeHandlerResult;
 import org.rmatil.sync.event.aggregator.core.events.CreateEvent;
 import org.rmatil.sync.event.aggregator.core.events.ModifyEvent;
-import org.rmatil.sync.persistence.api.IPathElement;
 import org.rmatil.sync.persistence.exceptions.InputOutputException;
 import org.rmatil.sync.test.messaging.base.BaseNetworkHandlerTest;
-import org.rmatil.sync.version.core.model.PathObject;
 
 import java.io.IOException;
 import java.io.RandomAccessFile;

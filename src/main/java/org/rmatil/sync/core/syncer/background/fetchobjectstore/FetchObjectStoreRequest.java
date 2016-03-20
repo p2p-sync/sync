@@ -14,6 +14,8 @@ import java.util.UUID;
  */
 public class FetchObjectStoreRequest extends ARequest {
 
+    private static final long serialVersionUID = 6437564252296694001L;
+
     /**
      * @param exchangeId        The id of the exchange to which this request belongs
      * @param statusCode        The status code of the request

@@ -13,6 +13,8 @@ import java.util.UUID;
  */
 public class FileMoveResponse extends AResponse {
 
+    private static final long serialVersionUID = 5787404867724931916L;
+
     /**
      * @param exchangeId      The exchange id
      * @param clientDevice    The client device sending this request

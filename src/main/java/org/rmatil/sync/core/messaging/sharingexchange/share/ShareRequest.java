@@ -15,6 +15,8 @@ import java.util.UUID;
  */
 public class ShareRequest extends ARequest {
 
+    private static final long serialVersionUID = - 5025641169791887263L;
+
     /**
      * The file id negotiated previously
      */

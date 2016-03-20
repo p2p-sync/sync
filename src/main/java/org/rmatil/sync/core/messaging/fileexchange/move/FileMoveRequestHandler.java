@@ -187,7 +187,7 @@ public class FileMoveRequestHandler implements ILocalStateRequestCallback {
 
             for (TreePathElement element : elementsToIgnore) {
                 Path oldFilePath = Paths.get(element.getPath());
-                Path newFilePath = Paths.get(newPath.getPath()).resolve(Paths.get(oldPath.getPath()).relativize(Paths.get(this.storageAdapter.getRootDir().getPath()).relativize(Paths.get(element.getPath().toString()))));
+                Path newFilePath = Paths.get(newPath.getPath()).resolve(Paths.get(oldPath.getPath()).relativize(Paths.get(this.storageAdapter.getRootDir().getPath()).relativize(Paths.get(element.getPath()))));
 
                 this.globalEventBus.publish(new IgnoreBusEvent(
                         new MoveEvent(

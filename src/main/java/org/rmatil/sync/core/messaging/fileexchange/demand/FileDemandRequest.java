@@ -13,6 +13,8 @@ import java.util.UUID;
  */
 public class FileDemandRequest extends ARequest {
 
+    private static final long serialVersionUID = - 9136592397626688426L;
+
     /**
      * The relative path to the file which should be returned
      */

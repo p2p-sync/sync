@@ -14,6 +14,8 @@ import java.util.UUID;
  */
 public class FileMoveRequest extends ARequest {
 
+    private static final long serialVersionUID = - 5770204811691749128L;
+
     /**
      * The old relative path
      */

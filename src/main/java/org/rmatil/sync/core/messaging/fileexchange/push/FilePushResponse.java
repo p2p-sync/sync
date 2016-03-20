@@ -13,6 +13,8 @@ import java.util.UUID;
  */
 public class FilePushResponse extends AResponse {
 
+    private static final long serialVersionUID = 819417222506968642L;
+
     /**
      * The relative path to the file which should be returned
      */

@@ -4,11 +4,12 @@ import org.rmatil.sync.core.messaging.StatusCode;
 import org.rmatil.sync.network.api.IResponse;
 import org.rmatil.sync.network.core.model.ClientDevice;
 import org.rmatil.sync.network.core.model.NodeLocation;
-import org.rmatil.sync.network.core.model.NodeLocation;
 
 import java.util.UUID;
 
 public class AResponse extends AMessage implements IResponse {
+
+    private static final long serialVersionUID = 1186742955553165304L;
 
     /**
      * The client device which sends this request
