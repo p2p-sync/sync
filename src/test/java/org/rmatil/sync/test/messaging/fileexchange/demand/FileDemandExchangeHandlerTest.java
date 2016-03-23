@@ -102,7 +102,7 @@ public class FileDemandExchangeHandlerTest extends BaseNetworkHandlerTest {
                 new ModifyEvent(
                         TEST_FILE_1,
                         TEST_FILE_1.getFileName().toString(),
-                        "weIgnoreTheHash",
+                        "additionalFileSystemIgnoreEventHash",
                         System.currentTimeMillis()
                 )
         );
@@ -116,15 +116,27 @@ public class FileDemandExchangeHandlerTest extends BaseNetworkHandlerTest {
                 )
         );
 
+        IgnoreBusEvent expectedEvent4 = new IgnoreBusEvent(
+                new ModifyEvent(
+                        TEST_FILE_1,
+                        TEST_FILE_1.getFileName().toString(),
+                        "weIgnoreTheHash",
+                        System.currentTimeMillis()
+                )
+        );
+
 
         List<IBusEvent> listener2Events = EVENT_BUS_LISTENER_2.getReceivedBusEvents();
 
-        assertEquals("Listener should only contain all 4 events", 4, listener2Events.size());
+        // one additional event for file systems which modify the element
+        assertEquals("Listener should only contain all 5 events", 5, listener2Events.size());
 
         IBusEvent actualEvent0 = listener2Events.get(0);
         IBusEvent actualEvent1 = listener2Events.get(1);
         IBusEvent actualEvent2 = listener2Events.get(2);
         IBusEvent actualEvent3 = listener2Events.get(3);
+        IBusEvent actualEvent4 = listener2Events.get(4);
+
 
         assertEquals("Expected create event", expectedEvent0.getEvent().getEventName(), actualEvent0.getEvent().getEventName());
         assertEquals("Expected path for testFile1", expectedEvent0.getEvent().getPath().toString(), actualEvent0.getEvent().getPath().toString());
@@ -145,6 +157,11 @@ public class FileDemandExchangeHandlerTest extends BaseNetworkHandlerTest {
         assertEquals("Expected path for testFile1", expectedEvent3.getEvent().getPath().toString(), actualEvent3.getEvent().getPath().toString());
         assertEquals("Expected name testFile1", expectedEvent3.getEvent().getName(), actualEvent3.getEvent().getName());
         assertEquals("Expected different hash", expectedEvent3.getEvent().getHash(), actualEvent3.getEvent().getHash());
+
+        assertEquals("Expected modify event", expectedEvent4.getEvent().getEventName(), actualEvent4.getEvent().getEventName());
+        assertEquals("Expected path for testFile1", expectedEvent4.getEvent().getPath().toString(), actualEvent4.getEvent().getPath().toString());
+        assertEquals("Expected name testFile1", expectedEvent4.getEvent().getName(), actualEvent4.getEvent().getName());
+        assertEquals("Expected different hash", expectedEvent4.getEvent().getHash(), actualEvent4.getEvent().getHash());
 
         Files.delete(ROOT_TEST_DIR2.resolve(TEST_FILE_1));
     }

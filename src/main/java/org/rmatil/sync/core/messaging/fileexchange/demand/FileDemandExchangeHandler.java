@@ -328,6 +328,17 @@ public class FileDemandExchangeHandler extends ANetworkHandler<FileDemandExchang
                             fileDemandResponse.getSharers()
                     ));
                 }
+
+                // some filesystems modify the file again
+                this.globalEventBus.publish(new IgnoreBusEvent(
+                        new ModifyEvent(
+                                Paths.get(fileDemandResponse.getRelativeFilePath()),
+                                Paths.get(fileDemandResponse.getRelativeFilePath()).getFileName().toString(),
+                                "additionalFileSystemIgnoreEventHash",
+                                System.currentTimeMillis()
+                        )
+                ));
+
             } catch (InputOutputException e) {
                 logger.error("Can not determine whether the file " + localPathElement.getPath() + " exists. Message: " + e.getMessage() + ". Just checking the chunk counters...");
             }

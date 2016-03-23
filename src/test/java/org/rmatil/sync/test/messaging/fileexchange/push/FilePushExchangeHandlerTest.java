@@ -115,7 +115,7 @@ public class FilePushExchangeHandlerTest extends BaseNetworkHandlerTest {
         // 10 chunks are expected
         // 2 events for owner resp sharers
         List<IBusEvent> busEvents = EVENT_BUS_LISTENER_2.getReceivedBusEvents();
-        assertEquals("There should be ignore events for 10 chunks plus 2 for adding the owner and sharers", 12, busEvents.size());
+        assertEquals("There should be ignore events for 10 chunks plus 2 for adding the owner and sharers (+ 1 for each chunk (total 10) which may be modified by a filesystems)", 22, busEvents.size());
 
         assertThat("First event should be AddOwnerAndAccessTypeToObjectStoreBusEvent", busEvents.get(0), is(instanceOf(AddOwnerAndAccessTypeToObjectStoreBusEvent.class)));
         assertThat("2nd event should be AddSharerToObjectStoreBusEvent", busEvents.get(1), is(instanceOf(AddSharerToObjectStoreBusEvent.class)));
@@ -133,6 +133,33 @@ public class FilePushExchangeHandlerTest extends BaseNetworkHandlerTest {
         assertThat("8th event should be IgnoreBusEvent (ModifyEvent)", busEvents.get(7).getEvent(), is(instanceOf(ModifyEvent.class)));
         assertThat("9th event should be IgnoreBusEvent", busEvents.get(8), is(instanceOf(IgnoreBusEvent.class)));
         assertThat("9th event should be IgnoreBusEvent (ModifyEvent)", busEvents.get(8).getEvent(), is(instanceOf(ModifyEvent.class)));
+        assertThat("10th event should be IgnoreBusEvent", busEvents.get(9), is(instanceOf(IgnoreBusEvent.class)));
+        assertThat("10th event should be IgnoreBusEvent (ModifyEvent)", busEvents.get(9).getEvent(), is(instanceOf(ModifyEvent.class)));
+        assertThat("11th event should be IgnoreBusEvent", busEvents.get(10), is(instanceOf(IgnoreBusEvent.class)));
+        assertThat("11th event should be IgnoreBusEvent (ModifyEvent)", busEvents.get(10).getEvent(), is(instanceOf(ModifyEvent.class)));
+        assertThat("12th event should be IgnoreBusEvent", busEvents.get(11), is(instanceOf(IgnoreBusEvent.class)));
+        assertThat("12th event should be IgnoreBusEvent (ModifyEvent)", busEvents.get(11).getEvent(), is(instanceOf(ModifyEvent.class)));
+        assertThat("13th event should be IgnoreBusEvent", busEvents.get(12), is(instanceOf(IgnoreBusEvent.class)));
+        assertThat("13th event should be IgnoreBusEvent (ModifyEvent)", busEvents.get(12).getEvent(), is(instanceOf(ModifyEvent.class)));
+        assertThat("14th event should be IgnoreBusEvent", busEvents.get(13), is(instanceOf(IgnoreBusEvent.class)));
+        assertThat("14th event should be IgnoreBusEvent (ModifyEvent)", busEvents.get(13).getEvent(), is(instanceOf(ModifyEvent.class)));
+        assertThat("15th event should be IgnoreBusEvent", busEvents.get(14), is(instanceOf(IgnoreBusEvent.class)));
+        assertThat("15th event should be IgnoreBusEvent (ModifyEvent)", busEvents.get(14).getEvent(), is(instanceOf(ModifyEvent.class)));
+        assertThat("16th event should be IgnoreBusEvent", busEvents.get(15), is(instanceOf(IgnoreBusEvent.class)));
+        assertThat("16th event should be IgnoreBusEvent (ModifyEvent)", busEvents.get(15).getEvent(), is(instanceOf(ModifyEvent.class)));
+        assertThat("17th event should be IgnoreBusEvent", busEvents.get(16), is(instanceOf(IgnoreBusEvent.class)));
+        assertThat("17th event should be IgnoreBusEvent (ModifyEvent)", busEvents.get(16).getEvent(), is(instanceOf(ModifyEvent.class)));
+        assertThat("18th event should be IgnoreBusEvent", busEvents.get(17), is(instanceOf(IgnoreBusEvent.class)));
+        assertThat("18th event should be IgnoreBusEvent (ModifyEvent)", busEvents.get(17).getEvent(), is(instanceOf(ModifyEvent.class)));
+        assertThat("19th event should be IgnoreBusEvent", busEvents.get(18), is(instanceOf(IgnoreBusEvent.class)));
+        assertThat("19th event should be IgnoreBusEvent (ModifyEvent)", busEvents.get(18).getEvent(), is(instanceOf(ModifyEvent.class)));
+        assertThat("20th event should be IgnoreBusEvent", busEvents.get(19), is(instanceOf(IgnoreBusEvent.class)));
+        assertThat("20th event should be IgnoreBusEvent (ModifyEvent)", busEvents.get(19).getEvent(), is(instanceOf(ModifyEvent.class)));
+        assertThat("21th event should be IgnoreBusEvent", busEvents.get(20), is(instanceOf(IgnoreBusEvent.class)));
+        assertThat("21th event should be IgnoreBusEvent (ModifyEvent)", busEvents.get(20).getEvent(), is(instanceOf(ModifyEvent.class)));
+        assertThat("21th event should be IgnoreBusEvent", busEvents.get(21), is(instanceOf(IgnoreBusEvent.class)));
+        assertThat("21th event should be IgnoreBusEvent (ModifyEvent)", busEvents.get(21).getEvent(), is(instanceOf(ModifyEvent.class)));
+
     }
 
     @Test

@@ -209,6 +209,9 @@ public class FilePushRequestHandler implements ILocalStateRequestCallback {
                         this.publishIgnoreModifyEvent(localPathElement);
                     }
 
+                    // some file systems modify the file again
+                    this.publishIgnoreModifyEvent(localPathElement);
+
                     this.storageAdapter.persist(StorageType.FILE, localPathElement, this.request.getChunkCounter() * this.request.getChunkSize(), this.request.getData().getContent());
                 } catch (InputOutputException e) {
                     logger.error("Could not write chunk " + this.request.getChunkCounter() + " of file " + localPathElement.getPath() + ". Message: " + e.getMessage(), e);
