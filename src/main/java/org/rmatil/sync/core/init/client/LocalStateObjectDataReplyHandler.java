@@ -8,9 +8,11 @@ import org.rmatil.sync.core.messaging.fileexchange.demand.FileDemandRequest;
 import org.rmatil.sync.core.messaging.fileexchange.demand.FileDemandResponse;
 import org.rmatil.sync.core.messaging.fileexchange.offer.FileOfferRequest;
 import org.rmatil.sync.core.messaging.fileexchange.offer.FileOfferResponse;
+import org.rmatil.sync.core.messaging.fileexchange.push.FilePushRequestHandler;
 import org.rmatil.sync.core.security.IAccessManager;
 import org.rmatil.sync.event.aggregator.api.IEventAggregator;
 import org.rmatil.sync.network.api.*;
+import org.rmatil.sync.network.core.ANetworkHandler;
 import org.rmatil.sync.network.core.messaging.ObjectDataReplyHandler;
 import org.rmatil.sync.network.core.model.ClientDevice;
 import org.rmatil.sync.network.core.model.NodeLocation;
@@ -201,6 +203,15 @@ public class LocalStateObjectDataReplyHandler extends ObjectDataReplyHandler {
             if (this.requestCallbackHandlers.containsKey(request.getClass())) {
                 logger.debug("Using " + this.requestCallbackHandlers.get(request.getClass()).getName() + " as handler for request " + ((IRequest) request).getExchangeId());
                 Class<? extends IRequestCallback> requestCallbackClass = this.requestCallbackHandlers.get(request.getClass());
+
+                // if there is a file push request we prevent the
+                // background syncer from running
+                if (FilePushRequestHandler.class.isAssignableFrom(requestCallbackClass)) {
+                    super.runningRequestCallbacks.put(
+                            System.currentTimeMillis() + ANetworkHandler.MAX_WAITING_TIME,
+                            ((IRequest) request).getExchangeId()
+                    );
+                }
 
                 if (IExtendedLocalStateRequestCallback.class.isAssignableFrom(requestCallbackClass)) {
                     // create a new instance running in its own thread

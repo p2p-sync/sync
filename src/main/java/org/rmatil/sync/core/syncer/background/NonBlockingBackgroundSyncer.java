@@ -120,6 +120,14 @@ public class NonBlockingBackgroundSyncer implements IBackgroundSyncer {
                     exchangeId
             );
 
+            int nrOfRunningResponseCallbackExchanges = this.node.getObjectDataReplyHandler().getResponseCallbackHandlers().size();
+            if (0 < nrOfRunningResponseCallbackExchanges || this.node.getObjectDataReplyHandler().areRequestCallbacksRunning()) {
+                // other callbacks are currently in progress
+                // -> postpone this run to next interval
+                logger.info("Skipping execution of background synchronisation since other exchanges are currently running");
+                return;
+            }
+
             this.node.getObjectDataReplyHandler().addResponseCallbackHandler(exchangeId, fetchObjectStoreExchangeHandler);
 
             Thread fetchObjectStoreExchangeHandlerThread = new Thread(fetchObjectStoreExchangeHandler);
