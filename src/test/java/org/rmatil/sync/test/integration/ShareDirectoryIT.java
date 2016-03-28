@@ -137,7 +137,7 @@ public class ShareDirectoryIT extends BaseIT {
         assertEquals("AccessType should be write", AccessType.WRITE, dirObject.getAccessType());
         assertThat("No sharer should be inside", dirObject.getSharers(), is(empty()));
         assertEquals("PathType should be dir", PathType.DIRECTORY, dirObject.getPathType());
-        assertEquals("Only one version should be contained", 1, dirObject.getVersions().size());
+        assertTrue("At least one version should be contained", dirObject.getVersions().size() >= 1);
 
         dirObject = OBJECT_STORE_4.getObjectManager().getObjectForPath(Config.DEFAULT.getSharedWithOthersReadWriteFolderName() + "/" + TEST_DIR);
         assertNotNull("Pathobject for testDir should not be null", dirObject);
@@ -146,7 +146,7 @@ public class ShareDirectoryIT extends BaseIT {
         assertEquals("AccessType should be write", AccessType.WRITE, dirObject.getAccessType());
         assertThat("No sharer should be inside", dirObject.getSharers(), is(empty()));
         assertEquals("PathType should be dir", PathType.DIRECTORY, dirObject.getPathType());
-        assertEquals("Only one version should be contained", 1, dirObject.getVersions().size());
+        assertTrue("At least one version should be contained", dirObject.getVersions().size() >= 1);
 
 
         sharingSyncer.sync(shareEvent2);
@@ -166,7 +166,7 @@ public class ShareDirectoryIT extends BaseIT {
         assertEquals("AccessType should be write", AccessType.WRITE, file1Object.getAccessType());
         assertThat("No sharer should be inside", file1Object.getSharers(), is(empty()));
         assertEquals("PathType should be file", PathType.FILE, file1Object.getPathType());
-        assertEquals("Only one version should be contained", 1, file1Object.getVersions().size());
+        assertTrue("At least one version should be contained", file1Object.getVersions().size() >= 1);
 
         file1Object = OBJECT_STORE_4.getObjectManager().getObjectForPath(Config.DEFAULT.getSharedWithOthersReadWriteFolderName() + "/" + TEST_FILE_1);
         assertNotNull("Pathobject for testFile1 should not be null", file1Object);
@@ -175,7 +175,7 @@ public class ShareDirectoryIT extends BaseIT {
         assertEquals("AccessType should be write", AccessType.WRITE, file1Object.getAccessType());
         assertThat("No sharer should be inside", file1Object.getSharers(), is(empty()));
         assertEquals("PathType should be file", PathType.FILE, file1Object.getPathType());
-        assertEquals("Only one version should be contained", 1, file1Object.getVersions().size());
+        assertTrue("At least one version should be contained", file1Object.getVersions().size() >= 1);
 
 
         sharingSyncer.sync(shareEvent3);
@@ -195,7 +195,7 @@ public class ShareDirectoryIT extends BaseIT {
         assertEquals("AccessType should be write", AccessType.WRITE, file2Object.getAccessType());
         assertThat("No sharer should be inside", file2Object.getSharers(), is(empty()));
         assertEquals("PathType should be file", PathType.FILE, file2Object.getPathType());
-        assertEquals("Only one version should be contained", 1, file2Object.getVersions().size());
+        assertTrue("At least one version should be contained", file2Object.getVersions().size() >= 1);
 
         file2Object = OBJECT_STORE_4.getObjectManager().getObjectForPath(Config.DEFAULT.getSharedWithOthersReadWriteFolderName() + "/" + TEST_FILE_2);
         assertNotNull("Pathobject for testFile2 should not be null", file2Object);
@@ -204,7 +204,7 @@ public class ShareDirectoryIT extends BaseIT {
         assertEquals("AccessType should be write", AccessType.WRITE, file2Object.getAccessType());
         assertThat("No sharer should be inside", file2Object.getSharers(), is(empty()));
         assertEquals("PathType should be file", PathType.FILE, file2Object.getPathType());
-        assertEquals("Only one version should be contained", 1, file2Object.getVersions().size());
+        assertTrue("At least one version should be contained", file2Object.getVersions().size() >= 1);
 
 
         // ok, lets unshare the whole thing in reverse order...
@@ -225,7 +225,7 @@ public class ShareDirectoryIT extends BaseIT {
         assertEquals("Two sharing history entries should be present (share & unshare)", 2, file2ObjectClient1.getSharers().iterator().next().getSharingHistory().size());
         assertEquals("Sharer's access type should be revoked", AccessType.ACCESS_REMOVED, file2ObjectClient1.getSharers().iterator().next().getAccessType());
         assertEquals("PathType should be file", PathType.FILE, file2ObjectClient1.getPathType());
-        assertEquals("Only one version should be contained", 1, file2ObjectClient1.getVersions().size());
+        assertTrue("At least one version should be contained", file2ObjectClient1.getVersions().size() >= 1);
 
         PathObject file2ObjectClient2 = OBJECT_STORE_2.getObjectManager().getObjectForPath(TEST_FILE_2.toString());
         assertNotNull("Pathobject for testFile2 should not be null", file2ObjectClient2);
@@ -237,7 +237,7 @@ public class ShareDirectoryIT extends BaseIT {
         assertEquals("Two sharing history entries should be present (share & unshare)", 2, file2ObjectClient2.getSharers().iterator().next().getSharingHistory().size());
         assertEquals("Sharer's access type should be revoked", AccessType.ACCESS_REMOVED, file2ObjectClient2.getSharers().iterator().next().getAccessType());
         assertEquals("PathType should be file", PathType.FILE, file2ObjectClient2.getPathType());
-        assertEquals("Only one version should be contained", 1, file2ObjectClient2.getVersions().size());
+        assertTrue("At least one version should be contained", file2ObjectClient2.getVersions().size() >= 1);
 
 
         System.err.println("Waiting, that unsharing is also propagated to client4");
@@ -253,7 +253,7 @@ public class ShareDirectoryIT extends BaseIT {
         assertNull("AccessType should be null", file2Object.getAccessType());
         assertThat("No sharer should be inside", file2Object.getSharers(), is(empty()));
         assertEquals("PathType should be file", PathType.FILE, file2Object.getPathType());
-        assertEquals("Only one version should be contained", 1, file2Object.getVersions().size());
+        assertTrue("At least one version should be contained", file2Object.getVersions().size() >= 1);
 
         file2Object = OBJECT_STORE_4.getObjectManager().getObjectForPath(Config.DEFAULT.getSharedWithOthersReadWriteFolderName() + "/" + TEST_FILE_2);
         assertNotNull("Pathobject for testFile2 should not be null", file2Object);
@@ -262,7 +262,7 @@ public class ShareDirectoryIT extends BaseIT {
         assertNull("AccessType should be null", file2Object.getAccessType());
         assertThat("No sharer should be inside", file2Object.getSharers(), is(empty()));
         assertEquals("PathType should be file", PathType.FILE, file2Object.getPathType());
-        assertEquals("Only one version should be contained", 1, file2Object.getVersions().size());
+        assertTrue("At least one version should be contained", file2Object.getVersions().size() >= 1);
 
         // unsharing file 1
         sharingSyncer.sync(unshareEvent2);
@@ -278,7 +278,7 @@ public class ShareDirectoryIT extends BaseIT {
         assertEquals("Two sharing history entries should be present (share & unshare)", 2, file1ObjectClient1.getSharers().iterator().next().getSharingHistory().size());
         assertEquals("Sharer's access type should be revoked", AccessType.ACCESS_REMOVED, file1ObjectClient1.getSharers().iterator().next().getAccessType());
         assertEquals("PathType should be file", PathType.FILE, file1ObjectClient1.getPathType());
-        assertEquals("Only one version should be contained", 1, file1ObjectClient1.getVersions().size());
+        assertTrue("At least one version should be contained", file1ObjectClient1.getVersions().size() >= 1);
 
         PathObject file1ObjectClient2 = OBJECT_STORE_2.getObjectManager().getObjectForPath(TEST_FILE_1.toString());
         assertNotNull("Pathobject for testFile1 should not be null", file1ObjectClient2);
@@ -290,7 +290,7 @@ public class ShareDirectoryIT extends BaseIT {
         assertEquals("Two sharing history entries should be present (share & unshare)", 2, file1ObjectClient2.getSharers().iterator().next().getSharingHistory().size());
         assertEquals("Sharer's access type should be revoked", AccessType.ACCESS_REMOVED, file1ObjectClient2.getSharers().iterator().next().getAccessType());
         assertEquals("PathType should be file", PathType.FILE, file1ObjectClient2.getPathType());
-        assertEquals("Only one version should be contained", 1, file1ObjectClient2.getVersions().size());
+        assertTrue("At least one version should be contained", file1ObjectClient2.getVersions().size() >= 1);
 
 
         System.err.println("Waiting, that unsharing is also propagated to client4");
@@ -306,7 +306,7 @@ public class ShareDirectoryIT extends BaseIT {
         assertNull("AccessType should be null", file2Object.getAccessType());
         assertThat("No sharer should be inside", file2Object.getSharers(), is(empty()));
         assertEquals("PathType should be file", PathType.FILE, file2Object.getPathType());
-        assertEquals("Only one version should be contained", 1, file2Object.getVersions().size());
+        assertTrue("At least one version should be contained", file2Object.getVersions().size() >= 1);
 
         file2Object = OBJECT_STORE_4.getObjectManager().getObjectForPath(Config.DEFAULT.getSharedWithOthersReadWriteFolderName() + "/" + TEST_FILE_1);
         assertNotNull("Pathobject for testFile1 should not be null", file2Object);
@@ -315,7 +315,7 @@ public class ShareDirectoryIT extends BaseIT {
         assertNull("AccessType should be null", file2Object.getAccessType());
         assertThat("No sharer should be inside", file2Object.getSharers(), is(empty()));
         assertEquals("PathType should be file", PathType.FILE, file2Object.getPathType());
-        assertEquals("Only one version should be contained", 1, file2Object.getVersions().size());
+        assertTrue("At least one version should be contained", file2Object.getVersions().size() >= 1);
 
 
         // finally unshare the directory
@@ -332,7 +332,7 @@ public class ShareDirectoryIT extends BaseIT {
         assertEquals("Two sharing history entries should be present (share & unshare)", 2, dirObjectClient1.getSharers().iterator().next().getSharingHistory().size());
         assertEquals("Sharer's access type should be revoked", AccessType.ACCESS_REMOVED, dirObjectClient1.getSharers().iterator().next().getAccessType());
         assertEquals("PathType should be dir", PathType.DIRECTORY, dirObjectClient1.getPathType());
-        assertEquals("Only one version should be contained", 1, dirObjectClient1.getVersions().size());
+        assertTrue("At least one version should be contained", dirObjectClient1.getVersions().size() >= 1);
 
         PathObject dirObjectClient2 = OBJECT_STORE_2.getObjectManager().getObjectForPath(TEST_DIR.toString());
         assertNotNull("Pathobject for testdir should not be null", dirObjectClient2);
@@ -344,7 +344,7 @@ public class ShareDirectoryIT extends BaseIT {
         assertEquals("Two sharing history entries should be present (share & unshare)", 2, dirObjectClient2.getSharers().iterator().next().getSharingHistory().size());
         assertEquals("Sharer's access type should be revoked", AccessType.ACCESS_REMOVED, dirObjectClient2.getSharers().iterator().next().getAccessType());
         assertEquals("PathType should be dir", PathType.DIRECTORY, dirObjectClient2.getPathType());
-        assertEquals("Only one version should be contained", 1, dirObjectClient2.getVersions().size());
+        assertTrue("At least one version should be contained", dirObjectClient2.getVersions().size() >= 1);
 
 
         System.err.println("Waiting, that unsharing is also propagated to client4");
@@ -360,7 +360,7 @@ public class ShareDirectoryIT extends BaseIT {
         assertNull("AccessType should be null", file2Object.getAccessType());
         assertThat("No sharer should be inside", file2Object.getSharers(), is(empty()));
         assertEquals("PathType should be dir", PathType.DIRECTORY, file2Object.getPathType());
-        assertEquals("Only five version should be contained (empty, file1, file2, file1, empty)", 5, file2Object.getVersions().size());
+        assertTrue("At least five version should be contained (empty, file1, file2, file1, empty)", file2Object.getVersions().size() >= 5);
 
         file2Object = OBJECT_STORE_4.getObjectManager().getObjectForPath(Config.DEFAULT.getSharedWithOthersReadWriteFolderName() + "/" + TEST_DIR);
         assertNotNull("Pathobject for test dir should not be null", file2Object);
@@ -369,6 +369,6 @@ public class ShareDirectoryIT extends BaseIT {
         assertNull("AccessType should be null", file2Object.getAccessType());
         assertThat("No sharer should be inside", file2Object.getSharers(), is(empty()));
         assertEquals("PathType should be dir", PathType.DIRECTORY, file2Object.getPathType());
-        assertEquals("Only five version should be contained (empty, file1, file2, file1, empty)", 5, file2Object.getVersions().size());
+        assertTrue("At least five version should be contained (empty, file1, file2, file1, empty)", file2Object.getVersions().size() >= 5);
     }
 }
