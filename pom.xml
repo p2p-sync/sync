@@ -55,6 +55,7 @@
         <property name="java.target" value="1.8" />
         <property name="java.source" value="1.8" />
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <!-- github server corresponds to entry in ~/.m2/settings.xml -->
         <github.global.server>github</github.global.server>
     </properties>
