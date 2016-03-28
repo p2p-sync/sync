@@ -215,6 +215,8 @@ public class ShareDirectoryIT extends BaseIT {
         sharingSyncer.sync(unshareEvent1);
         assertFalse("TestFile2 should not exist anymore on client3", Files.exists(expectedTestFile2));
 
+        Thread.sleep(EVENT_AGGREGATOR_1.getAggregationInterval() + 2000L);
+
         PathObject file2ObjectClient1 = OBJECT_STORE_1.getObjectManager().getObjectForPath(TEST_FILE_2.toString());
         assertNotNull("Pathobject for testFile2 should not be null", file2ObjectClient1);
         assertFalse("File should not be shared", file2ObjectClient1.isShared());
@@ -360,7 +362,8 @@ public class ShareDirectoryIT extends BaseIT {
         assertNull("AccessType should be null", file2Object.getAccessType());
         assertThat("No sharer should be inside", file2Object.getSharers(), is(empty()));
         assertEquals("PathType should be dir", PathType.DIRECTORY, file2Object.getPathType());
-        assertTrue("At least five version should be contained (empty, file1, file2, file1, empty)", file2Object.getVersions().size() >= 5);
+        int size = file2Object.getVersions().size();
+        assertTrue("At least five version should be contained (empty, file1, file2, file1, empty) was " + size, size >= 5);
 
         file2Object = OBJECT_STORE_4.getObjectManager().getObjectForPath(Config.DEFAULT.getSharedWithOthersReadWriteFolderName() + "/" + TEST_DIR);
         assertNotNull("Pathobject for test dir should not be null", file2Object);
