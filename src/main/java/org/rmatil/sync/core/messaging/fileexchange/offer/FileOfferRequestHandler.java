@@ -281,6 +281,7 @@ public class FileOfferRequestHandler implements ILocalStateRequestCallback {
         String beforeLastRemoteFileVersionHash = this.request.getEvent().getHashBefore();
 
         // check if the file does exist locally, if not then we agree automatically and fetch the latest changes later
+        String localVersions = "";
         try {
             if (this.storageAdapter.exists(StorageType.FILE, pathElement)) {
                 PathObject pathObject;
@@ -295,6 +296,10 @@ public class FileOfferRequestHandler implements ILocalStateRequestCallback {
                 List<Version> localFileVersions = pathObject.getVersions();
                 Version lastLocalFileVersion = localFileVersions.size() > 0 ? localFileVersions.get(localFileVersions.size() - 1) : null;
                 lastLocalFileVersionHash = (null != lastLocalFileVersion) ? lastLocalFileVersion.getHash() : null;
+
+                for (Version v : localFileVersions) {
+                    localVersions += v.getHash() + ", ";
+                }
 
                 eventHash = this.request.getEvent().getHash();
             } else if (this.storageAdapter.exists(StorageType.DIRECTORY, pathElement)) {
@@ -313,6 +318,7 @@ public class FileOfferRequestHandler implements ILocalStateRequestCallback {
                                 ! lastLocalFileVersionHash.equals(beforeLastRemoteFileVersionHash)) // ... if we do not have the version before the hash of the event
                 )) {
 
+
             logger.info("Detected conflict for fileExchange "
                     + this.request.getExchangeId()
                     + ": Remote version from client "
@@ -321,6 +327,7 @@ public class FileOfferRequestHandler implements ILocalStateRequestCallback {
                     + ((eventHash == null) ? "null" : eventHash)
                     + ", local version was "
                     + ((lastLocalFileVersionHash == null) ? "null" : lastLocalFileVersionHash)
+                    + ". All local versions are " + localVersions
             );
 
             return CONFLICT_TYPE.CONFLICT;
