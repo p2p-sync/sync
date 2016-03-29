@@ -55,6 +55,7 @@
         <property name="java.target" value="1.8" />
         <property name="java.source" value="1.8" />
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <!-- github server corresponds to entry in ~/.m2/settings.xml -->
         <github.global.server>github</github.global.server>
     </properties>
@@ -84,16 +85,15 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-failsafe-plugin</artifactId>
                 <version>2.13</version>
+                <configuration>
+                    <!-- This is required for code coverage to work. -->
+                    <argLine>${argLine}</argLine>
+                </configuration>
                 <executions>
-                    <execution>
-                        <id>integration-test</id>
-                        <goals>
-                            <goal>integration-test</goal>
-                        </goals>
-                    </execution>
                     <execution>
                         <id>verify</id>
                         <goals>
+                            <goal>integration-test</goal>
                             <goal>verify</goal>
                         </goals>
                     </execution>
