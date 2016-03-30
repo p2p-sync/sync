@@ -361,7 +361,7 @@ public class Sync {
      * </ol>
      */
     public void shutdown() {
-        this.backgroundSyncerExecutorService.shutdown();
+        this.backgroundSyncerExecutorService.shutdownNow();
         this.eventAggregator.stop();
         this.syncFileChangeListener.shutdown();
         this.node.shutdown();
