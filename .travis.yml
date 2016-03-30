@@ -3,7 +3,4 @@ jdk:
   - oraclejdk8
 
 after_success:
-  - mvn clean
-  - mvn verify -P integration-test
-  - mvn verify -P unit-test
-  - mvn coveralls:report
+  - mvn clean verify -P all-tests coveralls:report

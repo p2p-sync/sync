@@ -73,9 +73,6 @@
             </properties>
         </profile>
         <profile>
-            <id>dev</id>
-        </profile>
-        <profile>
             <id>integration-test</id>
             <properties>
                 <!-- Used to locate the profile specific configuration file. -->
