@@ -52,6 +52,8 @@
     </repositories>
 
     <properties>
+        <!-- default profile id -->
+        <build.profile.id>dev</build.profile.id>
         <property name="java.target" value="1.8" />
         <property name="java.source" value="1.8" />
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -62,7 +64,11 @@
         <jacoco.ut.execution.data.file>${project.build.directory}/coverage-reports/jacoco-ut.exec</jacoco.ut.execution.data.file>
     </properties>
 
+    <!-- configuration from https://github.com/pkainulainen/maven-examples/tree/master/code-coverage-jacoco -->
     <profiles>
+        <profile>
+            <id>dev</id>
+        </profile>
         <profile>
             <id>all-tests</id>
             <properties>
