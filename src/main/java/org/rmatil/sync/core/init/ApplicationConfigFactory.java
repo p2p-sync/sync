@@ -102,7 +102,6 @@ public final class ApplicationConfigFactory {
         ignorePatterns.add("**.fuse_hidden*");
         ignorePatterns.add("**.unison");
         ignorePatterns.add("**.nfs*");
-        ignorePatterns.add("**.Win7.vdi");
         ignorePatterns.add("**~");
         ignorePatterns.add("**~$*");
         ignorePatterns.add("**.~lock.*");
