@@ -19,7 +19,7 @@
     <orderEntry type="library" name="Maven: io.netty:netty-transport:4.0.25.Final" level="project" />
     <orderEntry type="library" name="Maven: io.netty:netty-buffer:4.0.25.Final" level="project" />
     <orderEntry type="library" name="Maven: io.netty:netty-common:4.0.25.Final" level="project" />
-    <orderEntry type="library" name="Maven: org.rmatil.sync.commons:sync-commons:0.1-SNAPSHOT" level="project" />
+    <orderEntry type="library" name="Maven: org.rmatil.sync.commons:sync-commons:1.0.0" level="project" />
     <orderEntry type="library" name="Maven: com.google.guava:guava:18.0" level="project" />
     <orderEntry type="library" name="Maven: junit:junit:4.12" level="project" />
     <orderEntry type="library" name="Maven: org.hamcrest:hamcrest-core:1.3" level="project" />
@@ -27,9 +27,8 @@
     <orderEntry type="library" name="Maven: org.slf4j:slf4j-log4j12:1.7.5" level="project" />
     <orderEntry type="library" name="Maven: org.slf4j:slf4j-api:1.7.5" level="project" />
     <orderEntry type="library" name="Maven: log4j:log4j:1.2.17" level="project" />
-    <orderEntry type="library" name="Maven: org.rmatil.sync.event.aggregator:sync-event-aggregator:0.1-SNAPSHOT" level="project" />
-    <orderEntry type="library" name="Maven: name.mitterdorfer.perlock:perlock-core:0.3.0" level="project" />
-    <orderEntry type="library" name="Maven: org.rmatil.sync.network:sync-network:0.1-SNAPSHOT" level="project" />
+    <orderEntry type="library" name="Maven: org.rmatil.sync.event.aggregator:sync-event-aggregator:1.0.0" level="project" />
+    <orderEntry type="library" name="Maven: org.rmatil.sync.network:sync-network:1.0.0" level="project" />
     <orderEntry type="library" name="Maven: org.bouncycastle:bcprov-jdk15on:1.53" level="project" />
     <orderEntry type="library" name="Maven: net.tomp2p:tomp2p-dht:5.0-Beta8" level="project" />
     <orderEntry type="library" name="Maven: io.netty:netty-transport:4.0.28.Final" level="project" />
@@ -38,8 +37,8 @@
     <orderEntry type="library" name="Maven: net.tomp2p:tomp2p-core:5.0-Beta8" level="project" />
     <orderEntry type="library" name="Maven: net.tomp2p:tomp2p-replication:5.0-Beta8" level="project" />
     <orderEntry type="library" name="Maven: org.apache.commons:commons-lang3:3.1" level="project" />
-    <orderEntry type="library" name="Maven: org.rmatil.sync.persistence:sync-persistence:0.1-SNAPSHOT" level="project" />
-    <orderEntry type="library" name="Maven: org.rmatil.sync.version:sync-version:0.1-SNAPSHOT" level="project" />
+    <orderEntry type="library" name="Maven: org.rmatil.sync.persistence:sync-persistence:1.0.0" level="project" />
+    <orderEntry type="library" name="Maven: org.rmatil.sync.version:sync-version:1.0.0" level="project" />
     <orderEntry type="library" name="Maven: com.google.code.gson:gson:2.5" level="project" />
     <orderEntry type="library" name="Maven: net.engio:mbassador:1.2.4" level="project" />
   </component>
