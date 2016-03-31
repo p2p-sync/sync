@@ -54,6 +54,8 @@
     <properties>
         <!-- default profile id -->
         <build.profile.id>dev</build.profile.id>
+        <skip.integration.tests>true</skip.integration.tests>
+        <skip.unit.tests>true</skip.unit.tests>
         <property name="java.target" value="1.8" />
         <property name="java.source" value="1.8" />
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>

@@ -2,5 +2,8 @@ language: java
 jdk:
   - oraclejdk8
 
+# skip maven install
+install: true
+
 after_success:
   - mvn clean verify -P all-tests coveralls:report
