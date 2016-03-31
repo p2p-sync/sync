@@ -3,9 +3,10 @@
   <groupId>org.rmatil.sync</groupId>
   <artifactId>sync</artifactId>
   <versioning>
+    <release>1.0.0</release>
     <versions>
-      <version>0.1-SNAPSHOT</version>
+      <version>1.0.0</version>
     </versions>
-    <lastUpdated>20160330135921</lastUpdated>
+    <lastUpdated>20160331002928</lastUpdated>
   </versioning>
 </metadata>
